@@ -5,13 +5,26 @@
     </button>
 
     <div class="card-content">
+      <div class="voice-brand hj-brand-lockup">
+        <span class="hj-brand-mark hj-brand-mark--voice" aria-hidden="true">
+  <span class="hj-brand-face">
+    <span class="hj-brand-eye hj-brand-eye--left"></span>
+    <span class="hj-brand-eye hj-brand-eye--right"></span>
+    <span class="hj-brand-smile"></span>
+    <span class="hj-brand-spark hj-brand-spark--one"></span>
+    <span class="hj-brand-spark hj-brand-spark--two"></span>
+  </span>
+</span>
+        <span class="hj-brand-word"><span class="hj-brand-hey">hey</span><span class="hj-brand-jivu">jivu</span></span>
+      </div>
+
       <!-- Status Badge -->
       <div class="status-badge" [ngClass]="status()">
         <span class="status-dot"></span>
         <span class="status-text">
           <ng-container [ngSwitch]="status()">
             <span *ngSwitchCase="'listening'">Listening...</span>
-            <span *ngSwitchCase="'processing'">Brain is thinking...</span>
+            <span *ngSwitchCase="'processing'">Jivu is thinking...</span>
             <span *ngSwitchCase="'speaking'">Speaking...</span>
             <span *ngSwitchCase="'error'">System Alert</span>
             <span *ngSwitchDefault>Ready</span>
@@ -24,33 +37,60 @@
         <div class="visualizer-waves" [ngClass]="status()">
           <!-- Listening Waves -->
           <ng-container *ngIf="status() === 'listening'">
-            <div class="ripple ripple-1"></div>
-            <div class="ripple ripple-2"></div>
-            <div class="ripple ripple-3"></div>
+            <div class="hj-ripple hj-ripple--one"></div>
+            <div class="hj-ripple hj-ripple--two"></div>
+            <div class="hj-ripple hj-ripple--three"></div>
             <div class="visualizer-center listening">
-              <i class="fas fa-microphone"></i>
+              <span class="hj-brand-mark hj-brand-mark--voice" aria-hidden="true">
+  <span class="hj-brand-face">
+    <span class="hj-brand-eye hj-brand-eye--left"></span>
+    <span class="hj-brand-eye hj-brand-eye--right"></span>
+    <span class="hj-brand-smile"></span>
+    <span class="hj-brand-spark hj-brand-spark--one"></span>
+    <span class="hj-brand-spark hj-brand-spark--two"></span>
+  </span>
+</span>
+              <i class="visualizer-status-icon fas fa-microphone"></i>
             </div>
           </ng-container>
 
           <!-- Thinking / Processing Waves -->
           <ng-container *ngIf="status() === 'processing'">
-            <div class="spinning-ring"></div>
+            <div class="hj-spinner-ring"></div>
             <div class="visualizer-center processing">
-              <i class="fas fa-brain fa-pulse"></i>
+              <span class="hj-brand-mark hj-brand-mark--voice" aria-hidden="true">
+  <span class="hj-brand-face">
+    <span class="hj-brand-eye hj-brand-eye--left"></span>
+    <span class="hj-brand-eye hj-brand-eye--right"></span>
+    <span class="hj-brand-smile"></span>
+    <span class="hj-brand-spark hj-brand-spark--one"></span>
+    <span class="hj-brand-spark hj-brand-spark--two"></span>
+  </span>
+</span>
+              <i class="visualizer-status-icon fas fa-brain fa-pulse"></i>
             </div>
           </ng-container>
 
           <!-- Speaking Waves -->
           <ng-container *ngIf="status() === 'speaking'">
-            <div class="wave-bar-container">
-              <div class="wave-bar bar-1"></div>
-              <div class="wave-bar bar-2"></div>
-              <div class="wave-bar bar-3"></div>
-              <div class="wave-bar bar-4"></div>
-              <div class="wave-bar bar-5"></div>
+            <div class="hj-wave-bar-container">
+              <div class="hj-wave-bar hj-wave-bar--one"></div>
+              <div class="hj-wave-bar hj-wave-bar--two"></div>
+              <div class="hj-wave-bar hj-wave-bar--three"></div>
+              <div class="hj-wave-bar hj-wave-bar--four"></div>
+              <div class="hj-wave-bar hj-wave-bar--five"></div>
             </div>
             <div class="visualizer-center speaking">
-              <i class="fas fa-volume-up"></i>
+              <span class="hj-brand-mark hj-brand-mark--voice" aria-hidden="true">
+  <span class="hj-brand-face">
+    <span class="hj-brand-eye hj-brand-eye--left"></span>
+    <span class="hj-brand-eye hj-brand-eye--right"></span>
+    <span class="hj-brand-smile"></span>
+    <span class="hj-brand-spark hj-brand-spark--one"></span>
+    <span class="hj-brand-spark hj-brand-spark--two"></span>
+  </span>
+</span>
+              <i class="visualizer-status-icon fas fa-volume-up"></i>
             </div>
           </ng-container>
 
@@ -66,13 +106,13 @@
       <!-- Live User Transcript Display -->
       <div class="text-display-box">
         <p class="section-title">
-          {{ status() === 'speaking' ? 'AuraDesk Brain Reply' : 'What I Hear' }}
+          {{ status() === 'speaking' ? 'Jivu Reply' : 'What I Hear' }}
         </p>
         <div class="text-content">
           <p *ngIf="status() === 'speaking'" class="ai-text">{{ aiResponse() }}</p>
           <p *ngIf="status() !== 'speaking' && transcript()" class="user-text">{{ transcript() }}</p>
           <p *ngIf="status() === 'listening' && !transcript()" class="placeholder-text">Speak now in {{ uiStore.brainLanguage() === 'ur' ? 'Urdu' : 'English' }}...</p>
-          <p *ngIf="status() === 'processing'" class="placeholder-text pulsing">Generating premium response...</p>
+          <p *ngIf="status() === 'processing'" class="placeholder-text hj-pulse-text">Jivu is shaping a personal response...</p>
           <p *ngIf="status() === 'error'" class="error-text">{{ errorMessage() }}</p>
         </div>
       </div>
@@ -108,3 +148,5 @@
     </div>
   </div>
 </div>
+
+

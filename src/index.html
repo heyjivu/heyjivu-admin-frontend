@@ -1,8 +1,8 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>AuraDesk Brain</title>
+    <title>heyjivu</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
@@ -14,8 +14,160 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     />
+    <style>
+      html,
+      body {
+        min-height: 100%;
+        margin: 0;
+        background: #080b10;
+      }
+
+      .jivu-splash {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        color: #f7f9fc;
+        font-family: "Inter", "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at 20% 16%, rgba(84, 166, 255, 0.2), transparent 30%),
+          radial-gradient(circle at 80% 78%, rgba(39, 214, 182, 0.16), transparent 34%),
+          linear-gradient(145deg, #080b10 0%, #0f141c 58%, #101216 100%);
+      }
+
+      .jivu-splash-card {
+        display: grid;
+        justify-items: center;
+        gap: 18px;
+        min-width: 240px;
+        padding: 32px 30px;
+      }
+
+      .jivu-face-ring {
+        display: grid;
+        place-items: center;
+        width: 84px;
+        height: 84px;
+        border-radius: 999px;
+        background: rgba(84, 166, 255, 0.12);
+        box-shadow: 0 0 0 8px rgba(84, 166, 255, 0.06), 0 24px 44px rgba(0, 0, 0, 0.28);
+        animation: jivu-float 2.6s ease-in-out infinite;
+      }
+
+      .jivu-face {
+        position: relative;
+        width: 62px;
+        height: 62px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #54a6ff 0%, #27d6b6 100%);
+        box-shadow: inset 0 -8px 16px rgba(0, 0, 0, 0.18);
+      }
+
+      .jivu-eye {
+        position: absolute;
+        top: 23px;
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: #fff;
+      }
+
+      .jivu-eye.left { left: 20px; }
+      .jivu-eye.right { right: 20px; }
+
+      .jivu-smile {
+        position: absolute;
+        left: 21px;
+        right: 21px;
+        bottom: 16px;
+        height: 10px;
+        border-bottom: 3px solid #fff;
+        border-radius: 0 0 999px 999px;
+      }
+
+      .jivu-spark {
+        position: absolute;
+        border-radius: 999px;
+        background: #f7c948;
+        box-shadow: 0 0 12px rgba(247, 201, 72, 0.8);
+      }
+
+      .jivu-spark.one { top: -2px; right: 7px; width: 8px; height: 8px; }
+      .jivu-spark.two { top: 10px; right: -4px; width: 5px; height: 5px; }
+
+      .jivu-splash-word {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 2px;
+        font-family: "Syne", "Inter", sans-serif;
+        font-weight: 900;
+        letter-spacing: -0.065em;
+      }
+
+      .jivu-splash-word .hey {
+        font-size: 15px;
+        color: rgba(247, 249, 252, 0.64);
+      }
+
+      .jivu-splash-word .jivu {
+        font-size: 38px;
+      }
+
+      .jivu-splash-sub {
+        margin: -7px 0 0;
+        color: rgba(247, 249, 252, 0.62);
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+
+      .jivu-loading-pill {
+        width: 190px;
+        height: 4px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(247, 249, 252, 0.08);
+      }
+
+      .jivu-loading-pill::before {
+        content: '';
+        display: block;
+        width: 65%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #54a6ff, #27d6b6, #f7c948);
+        animation: jivu-load 1.6s ease-in-out infinite alternate;
+      }
+
+      @keyframes jivu-load {
+        from { transform: translateX(-34%); }
+        to { transform: translateX(72%); }
+      }
+
+      @keyframes jivu-float {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-7px) scale(1.03); }
+      }
+    </style>
   </head>
   <body>
-    <app-root></app-root>
+    <app-root>
+      <div class="jivu-splash" aria-label="Loading heyjivu Admin">
+        <div class="jivu-splash-card">
+          <div class="jivu-face-ring" aria-hidden="true">
+            <div class="jivu-face">
+              <span class="jivu-eye left"></span>
+              <span class="jivu-eye right"></span>
+              <span class="jivu-smile"></span>
+              <span class="jivu-spark one"></span>
+              <span class="jivu-spark two"></span>
+            </div>
+          </div>
+          <div class="jivu-splash-word"><span class="hey">hey</span><span class="jivu">jivu</span></div>
+          <p class="jivu-splash-sub">Preparing admin console</p>
+          <div class="jivu-loading-pill" aria-hidden="true"></div>
+        </div>
+      </div>
+    </app-root>
   </body>
 </html>

@@ -1,16 +1,13 @@
 <div class="screen">
-  <!-- Top Bar: Main Header & Actions -->
-  <div class="p-4 md:px-5 md:pt-4 border-bottom-1 surface-border">
-    <div class="d-flex items-start justify-between flex-wrap gap-16">
-      <div class="page-title-block">
-        <h2 class="page-heading"><i class="fas fa-chart-line text-accent" aria-hidden="true"></i> Admin Dashboard</h2>
-        <p class="text-text3 m-0 fs-14">Platform overview & real-time statistics</p>
-      </div>
-      <div class="header-actions page-actions">
-        <button class="btn btn-soft" (click)="loadDashboard()" id="dashboard-refresh-btn">
-          <i class="fas fa-sync" [class.fa-spin]="loading()"></i> Refresh
-        </button>
-      </div>
+  <div class="screen-header">
+    <div class="header-content page-title-block">
+      <h2 class="page-heading"><i class="fas fa-chart-line text-accent" aria-hidden="true"></i> Admin Dashboard</h2>
+      <p>Platform overview and real-time statistics.</p>
+    </div>
+    <div class="header-actions page-actions">
+      <button class="btn btn-soft" (click)="loadDashboard()" id="dashboard-refresh-btn">
+        <i class="fas fa-sync" [class.fa-spin]="loading()"></i> Refresh
+      </button>
     </div>
   </div>
 

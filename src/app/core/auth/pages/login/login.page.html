@@ -1,11 +1,17 @@
-<div class="login-container">
-  <div class="login-card glass" role="main" aria-label="AuraDesk Brain Login">
+﻿<div class="login-container">
+  <div class="login-card glass" role="main" aria-label="heyjivu Login">
     <div class="login-header">
-      <div class="logo" aria-hidden="true">
-        <img src="/aura-brain-logo.svg" alt="">
-      </div>
-      <h1>AuraDesk Brain</h1>
-      <p>Sign in and tell the Brain what to create, open, schedule, or post.</p>
+      <div class="hj-brand-mark hj-brand-mark--auth" aria-hidden="true">
+  <span class="hj-brand-face">
+    <span class="hj-brand-eye hj-brand-eye--left"></span>
+    <span class="hj-brand-eye hj-brand-eye--right"></span>
+    <span class="hj-brand-smile"></span>
+    <span class="hj-brand-spark hj-brand-spark--one"></span>
+    <span class="hj-brand-spark hj-brand-spark--two"></span>
+  </span>
+</div>
+      <h1 class="hj-brand-word hj-brand-word--auth"><span class="hj-brand-hey">hey</span><span class="hj-brand-jivu">jivu</span></h1>
+      <p>Sign in to your personal AI content memory.</p>
     </div>
 
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
@@ -81,3 +87,6 @@
     </div>
   </div>
 </div>
+
+
+

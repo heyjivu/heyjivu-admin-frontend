@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+﻿import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthStore } from '../../state/auth.store';
@@ -10,8 +10,14 @@ import { AuthStore } from '../../state/auth.store';
   template: `
     <div class="login-container">
       <div class="login-card glass" style="text-align: center; padding: 40px 30px;">
-        <div class="logo" style="margin-bottom: 20px;">
-          <img src="/aura-brain-logo.svg" alt="AuraDesk Logo" style="width: 60px;">
+        <div class="hj-brand-mark hj-brand-mark--auth" aria-hidden="true" style="margin-bottom: 20px;">
+          <span class="hj-brand-face">
+            <span class="hj-brand-eye hj-brand-eye--left"></span>
+            <span class="hj-brand-eye hj-brand-eye--right"></span>
+            <span class="hj-brand-smile"></span>
+            <span class="hj-brand-spark hj-brand-spark--one"></span>
+            <span class="hj-brand-spark hj-brand-spark--two"></span>
+          </span>
         </div>
         <h1 style="margin-bottom: 10px; font-size: 1.5rem;">Confirming Your Email</h1>
         
@@ -53,3 +59,5 @@ export class ConfirmEmailPage implements OnInit {
     });
   }
 }
+
+

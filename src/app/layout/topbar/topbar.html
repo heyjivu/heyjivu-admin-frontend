@@ -1,4 +1,4 @@
-<div class="topbar" [class.collapsed]="isMobile()">
+﻿<div class="topbar" [class.collapsed]="isMobile()">
   <button 
     class="sidebar-toggle-btn" 
     (click)="uiStore.toggleCollapsed()" 
@@ -8,9 +8,20 @@
     <i class="fas fa-bars"></i>
   </button>
 
-  <a class="topbar-logo" routerLink="/admin/dashboard" aria-label="AuraDesk Admin Console">
-    <span class="logo-mark bg-purple-600">A</span>
-    <span class="logo-text">AuraDesk Admin Console</span>
+  <a class="topbar-logo" routerLink="/admin/dashboard" aria-label="heyjivu Admin Console">
+    <span class="hj-brand-mark hj-brand-mark--topbar" aria-hidden="true">
+  <span class="hj-brand-face">
+    <span class="hj-brand-eye hj-brand-eye--left"></span>
+    <span class="hj-brand-eye hj-brand-eye--right"></span>
+    <span class="hj-brand-smile"></span>
+    <span class="hj-brand-spark hj-brand-spark--one"></span>
+    <span class="hj-brand-spark hj-brand-spark--two"></span>
+  </span>
+</span>
+<span class="hj-brand-stack">
+  <span class="hj-brand-word hj-brand-word--topbar"><span class="hj-brand-hey">hey</span><span class="hj-brand-jivu">jivu</span></span>
+  <span class="hj-brand-subtitle">Admin Console</span>
+</span>
   </a>
 
   <div class="topbar-tabs" *ngIf="!isMobile()">
@@ -144,3 +155,4 @@
     </div>
   </div>
 </div>
+
