@@ -1,0 +1,146 @@
+<div class="topbar" [class.collapsed]="isMobile()">
+  <button 
+    class="sidebar-toggle-btn" 
+    (click)="uiStore.toggleCollapsed()" 
+    [attr.aria-label]="uiStore.isCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+    title="Toggle Sidebar"
+  >
+    <i class="fas fa-bars"></i>
+  </button>
+
+  <a class="topbar-logo" routerLink="/admin/dashboard" aria-label="AuraDesk Admin Console">
+    <span class="logo-mark bg-purple-600">A</span>
+    <span class="logo-text">AuraDesk Admin Console</span>
+  </a>
+
+  <div class="topbar-tabs" *ngIf="!isMobile()">
+    <button class="tab-btn" routerLink="/admin/dashboard" routerLinkActive="active" title="Dashboard">
+      <i class="fas fa-chart-line"></i>
+      <span class="tab-label">Dashboard</span>
+    </button>
+    <button class="tab-btn" routerLink="/admin/metrics" routerLinkActive="active" title="Metrics & Cost Analytics">
+      <i class="fas fa-chart-pie"></i>
+      <span class="tab-label">Metrics</span>
+    </button>
+    <button class="tab-btn" routerLink="/admin/users" routerLinkActive="active" title="User Management">
+      <i class="fas fa-users-cog"></i>
+      <span class="tab-label">Users</span>
+    </button>
+    <button class="tab-btn" routerLink="/admin/plan-users" routerLinkActive="active" title="Plan Users">
+      <i class="fas fa-layer-group"></i>
+      <span class="tab-label">Plan Users</span>
+    </button>
+    <button class="tab-btn" routerLink="/admin/payments" routerLinkActive="active" title="Payment Settings">
+      <i class="fas fa-credit-card"></i>
+      <span class="tab-label">Payments</span>
+    </button>
+    <button class="tab-btn" routerLink="/admin/brain" routerLinkActive="active" title="Brain Configuration">
+      <i class="fas fa-brain"></i>
+      <span class="tab-label">Brain</span>
+    </button>
+    <button class="tab-btn" routerLink="/admin/run-jobs" routerLinkActive="active" title="Pipeline Monitor">
+      <i class="fas fa-tasks"></i>
+      <span class="tab-label">Pipeline</span>
+    </button>
+    <button class="tab-btn" routerLink="/admin/processing" routerLinkActive="active" title="Processing Configuration">
+      <i class="fas fa-cog"></i>
+      <span class="tab-label">Config</span>
+    </button>
+    <button class="tab-btn" routerLink="/admin/memes" routerLinkActive="active" title="Meme Management">
+      <i class="fas fa-laugh"></i>
+      <span class="tab-label">Memes</span>
+    </button>
+  </div>
+
+  <div class="topbar-right">
+    <button
+      class="icon-btn theme-btn"
+      type="button"
+      (click)="uiStore.toggleTheme()"
+      [attr.aria-label]="
+        uiStore.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
+      "
+    >
+      <i [class]="uiStore.theme() === 'dark' ? 'fas fa-sun' : 'fas fa-moon'"></i>
+    </button>
+
+    <!-- Pipeline Tracker Widget -->
+    <div class="pipeline-widget" (click)="$event.stopPropagation()">
+      <button 
+        class="icon-btn theme-btn relative" 
+        (click)="togglePipelineMenu($event)" 
+        [title]="hasActiveJobs() ? 'Active Pipelines Running' : 'Pipelines Status'"
+      >
+        <i class="fas" [class.fa-sync-alt]="!hasActiveJobs()" [class.fa-spin]="hasActiveJobs()" [class.fa-spinner]="hasActiveJobs()"></i>
+        <span *ngIf="hasActiveJobs()" class="badge-dot"></span>
+      </button>
+
+      <div class="pipeline-dropdown glass" *ngIf="showPipelineMenu()">
+        <div class="dropdown-header flex align-items-center justify-content-between">
+          <div>
+            <p class="signed-in">Active Pipelines</p>
+            <p class="email text-xs font-semibold" *ngIf="hasActiveJobs()">{{ activeJobs().length }} jobs processing</p>
+            <p class="email text-xs font-semibold" *ngIf="!hasActiveJobs()">All pipelines idle</p>
+          </div>
+          <button class="refresh-jobs-btn" (click)="refreshJobs()" title="Refresh Status">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+        <div class="dropdown-divider"></div>
+
+        <div class="pipeline-jobs-list">
+          <div *ngIf="!hasActiveJobs()" class="empty-pipeline-jobs">
+            <i class="fas fa-check-circle text-green-500 mb-2"></i>
+            <p class="empty-title">System Idle</p>
+            <p class="empty-desc">No active video, trend, or post tasks in progress</p>
+          </div>
+
+          <div *ngFor="let job of activeJobs()" class="pipeline-job-item">
+            <div class="flex align-items-center justify-content-between mb-1">
+              <span class="job-title">{{ job.title }}</span>
+              <span class="job-percentage font-mono text-indigo-400">{{ job.progress }}%</span>
+            </div>
+            
+            <div class="job-progress-bg">
+              <div class="job-progress-bar" [style.width.%]="job.progress"></div>
+            </div>
+
+            <div class="flex align-items-center gap-2 mt-1 text-4xs text-color-secondary">
+              <span>Status: <strong class="text-indigo-300">{{ job.status }}</strong></span>
+              <span>Type: {{ job.type }}</span>
+              <span *ngIf="job.userName" class="ml-auto">User: {{ job.userName }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item text-center justify-content-center text-indigo-400 font-semibold" routerLink="/admin/run-jobs" (click)="showPipelineMenu.set(false)">
+          <i class="fas fa-tasks mr-1"></i>
+          View Pipeline Page
+        </a>
+      </div>
+    </div>
+
+    <div class="topbar-divider hide-on-mobile"></div>
+
+    <div class="user-widget" (click)="$event.stopPropagation()" [attr.aria-haspopup]="true">
+      <button class="avatar-btn" (click)="toggleUserMenu()" [attr.aria-expanded]="showUserMenu()" aria-controls="user-dropdown" aria-label="User menu">
+        <span class="avatar">{{ authStore.userInitials() }}</span>
+        <span class="username hide-on-mobile">{{ authStore.displayName() }}</span>
+        <i class="fas fa-chevron-down hide-on-mobile"></i>
+      </button>
+
+      <div class="user-dropdown glass" *ngIf="showUserMenu()" id="user-dropdown" role="menu">
+        <div class="dropdown-header">
+          <p class="signed-in">Signed in as</p>
+          <p class="email">{{ authStore.user()?.username }}</p>
+        </div>
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item" (click)="logout()">
+          <i class="fas fa-sign-out-alt"></i>
+          Sign Out
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

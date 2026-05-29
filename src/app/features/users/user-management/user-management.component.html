@@ -1,0 +1,530 @@
+<div class="screen">
+
+  <!-- Screen Header -->
+  <div class="screen-header screen-header-compact">
+    
+    <!-- Title row -->
+    <div class="flex justify-content-between align-items-center px-4 py-3 screen-title-row">
+      <div class="flex align-items-center gap-3">
+        <i class="fas fa-users-cog text-indigo-400" style="font-size: 18px;"></i>
+        <div>
+          <div class="screen-title">User Management</div>
+          <div class="screen-sub">Manage users, roles, permissions and organizations</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-soft btn-sm" (click)="loadData()">
+          <i class="fas fa-sync" [class.fa-spin]="loading()"></i> Refresh
+        </button>
+      </div>
+    </div>
+
+
+  </div>
+
+  <!-- Tab Content -->
+  <div class="screen-container">
+
+  <!-- ── Users Tab ───────────────────────────────────── -->
+  <div *ngIf="activeTab() === 'users'" class="animate-fade-in">
+    <div class="stats-grid">
+      <div class="stat-card glass-card">
+        <span class="label">Total Users</span>
+        <span class="value">{{ users().length }}</span>
+      </div>
+      <div class="stat-card glass-card">
+        <span class="label">Total Jobs Processed</span>
+        <span class="value">{{ totalJobs() }}</span>
+      </div>
+      <div class="stat-card glass-card">
+        <span class="label">Active Organizations</span>
+        <span class="value">{{ organizations().length }}</span>
+      </div>
+    </div>
+
+    <div class="table-controls">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Search users..." class="glass-input" 
+               [ngModel]="searchQuery()" (ngModelChange)="onSearchChange($event)">
+      </div>
+      <div class="filter-group">
+        <select class="filter-select glass-input" 
+                [ngModel]="selectedRoleFilter()" (ngModelChange)="selectedRoleFilter.set($event); onFilterChange()">
+          <option value="">All Roles</option>
+          <option *ngFor="let role of roles()" [value]="role.id">{{ role.name }}</option>
+        </select>
+        <select class="filter-select glass-input" 
+                [ngModel]="selectedStatusFilter()" (ngModelChange)="selectedStatusFilter.set($event); onFilterChange()">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-container glass-card">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Organization</th>
+            <th>Role</th>
+            <th>Compute Usage</th>
+            <th>BYOK Management</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users()">
+            <td>
+              <div class="user-info">
+                <div class="avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
+                <div class="details">
+                  <span class="name">{{ user.displayName }}</span>
+                  <span class="email">{{ user.email }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="org-badge" [class.individual]="!user.organizationId">
+                {{ user.organizationName }}
+              </span>
+            </td>
+            <td>
+              <select class="role-select" 
+                      [ngModel]="user.roleId" 
+                      (ngModelChange)="onRoleChange(user.id, $event)">
+                <option *ngFor="let role of roles()" [value]="role.id">
+                  {{ role.name }}
+                </option>
+                <option [value]="null" *ngIf="!user.roleId">Select Role</option>
+              </select>
+            </td>
+            <td>
+              <div class="usage-badges">
+                <span class="badge processing" title="Processing Jobs">
+                  <i class="fas fa-video"></i> {{ user.usage.processingJobs }}
+                </span>
+                <span class="badge trends" title="Trend Jobs">
+                  <i class="fas fa-chart-line"></i> {{ user.usage.trendJobs }}
+                </span>
+                <span class="badge smart" title="Smart Video Jobs">
+                  <i class="fas fa-magic"></i> {{ user.usage.smartVideoJobs }}
+                </span>
+              </div>
+            </td>
+            <td>
+              <div class="byok-toggles">
+                <label class="byok-toggle" [title]="'Processing BYOK'" [class.requested]="user.byokRequested">
+                  <input type="checkbox" [checked]="user.isByokProcessing" (change)="toggleByok(user, 'isByokProcessing')">
+                  <span class="pill"><i class="fas fa-microchip"></i> Proc</span>
+                </label>
+                <label class="byok-toggle" [title]="'Trend BYOK'" [class.requested]="user.byokRequested">
+                  <input type="checkbox" [checked]="user.isByokTrend" (change)="toggleByok(user, 'isByokTrend')">
+                  <span class="pill"><i class="fas fa-chart-line"></i> Trend</span>
+                </label>
+                <label class="byok-toggle" [title]="'Video Gen BYOK'" [class.requested]="user.byokRequested">
+                  <input type="checkbox" [checked]="user.isByokVideoGeneration" (change)="toggleByok(user, 'isByokVideoGeneration')">
+                  <span class="pill"><i class="fas fa-video"></i> Video</span>
+                </label>
+                <label class="byok-toggle" [title]="'Posts BYOK'" [class.requested]="user.byokRequested">
+                  <input type="checkbox" [checked]="user.isByokPosts" (change)="toggleByok(user, 'isByokPosts')">
+                  <span class="pill"><i class="fas fa-share-alt"></i> Posts</span>
+                </label>
+              </div>
+            </td>
+            <td>
+              <span class="status-pill" [class.active]="user.isActive">
+                {{ user.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <div class="actions">
+                <button class="icon-btn" [title]="user.isActive ? 'Deactivate' : 'Activate'"
+                        (click)="toggleStatus(user)">
+                  <i class="fas" [class.fa-user-slash]="user.isActive" [class.fa-user-check]="!user.isActive"></i>
+                </button>
+                <button class="icon-btn" title="Edit User Overrides" (click)="editUserProcessingSettings(user)">
+                  <i class="fas fa-sliders-h"></i>
+                </button>
+                <button class="icon-btn danger" title="Delete (Restricted)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="pagination glass-card">
+        <div class="pagination-info">
+          Showing <strong>{{ (currentPage() - 1) * pageSize() + 1 }}-{{ Math.min(currentPage() * pageSize(), totalItems()) }}</strong> of <strong>{{ totalItems() }}</strong> users
+        </div>
+        <div class="pagination-controls">
+          <button class="page-btn" [disabled]="currentPage() === 1" (click)="prevPage()"><i class="fas fa-chevron-left"></i></button>
+          <button class="page-btn active">{{ currentPage() }}</button>
+          <button class="page-btn" [disabled]="currentPage() * pageSize() >= totalItems()" (click)="nextPage()"><i class="fas fa-chevron-right"></i></button>
+        </div>
+      </div>
+    </div>
+
+  <!-- ── Roles Tab ───────────────────────────────────── -->
+  <div *ngIf="activeTab() === 'roles'" class="animate-fade-in">
+    <div class="roles-layout">
+      <div class="roles-list table-container glass-card">
+        <div class="panel-header">
+          <h3>System Roles</h3>
+          <button class="btn btn-primary btn-sm" (click)="createNewRole()">
+            <i class="fas fa-plus"></i> Create Role
+          </button>
+        </div>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Role Name</th>
+              <th>Scope</th>
+              <th>Rights</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let role of roles()" [class.selected]="selectedRole()?.id === role.id" (click)="selectRole(role)">
+              <td>
+                <div class="role-info">
+                   <span class="role-name">{{ role.name }}</span>
+                   <span class="role-desc">{{ role.description }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="scope-pill" [class.global]="role.scope === 0">
+                  {{ role.scope === 0 ? 'Global' : 'Organization' }}
+                </span>
+              </td>
+              <td>
+                <span class="badge badge--info">{{ role.rights.length }} Rights</span>
+              </td>
+              <td>
+                <button class="icon-btn" (click)="selectRole(role); $event.stopPropagation()">
+                  <i class="fas fa-edit"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="role-editor-container glass-card" *ngIf="selectedRole()">
+        <div class="editor-header">
+          <div class="title-group">
+            <h3>{{ selectedRole()?.id ? 'Edit Role' : 'New Role' }}: {{ selectedRole()?.name }}</h3>
+          </div>
+          <div class="editor-actions">
+            <button class="btn btn-ghost" (click)="selectedRole.set(null)">Cancel</button>
+            <button class="btn btn-primary" (click)="saveRole()">Save Changes</button>
+          </div>
+        </div>
+
+        <div class="editor-tabs">
+          <button class="tab-btn" [class.active]="editorTab() === 'basic'" (click)="editorTab.set('basic')">
+            <i class="fas fa-info-circle"></i> Basic Details
+          </button>
+          <button class="tab-btn" [class.active]="editorTab() === 'rights'" (click)="editorTab.set('rights')">
+            <i class="fas fa-key"></i> Rights &amp; Permissions
+          </button>
+          <button class="tab-btn" [class.active]="editorTab() === 'processing'" (click)="editorTab.set('processing')">
+            <i class="fas fa-sliders-h"></i> Processing Defaults
+          </button>
+        </div>
+
+        <div class="editor-content">
+          <!-- Basic Details Tab -->
+          <div *ngIf="editorTab() === 'basic'" class="tab-pane animate-fade-in">
+            <div class="form-group">
+              <label>Role Name</label>
+              <input type="text" class="field-input" [(ngModel)]="selectedRole()!.name" placeholder="Enter role name">
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <textarea class="field-input" [(ngModel)]="selectedRole()!.description" rows="3" placeholder="Enter description"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Scope</label>
+              <select class="select-input" [(ngModel)]="selectedRole()!.scope">
+                <option [value]="0">Global (System-wide)</option>
+                <option [value]="1">Organization (Tenant-specific)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Rights Tab -->
+          <div *ngIf="editorTab() === 'rights'" class="tab-pane rights-editor-pane animate-fade-in">
+            <div class="rights-layout-horizontal">
+              <div class="rights-sidebar">
+                <div class="sidebar-header">
+                  <span>Sections</span>
+                  <button class="icon-btn btn-xs" (click)="addSection()" title="Add New Section">
+                    <i class="fas fa-plus-circle"></i>
+                  </button>
+                </div>
+                <div class="category-item" 
+                     *ngFor="let cat of getCategories()" 
+                     [class.active]="activeCategory() === cat"
+                     (click)="activeCategory.set(cat)">
+                  <span>{{ cat }}</span>
+                  <span class="count">{{ getRightsForCategory(cat).length }}</span>
+                </div>
+              </div>
+
+              <div class="rights-main">
+                <div class="main-header" *ngIf="activeCategory()">
+                  <h4>{{ activeCategory() }} Rights</h4>
+                  <button class="btn btn-ghost btn-xs" (click)="addRightToSection(activeCategory()!)">
+                    <i class="fas fa-plus"></i> Add Right to Section
+                  </button>
+                </div>
+                
+                <div class="rights-grid-scroll" *ngIf="activeCategory()">
+                  <label class="right-checkbox-item" 
+                         *ngFor="let right of getRightsForCategory(activeCategory()!)"
+                         [class.selected]="isRightSelected(right.key)">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" [checked]="isRightSelected(right.key)" (change)="toggleRight(right.key)">
+                      <span class="checkmark"></span>
+                    </div>
+                    <div class="right-info">
+                      <span class="name">{{ right.name }}</span>
+                      <span class="key">{{ right.key }}</span>
+                    </div>
+                  </label>
+                </div>
+
+                <div class="no-category-selected" *ngIf="!activeCategory()">
+                  <i class="fas fa-arrow-left"></i>
+                  <p>Select a section from the left to manage rights.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Processing Tab -->
+          <div *ngIf="editorTab() === 'processing' && roleProcessingOptions()" class="tab-pane animate-fade-in" style="max-height: 480px; overflow-y: auto; padding-right: 10px;">
+            <div class="section-title settings-section-title">Output Settings</div>
+            <div class="settings-options-column">
+              <div class="option-row">
+                <span class="option-label">Process Main Video</span>
+                <input type="checkbox" class="toggle-checkbox" [(ngModel)]="roleProcessingOptions().createMainVideo">
+              </div>
+              <div class="option-row">
+                <span class="option-label">Generate Shorts</span>
+                <input type="checkbox" class="toggle-checkbox" [(ngModel)]="roleProcessingOptions().createShorts">
+              </div>
+              <div *ngIf="roleProcessingOptions().createShorts" class="option-subfield">
+                <span class="option-sublabel">Max Shorts to Create</span>
+                <input type="number" class="field-input" [(ngModel)]="roleProcessingOptions().maxShorts" min="1" max="50">
+              </div>
+              <div class="option-row mt-4">
+                <span class="option-label">Remove Silence</span>
+                <input type="checkbox" class="toggle-checkbox" [(ngModel)]="roleProcessingOptions().removeSilence">
+              </div>
+              <div *ngIf="roleProcessingOptions().removeSilence" class="option-subfield">
+                <span class="option-sublabel">Silence Threshold (Seconds)</span>
+                <input type="number" class="field-input" step="0.1" [(ngModel)]="roleProcessingOptions().silenceThresholdSeconds" min="0.1" max="10">
+              </div>
+              <div class="option-subfield">
+                <span class="option-sublabel">Target Language</span>
+                <input type="text" class="field-input" [(ngModel)]="roleProcessingOptions().targetLanguage">
+              </div>
+              <div class="option-row mt-4">
+                <span class="option-label">Burn Subtitles</span>
+                <input type="checkbox" class="toggle-checkbox" [(ngModel)]="roleProcessingOptions().burnSubtitles">
+              </div>
+              <div *ngIf="roleProcessingOptions().burnSubtitles" class="option-subfield">
+                <span class="option-sublabel">Subtitle Style</span>
+                <select class="select-input" [(ngModel)]="roleProcessingOptions().subtitleStyle">
+                  <option value="NeonHighlight">Neon Highlight</option>
+                  <option value="Minimalistic">Minimalistic</option>
+                  <option value="Outline">Outline</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="section-title settings-section-title-spaced">Thumbnails</div>
+            <div class="settings-options-column">
+              <div class="option-row">
+                <span class="option-label">Generate AI Thumbnail</span>
+                <input type="checkbox" class="toggle-checkbox" [(ngModel)]="roleProcessingOptions().generateAIThumbnail">
+              </div>
+              <div *ngIf="roleProcessingOptions().generateAIThumbnail" class="option-subfield">
+                <span class="option-sublabel">Thumbnail Engine</span>
+                <select class="select-input" [(ngModel)]="roleProcessingOptions().thumbnailEngine">
+                  <option value="SDXL">SDXL</option>
+                  <option value="DALL-E 3">DALL-E 3</option>
+                  <option value="FrameExtract">Frame Extract</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="section-title settings-section-title-spaced">Orchestration</div>
+            <div class="settings-options-column">
+              <div class="option-subfield">
+                <span class="option-sublabel">Max Parallel Videos</span>
+                <input type="number" class="field-input" [(ngModel)]="roleProcessingOptions().maxParallelVideos" min="1" max="100">
+              </div>
+              <div class="option-subfield">
+                <span class="option-sublabel">Pipeline Interval (Minutes)</span>
+                <input type="number" class="field-input" [(ngModel)]="roleProcessingOptions().pipelineIntervalMinutes" min="1">
+              </div>
+              <div class="option-subfield">
+                <span class="option-sublabel">Execution Environment</span>
+                <select class="select-input" [(ngModel)]="roleProcessingOptions().executionEnvironment">
+                  <option value="Development">Development</option>
+                  <option value="Staging">Staging</option>
+                  <option value="Production">Production</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="role-placeholder glass-card" *ngIf="!selectedRole()">
+        <i class="fas fa-shield-halved"></i>
+        <h3>Role Configuration</h3>
+        <p>Select a role or create a new one to manage granular permissions.</p>
+        <button class="btn btn-primary" (click)="createNewRole()">Create New Role</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Organizations Tab ───────────────────────────────────── -->
+  <div *ngIf="activeTab() === 'orgs'" class="animate-fade-in">
+    <div class="table-container glass-card">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Organization Name</th>
+            <th>Description</th>
+            <th>Users</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let org of organizations()">
+            <td>{{ org.name }}</td>
+            <td>{{ org.description }}</td>
+            <td>-</td>
+            <td>
+              <div class="actions">
+                <button class="icon-btn"><i class="fas fa-edit"></i></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  </div>
+
+  <!-- User Processing Settings Editor Modal -->
+  <div class="modal-overlay animate-fade-in" *ngIf="editingUser()">
+    <div class="modal-container glass-card" style="width: 600px; max-width: 90vw;">
+      <div class="modal-header">
+        <h3>Edit Settings for {{ editingUser()?.displayName }}</h3>
+        <button class="icon-btn" (click)="editingUser.set(null)"><i class="fas fa-times"></i></button>
+      </div>
+      
+      <div class="modal-content" style="max-height: 70vh; overflow-y: auto; padding: 20px;" *ngIf="userProcessingOptions()">
+        <p class="text-sm text-gray-400 mb-4">Leave fields empty to inherit from Role defaults.</p>
+        
+        <div class="section-title settings-section-title">Output Settings</div>
+        <div class="settings-options-column">
+          <div class="option-row">
+            <span class="option-label">Process Main Video</span>
+            <input type="checkbox" class="toggle-checkbox" [(ngModel)]="userProcessingOptions().createMainVideo">
+          </div>
+          <div class="option-row">
+            <span class="option-label">Generate Shorts</span>
+            <input type="checkbox" class="toggle-checkbox" [(ngModel)]="userProcessingOptions().createShorts">
+          </div>
+          <div class="option-subfield">
+            <span class="option-sublabel">Max Shorts to Create</span>
+            <input type="number" class="field-input" [(ngModel)]="userProcessingOptions().maxShorts" min="1" max="50">
+          </div>
+          <div class="option-row mt-4">
+            <span class="option-label">Remove Silence</span>
+            <input type="checkbox" class="toggle-checkbox" [(ngModel)]="userProcessingOptions().removeSilence">
+          </div>
+          <div class="option-subfield">
+            <span class="option-sublabel">Silence Threshold (Seconds)</span>
+            <input type="number" class="field-input" step="0.1" [(ngModel)]="userProcessingOptions().silenceThresholdSeconds" min="0.1" max="10">
+          </div>
+          <div class="option-subfield">
+            <span class="option-sublabel">Target Language</span>
+            <input type="text" class="field-input" [(ngModel)]="userProcessingOptions().targetLanguage">
+          </div>
+          <div class="option-row mt-4">
+            <span class="option-label">Burn Subtitles</span>
+            <input type="checkbox" class="toggle-checkbox" [(ngModel)]="userProcessingOptions().burnSubtitles">
+          </div>
+          <div class="option-subfield">
+            <span class="option-sublabel">Subtitle Style</span>
+            <select class="select-input" [(ngModel)]="userProcessingOptions().subtitleStyle">
+              <option [ngValue]="null">Inherit</option>
+              <option value="NeonHighlight">Neon Highlight</option>
+              <option value="Minimalistic">Minimalistic</option>
+              <option value="Outline">Outline</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="section-title settings-section-title-spaced">Thumbnails</div>
+        <div class="settings-options-column">
+          <div class="option-row">
+            <span class="option-label">Generate AI Thumbnail</span>
+            <input type="checkbox" class="toggle-checkbox" [(ngModel)]="userProcessingOptions().generateAIThumbnail">
+          </div>
+          <div class="option-subfield">
+            <span class="option-sublabel">Thumbnail Engine</span>
+            <select class="select-input" [(ngModel)]="userProcessingOptions().thumbnailEngine">
+              <option [ngValue]="null">Inherit</option>
+              <option value="SDXL">SDXL</option>
+              <option value="DALL-E 3">DALL-E 3</option>
+              <option value="FrameExtract">Frame Extract</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="section-title settings-section-title-spaced">Orchestration</div>
+        <div class="settings-options-column">
+          <div class="option-subfield">
+            <span class="option-sublabel">Max Parallel Videos</span>
+            <input type="number" class="field-input" [(ngModel)]="userProcessingOptions().maxParallelVideos" min="1" max="100">
+          </div>
+          <div class="option-subfield">
+            <span class="option-sublabel">Pipeline Interval (Minutes)</span>
+            <input type="number" class="field-input" [(ngModel)]="userProcessingOptions().pipelineIntervalMinutes" min="1">
+          </div>
+          <div class="option-subfield">
+            <span class="option-sublabel">Execution Environment</span>
+            <select class="select-input" [(ngModel)]="userProcessingOptions().executionEnvironment">
+              <option [ngValue]="null">Inherit</option>
+              <option value="Development">Development</option>
+              <option value="Staging">Staging</option>
+              <option value="Production">Production</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer" style="padding: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn btn-ghost" (click)="editingUser.set(null)">Cancel</button>
+        <button class="btn btn-primary" (click)="saveUserProcessingSettings()">Save Options</button>
+      </div>
+    </div>
+  </div>
+
+</div>

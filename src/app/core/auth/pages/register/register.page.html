@@ -1,0 +1,201 @@
+<div class="login-container">
+  <div class="login-card glass" role="main" aria-label="Create Your AuraDesk Brain Account">
+    <div class="register-header">
+      <div class="logo" aria-hidden="true">
+        <img src="/aura-brain-logo.svg" alt="">
+      </div>
+      <h1>Create Account</h1>
+      <p>Join AuraDesk Brain and automate content from request to published post.</p>
+    </div>
+
+    <form 
+      [formGroup]="registerForm" 
+      (ngSubmit)="onSubmit()" 
+      class="register-form"
+      novalidate
+      aria-label="Registration form"
+    >
+      <div class="form-group">
+        <label for="displayName">Full Name</label>
+        <div class="input-wrapper" [class.has-error]="isFieldInvalid('displayName')">
+          <i class="fas fa-user" aria-hidden="true"></i>
+          <input 
+            type="text" 
+            id="displayName" 
+            formControlName="displayName" 
+            placeholder="Enter your full name"
+            autocomplete="name"
+            [attr.aria-invalid]="isFieldInvalid('displayName')"
+            [attr.aria-describedby]="isFieldInvalid('displayName') ? 'displayName-error' : null"
+            (blur)="onFieldBlur('displayName')"
+          >
+          <span class="focus-ring" aria-hidden="true"></span>
+        </div>
+        <div 
+          class="field-error" 
+          id="displayName-error" 
+          role="alert"
+          *ngIf="isFieldInvalid('displayName') && showValidation('displayName')"
+        >
+          <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+          <span>Please enter your full name</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <div class="input-wrapper" [class.has-error]="isFieldInvalid('email')">
+          <i class="fas fa-envelope" aria-hidden="true"></i>
+          <input 
+            type="email" 
+            id="email" 
+            formControlName="email" 
+            placeholder="Enter your email"
+            autocomplete="email"
+            autocapitalize="none"
+            [attr.aria-invalid]="isFieldInvalid('email')"
+            [attr.aria-describedby]="isFieldInvalid('email') ? 'email-error' : null"
+            (blur)="onFieldBlur('email')"
+          >
+          <span class="focus-ring" aria-hidden="true"></span>
+        </div>
+        <div 
+          class="field-error" 
+          id="email-error" 
+          role="alert"
+          *ngIf="isFieldInvalid('email') && showValidation('email')"
+        >
+          <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+          <span *ngIf="registerForm.get('email')?.errors?.['required']">Email is required</span>
+          <span *ngIf="registerForm.get('email')?.errors?.['email']">Please enter a valid email address</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrapper password-field" [class.has-error]="isFieldInvalid('password')">
+          <i class="fas fa-lock" aria-hidden="true"></i>
+          <input 
+            [type]="showPassword ? 'text' : 'password'" 
+            id="password" 
+            formControlName="password" 
+            placeholder="Create a password"
+            autocomplete="new-password"
+            [attr.aria-invalid]="isFieldInvalid('password')"
+            [attr.aria-describedby]="isFieldInvalid('password') ? 'password-error' : null"
+            (blur)="onFieldBlur('password')"
+          >
+          <button 
+            type="button" 
+            class="password-toggle" 
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+            [attr.aria-pressed]="showPassword"
+          >
+            <i class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword" aria-hidden="true"></i>
+          </button>
+          <span class="focus-ring" aria-hidden="true"></span>
+        </div>
+        <div 
+          class="field-error" 
+          id="password-error" 
+          role="alert"
+          *ngIf="isFieldInvalid('password') && showValidation('password')"
+        >
+          <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+          <span *ngIf="registerForm.get('password')?.errors?.['required']">Password is required</span>
+          <span *ngIf="registerForm.get('password')?.errors?.['minlength']">Password must be at least 8 characters</span>
+        </div>
+        <div class="password-helper-wrapper" *ngIf="passwordValue() && !passwordAllRulesPassed()" aria-live="polite">
+          <div class="password-strength">
+            <div class="strength-bar">
+              <span class="strength-fill" [class]="'strength-fill ' + passwordStrengthLevel()" [style.width.%]="passwordStrength()"></span>
+            </div>
+            <span class="strength-label" [class]="'strength-' + passwordStrengthLevel()">{{ passwordStrengthText() }}</span>
+          </div>
+
+          <div class="password-requirements">
+            <div class="requirement-item" [class.passed]="passwordRules().hasMinLength">
+              <i class="fas" [class.fa-check-circle]="passwordRules().hasMinLength" [class.fa-times-circle]="!passwordRules().hasMinLength"></i>
+              <span>Length is 8+ characters</span>
+            </div>
+            <div class="requirement-item" [class.passed]="passwordRules().hasUppercase">
+              <i class="fas" [class.fa-check-circle]="passwordRules().hasUppercase" [class.fa-times-circle]="!passwordRules().hasUppercase"></i>
+              <span>At least one uppercase letter ([A-Z])</span>
+            </div>
+            <div class="requirement-item" [class.passed]="passwordRules().hasNumber">
+              <i class="fas" [class.fa-check-circle]="passwordRules().hasNumber" [class.fa-times-circle]="!passwordRules().hasNumber"></i>
+              <span>At least one number ([0-9])</span>
+            </div>
+            <div class="requirement-item" [class.passed]="passwordRules().hasSpecialChar">
+              <i class="fas" [class.fa-check-circle]="passwordRules().hasSpecialChar" [class.fa-times-circle]="!passwordRules().hasSpecialChar"></i>
+              <span>At least one special character ([^A-Za-z0-9])</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <div class="input-wrapper password-field" [class.has-error]="isFieldInvalid('confirmPassword')">
+          <i class="fas fa-check-circle" aria-hidden="true"></i>
+          <input 
+            [type]="showConfirmPassword ? 'text' : 'password'" 
+            id="confirmPassword" 
+            formControlName="confirmPassword" 
+            placeholder="Confirm your password"
+            autocomplete="new-password"
+            [attr.aria-invalid]="isFieldInvalid('confirmPassword')"
+            [attr.aria-describedby]="isFieldInvalid('confirmPassword') ? 'confirmPassword-error' : null"
+            (blur)="onFieldBlur('confirmPassword')"
+          >
+          <button 
+            type="button" 
+            class="password-toggle" 
+            (click)="toggleConfirmPasswordVisibility()"
+            [attr.aria-label]="showConfirmPassword ? 'Hide password' : 'Show password'"
+            [attr.aria-pressed]="showConfirmPassword"
+          >
+            <i class="fas" [class.fa-eye]="!showConfirmPassword" [class.fa-eye-slash]="showConfirmPassword" aria-hidden="true"></i>
+          </button>
+          <span class="focus-ring" aria-hidden="true"></span>
+        </div>
+        <div 
+          class="field-error" 
+          id="confirmPassword-error" 
+          role="alert"
+          *ngIf="isFieldInvalid('confirmPassword') && showValidation('confirmPassword')"
+        >
+          <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+          <span *ngIf="registerForm.get('confirmPassword')?.errors?.['required']">Please confirm your password</span>
+          <span *ngIf="registerForm.get('confirmPassword')?.errors?.['mismatch']">Passwords do not match</span>
+        </div>
+      </div>
+
+      <div class="server-error" role="alert" *ngIf="store.error()" [attr.aria-live]="'assertive'">
+        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+        {{ store.error() }}
+      </div>
+
+      <button 
+        type="submit" 
+        class="btn-register"
+        [disabled]="registerForm.invalid || store.loading()"
+        [attr.aria-disabled]="registerForm.invalid || store.loading()"
+      >
+        <span *ngIf="!store.loading()">
+          <i class="fas fa-rocket" aria-hidden="true"></i>
+          Create Account
+        </span>
+        <span *ngIf="store.loading()" class="loading-content">
+          <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+          Creating account...
+        </span>
+      </button>
+
+      <div class="register-link">
+        Already have an account? <a routerLink="/login" class="link-animated">Login here</a>
+      </div>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,512 @@
+// ============================================================
+//  AI CONTENT GENERATION - GLOBAL STYLES
+//  Industry-standard SCSS architecture
+//  Supports: Dark/Light themes, Responsive, Utility classes
+// ============================================================
+
+// ── @use must come first (SCSS requirement) ──────────────────
+@use 'styles/base/theme';
+@use 'styles/base/typography';
+@use 'styles/utilities/index';
+@use 'styles/layout/app-shell';
+@use 'styles/layout/auth-pages';
+@use 'styles/layout/responsive';
+@use 'styles/animations';
+@use 'styles/shared/screens';
+@use 'styles/shared/layout';
+@use 'styles/global-laptop';
+@use 'styles/global-mobile';
+@use 'styles/base/dialog';
+@use 'styles/base/forms';
+@use '@ctrl/ngx-emoji-mart/picker';
+
+// ── PrimeFlex & PrimeIcons ──────────────────────────────────
+@import 'primeflex/primeflex.css';
+@import 'primeicons/primeicons.css';
+
+
+// ── Google Fonts ─────────────────────────────────────────────
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+// ── Base Resets ──────────────────────────────────────────────
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    linear-gradient(180deg, rgba(var(--accent-rgb), 0.08), transparent 280px),
+    linear-gradient(135deg, rgba(var(--accent2-rgb), 0.06), transparent 45%),
+    linear-gradient(180deg, rgba(var(--bg3-rgb), 0.72), rgba(var(--bg-rgb), 1) 48%),
+    var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  overflow-x: hidden;
+  overflow-y: auto;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  &::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 9999;
+    mix-blend-mode: overlay;
+  }
+}
+
+button, input, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+// ── Scrollbar ────────────────────────────────────────────────
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text3);
+}
+
+// ── Typography Helpers ───────────────────────────────────────
+.font-syne {
+  font-family: 'Syne', 'Inter', sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+// ── Layout Helpers ───────────────────────────────────────────
+.app-layout {
+  display: flex;
+  height: calc(100vh - var(--topbar));
+  margin-top: var(--topbar);
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  > :not(router-outlet) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+// ── Screen / Page Wrapper ────────────────────────────────────
+.screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+.screen-header {
+  min-height: 76px;
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(var(--bg2-rgb), 0.88), rgba(var(--bg2-rgb), 0.68)),
+    color-mix(in srgb, var(--bg2) 80%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  position: relative;
+  z-index: 10;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 0.15), transparent);
+    opacity: 0;
+    transition: opacity var(--transition-base);
+  }
+
+  &:hover::after {
+    opacity: 1;
+  }
+}
+
+.header-content {
+  min-width: 0;
+}
+
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.screen-container {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px 28px 36px;
+}
+
+// ── Table Styles ─────────────────────────────────────────────
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  transition: background var(--transition-fast),
+              border-color var(--transition-fast);
+}
+
+th {
+  color: var(--text3);
+  font: 800 11px/1 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, rgba(var(--bg-rgb), 0.3), transparent);
+}
+
+tbody tr {
+  transition: background var(--transition-fast);
+
+  &:hover {
+    background: rgba(var(--accent-rgb), 0.04);
+  }
+
+  &:active {
+    background: rgba(var(--accent-rgb), 0.08);
+  }
+}
+
+// ── Visibility Utilities ─────────────────────────────────────
+.hide-on-mobile {
+  @media (max-width: 1000px) {
+    display: none !important;
+  }
+}
+
+.show-on-mobile {
+  display: none !important;
+  @media (max-width: 1000px) {
+    display: inline-block !important;
+  }
+}
+
+// ── Emoji Mart Premium Glassmorphic Styles ───────────────────
+
+
+.emoji-mart {
+  font-family: inherit !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 12px !important;
+  background: rgba(15, 17, 26, 0.96) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65) !important;
+  color: #ffffff !important;
+  width: 100% !important;
+}
+
+.emoji-mart-search {
+  padding: 10px 12px 6px 12px !important;
+}
+
+.emoji-mart-search input {
+  background: rgba(0, 0, 0, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px !important;
+  color: #ffffff !important;
+  padding: 8px 12px !important;
+  outline: none !important;
+  font-size: 0.85rem !important;
+}
+
+.emoji-mart-search input::placeholder {
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+
+.emoji-mart-category-label span {
+  background: rgba(15, 17, 26, 0.98) !important;
+  color: #94a3b8 !important;
+  font-weight: 700 !important;
+  font-size: 0.8rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+.emoji-mart-category-icons {
+  display: flex !important;
+  justify-content: space-around !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  padding: 8px 0 !important;
+  background: rgba(0, 0, 0, 0.2) !important;
+}
+
+.emoji-mart-bar {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.emoji-mart-anchor {
+  color: #64748b !important;
+  transition: all 0.2s !important;
+  padding: 6px 10px !important;
+}
+
+.emoji-mart-anchor:hover {
+  color: #a5b4fc !important;
+}
+
+.emoji-mart-anchor-selected {
+  color: #6366f1 !important;
+  border-bottom-color: #6366f1 !important;
+}
+
+.emoji-mart-skin-swatches {
+  background: transparent !important;
+  border: none !important;
+}
+
+.emoji-mart-scroll {
+  background: rgba(0, 0, 0, 0.1) !important;
+  height: 220px !important;
+}
+
+.emoji-mart-preview {
+  display: none !important; // Hide default bottom preview box to make it compact & light
+}
+
+// ── Accessibility: Reduced Motion ─────────────────────────────
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// ── Theme-Adaptive PrimeFlex & Component Overrides ──
+
+// Scrollbars Styling
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg) !important;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border) !important;
+  border-radius: 4px !important;
+  border: 2px solid var(--bg) !important;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent) !important;
+}
+
+// Focus State Standardization
+input:focus, textarea:focus, select:focus, .p-inputtext:focus {
+  outline: none !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.15) !important;
+}
+
+// PrimeNG Dropdown & Overlay Panel Overrides
+.p-dropdown-panel, .p-multiselect-panel, .p-autocomplete-panel, .p-datepicker {
+  background: var(--bg2) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow) !important;
+  
+  .p-dropdown-items, .p-multiselect-items {
+    background: transparent !important;
+  }
+  
+  .p-dropdown-item, .p-multiselect-item {
+    color: var(--text2) !important;
+    
+    &:hover, &.p-highlight {
+      background: var(--bg3) !important;
+      color: var(--text) !important;
+    }
+  }
+}
+
+// PrimeFlex / Utility Classes Theme-Adaptive Overrides
+.surface-card, .p-card {
+  background: var(--bg2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.surface-ground {
+  background: var(--bg) !important;
+}
+
+.surface-section {
+  background: var(--bg2) !important;
+}
+
+.surface-hover {
+  background: var(--bg3) !important;
+  color: var(--text2) !important;
+  border-color: var(--border) !important;
+  transition: background var(--transition-fast), color var(--transition-fast) !important;
+
+  &:hover {
+    background: var(--bg4) !important;
+    color: var(--text) !important;
+  }
+}
+
+.surface-border {
+  border-color: var(--border) !important;
+}
+
+// Global Text Contrast Overrides
+.text-900 { color: var(--text) !important; }
+.text-800 { color: var(--text2) !important; }
+.text-700 { color: var(--text2) !important; }
+.text-600 { color: var(--text3) !important; }
+.text-500 { color: var(--text3) !important; }
+.text-400 { color: var(--muted) !important; }
+.text-color-secondary { color: var(--text3) !important; }
+
+// Dynamic Accents Overrides
+.text-indigo-400, .text-indigo-300 { color: var(--accent) !important; }
+.text-blue-400, .text-blue-300 { color: var(--accent2) !important; }
+.text-orange-400, .text-orange-300 { color: var(--amber) !important; }
+.text-green-400, .text-green-300 { color: var(--green) !important; }
+.text-red-400, .text-red-300 { color: var(--red) !important; }
+.text-gray-400, .text-gray-300 { color: var(--text3) !important; }
+
+// Dynamic Background Overrides
+.bg-indigo-900, .bg-indigo-950, .bg-indigo-900-opacity, .bg-indigo-950-opacity {
+  background: rgba(var(--accent-rgb), 0.12) !important;
+  color: var(--accent) !important;
+}
+.bg-indigo-600, .bg-indigo-500 {
+  background: var(--accent) !important;
+  color: var(--bg) !important;
+}
+
+.bg-blue-900, .bg-blue-950, .bg-blue-900-opacity, .bg-blue-950-opacity {
+  background: rgba(var(--accent2-rgb), 0.12) !important;
+  color: var(--accent2) !important;
+}
+
+.bg-orange-900, .bg-orange-950, .bg-orange-900-opacity, .bg-orange-950-opacity {
+  background: rgba(var(--amber-rgb), 0.12) !important;
+  color: var(--amber) !important;
+}
+
+.bg-green-900, .bg-green-950, .bg-green-900-opacity, .bg-green-950-opacity {
+  background: rgba(var(--green-rgb), 0.12) !important;
+  color: var(--green) !important;
+}
+
+.bg-red-900, .bg-red-950, .bg-red-900-opacity, .bg-red-950-opacity {
+  background: rgba(var(--red-rgb), 0.12) !important;
+  color: var(--red) !important;
+}
+
+.bg-gray-800, .bg-gray-900 {
+  background: var(--bg3) !important;
+  color: var(--text3) !important;
+}
+
+// Dynamic Borders Overrides
+.border-indigo-900, .border-indigo-800 { border-color: rgba(var(--accent-rgb), 0.25) !important; }
+.border-blue-900, .border-blue-800 { border-color: rgba(var(--accent2-rgb), 0.25) !important; }
+.border-orange-900, .border-orange-800 { border-color: rgba(var(--amber-rgb), 0.25) !important; }
+.border-green-900, .border-green-800 { border-color: rgba(var(--green-rgb), 0.25) !important; }
+.border-red-900, .border-red-800 { border-color: rgba(var(--red-rgb), 0.25) !important; }
+
+// Active button/status overrides
+.bg-indigo-900.text-indigo-300 {
+  background: rgba(var(--accent-rgb), 0.15) !important;
+  color: var(--accent) !important;
+}
+
+.bg-blue-900.text-blue-300 {
+  background: rgba(var(--accent2-rgb), 0.15) !important;
+  color: var(--accent2) !important;
+}
+
+// Trigger Sass reload
+
+

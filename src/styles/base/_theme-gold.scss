@@ -1,0 +1,91 @@
+:root[data-theme='gold'] {
+  color-scheme: dark;
+
+  // Accessibility: WCAG 2.1 AA contrast ratios
+  --bg: #090a0d;
+  --bg-rgb: 9, 10, 13;
+  --bg2: #101216;
+  --bg2-rgb: 16, 18, 22;
+  --bg3: #171a20;
+  --bg3-rgb: 23, 26, 32;
+  --bg4: #21252d;
+  --surface: #12151a;
+  --surface-elevated: #1a1e25;
+  --surface-soft: #0d0f13;
+
+  // PrimeNG theme variable mapping
+  --surface-card: var(--bg2);
+  --surface-ground: var(--bg);
+  --surface-border: var(--border);
+  --text-color: var(--text);
+  --text-color-secondary: var(--text3);
+  --primary-color: var(--accent);
+
+  // Glass surfaces
+  --surface-glass: rgba(16, 18, 22, 0.78);
+  --surface-glass-light: rgba(23, 26, 32, 0.62);
+  --glass-blur: 16px;
+  --glass-blur-heavy: 32px;
+
+  --border: rgba(245, 197, 88, 0.18);
+  --border-subtle: rgba(245, 197, 88, 0.1);
+  --border2: rgba(245, 197, 88, 0.32);
+  --border-glow: rgba(245, 197, 88, 0.45);
+
+  // Text - WCAG compliant: --text (#fffaf0) on --bg (#090a0d) = 18.1:1 ✓
+  --text: #fffaf0;
+  --text2: #e6ddc9;
+  --text3: #b8af9e;
+  --muted: #8a8477;
+
+  --accent: #f5c558;
+  --accent-rgb: 245, 197, 88;
+  --accent-hover: #f7cf77;
+  --accent2: #4dd8c8;
+  --accent2-rgb: 77, 216, 200;
+  --accent2-hover: #6ae2d8;
+
+  --gold-gradient: linear-gradient(135deg, #f5c558 0%, #fff0a8 100%);
+  --accent-gradient: linear-gradient(135deg, #f5c558 0%, #4dd8c8 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #f7cf77 0%, #6ae2d8 100%);
+  --gold-glow: 0 0 30px rgba(245, 197, 88, 0.28);
+
+  --purple: #b8a1ff;
+  --purple-rgb: 184, 161, 255;
+  --pink: #ff8ca3;
+  --pink-rgb: 255, 140, 163;
+  --amber: #ffcc66;
+  --amber-rgb: 255, 204, 102;
+  --green: #47d990;
+  --green-rgb: 71, 217, 144;
+  --red: #ff6b77;
+  --red-rgb: 255, 107, 119;
+
+  // Focus outline - Accessibility
+  --focus-outline: 2px solid var(--accent);
+  --focus-offset: 2px;
+
+  // Premium gradients
+  --gradient-bg: radial-gradient(ellipse at 20% 0%, rgba(245, 197, 88, 0.1) 0%, transparent 50%),
+                 radial-gradient(ellipse at 80% 100%, rgba(77, 216, 200, 0.07) 0%, transparent 50%);
+
+  --shadow: 0 20px 52px rgba(0, 0, 0, 0.36);
+  --shadow-sm: 0 8px 18px rgba(0, 0, 0, 0.22);
+  --shadow-lg: 0 30px 92px rgba(0, 0, 0, 0.48);
+  --shadow-glow: 0 0 50px rgba(245, 197, 88, 0.2);
+  --shadow-glow-accent2: 0 0 50px rgba(77, 216, 200, 0.15);
+
+  --float-offset: 16px;
+
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-glass: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  --bp-mobile: 375px;
+  --bp-tablet: 768px;
+  --bp-desktop: 1024px;
+  --bp-large: 1440px;
+  --container-max: 1400px;
+}

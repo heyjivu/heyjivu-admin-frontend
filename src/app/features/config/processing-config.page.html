@@ -1,0 +1,387 @@
+<div class="screen">
+  <div class="screen-header screen-header-compact">
+    <div class="flex justify-content-between align-items-center px-4 py-3 screen-title-row">
+      <div class="flex align-items-center gap-3">
+        <div class="header-icon-wrap">
+          <i class="fas fa-tasks"></i>
+        </div>
+        <div>
+          <div class="screen-title">Processing Configuration</div>
+          <div class="screen-sub">Manage company-wide video processing defaults</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-soft btn-sm" (click)="load()">
+          <i class="fas fa-sync" [class.fa-spin]="loading()"></i> Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen-container">
+    @if (saved()) {
+      <div class="proc-toast">
+        <i class="fas fa-check-circle"></i> Company defaults saved successfully!
+      </div>
+    }
+
+    @if (companyOptions(); as opts) {
+      <div class="proc-grid">
+
+        <!-- ── Section: Output Settings ────────────────────────────── -->
+        <div class="proc-section">
+          <div class="proc-section__header">
+            <div class="proc-section__icon proc-section__icon--indigo">
+              <i class="fas fa-film"></i>
+            </div>
+            <div class="proc-section__title-group">
+              <div class="proc-section__title">Output Settings</div>
+              <div class="proc-section__sub">Main video, shorts, silence removal &amp; subtitles</div>
+            </div>
+          </div>
+          <div class="proc-section__body">
+            <div class="proc-toggle-row">
+              <div class="proc-toggle-info">
+                <span class="proc-toggle-label">Create Main Video</span>
+                <span class="proc-toggle-sub">Generate the primary processed video</span>
+              </div>
+              <label class="proc-switch">
+                <input type="checkbox" [(ngModel)]="opts.createMainVideo" />
+                <span class="proc-switch__track"></span>
+              </label>
+            </div>
+            <div class="proc-toggle-row">
+              <div class="proc-toggle-info">
+                <span class="proc-toggle-label">Create Shorts</span>
+                <span class="proc-toggle-sub">Generate short-form clips from the video</span>
+              </div>
+              <label class="proc-switch">
+                <input type="checkbox" [(ngModel)]="opts.createShorts" />
+                <span class="proc-switch__track"></span>
+              </label>
+            </div>
+            @if (opts.createShorts) {
+              <div class="proc-field-row">
+                <div class="proc-field">
+                  <label class="proc-field-label">Max Shorts</label>
+                  <input class="proc-input" type="number" [(ngModel)]="opts.maxShorts" min="1" max="50" />
+                </div>
+                <div class="proc-field">
+                  <label class="proc-field-label">Min Short Duration (s)</label>
+                  <input class="proc-input" type="number" step="0.1" [(ngModel)]="opts.minShortDuration" />
+                </div>
+                <div class="proc-field">
+                  <label class="proc-field-label">Max Short Duration (s)</label>
+                  <input class="proc-input" type="number" step="0.1" [(ngModel)]="opts.maxShortDuration" />
+                </div>
+              </div>
+            }
+            <div class="proc-divider"></div>
+            <div class="proc-toggle-row">
+              <div class="proc-toggle-info">
+                <span class="proc-toggle-label">Remove Silence</span>
+                <span class="proc-toggle-sub">Automatically strip silent segments</span>
+              </div>
+              <label class="proc-switch">
+                <input type="checkbox" [(ngModel)]="opts.removeSilence" />
+                <span class="proc-switch__track"></span>
+              </label>
+            </div>
+            @if (opts.removeSilence) {
+              <div class="proc-field-row">
+                <div class="proc-field">
+                  <label class="proc-field-label">Silence Threshold (s)</label>
+                  <input class="proc-input" type="number" step="0.1" [(ngModel)]="opts.silenceThresholdSeconds" min="0.1" max="10" />
+                </div>
+              </div>
+            }
+            <div class="proc-divider"></div>
+            <div class="proc-toggle-row">
+              <div class="proc-toggle-info">
+                <span class="proc-toggle-label">Burn Subtitles</span>
+                <span class="proc-toggle-sub">Embed subtitles directly into the video</span>
+              </div>
+              <label class="proc-switch">
+                <input type="checkbox" [(ngModel)]="opts.burnSubtitles" />
+                <span class="proc-switch__track"></span>
+              </label>
+            </div>
+            @if (opts.burnSubtitles) {
+              <div class="proc-field-row">
+                <div class="proc-field">
+                  <label class="proc-field-label">Subtitle Style</label>
+                  <select class="proc-input proc-input--select" [(ngModel)]="opts.subtitleStyle">
+                    <option value="NeonHighlight">Neon Highlight</option>
+                    <option value="Minimalistic">Minimalistic</option>
+                    <option value="Outline">Outline</option>
+                  </select>
+                </div>
+                <div class="proc-field">
+                  <label class="proc-field-label">Target Language</label>
+                  <input class="proc-input" [(ngModel)]="opts.targetLanguage" placeholder="e.g. en" />
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- ── Section: Thumbnails ─────────────────────────────────── -->
+        <div class="proc-section">
+          <div class="proc-section__header">
+            <div class="proc-section__icon proc-section__icon--emerald">
+              <i class="fas fa-image"></i>
+            </div>
+            <div class="proc-section__title-group">
+              <div class="proc-section__title">Thumbnails</div>
+              <div class="proc-section__sub">AI-generated thumbnail &amp; frame extraction</div>
+            </div>
+          </div>
+          <div class="proc-section__body">
+            <div class="proc-toggle-row">
+              <div class="proc-toggle-info">
+                <span class="proc-toggle-label">Generate AI Thumbnail</span>
+                <span class="proc-toggle-sub">Create automatic thumbnail using AI</span>
+              </div>
+              <label class="proc-switch">
+                <input type="checkbox" [(ngModel)]="opts.generateAIThumbnail" />
+                <span class="proc-switch__track"></span>
+              </label>
+            </div>
+            @if (opts.generateAIThumbnail) {
+              <div class="proc-field-row">
+                <div class="proc-field">
+                  <label class="proc-field-label">Thumbnail Engine</label>
+                  <select class="proc-input proc-input--select" [(ngModel)]="opts.thumbnailEngine">
+                    <option value="SDXL">SDXL</option>
+                    <option value="DALL-E 3">DALL-E 3</option>
+                    <option value="FrameExtract">Frame Extract</option>
+                  </select>
+                </div>
+              </div>
+            }
+            <div class="proc-field-row">
+              <div class="proc-field proc-field--full">
+                <label class="proc-field-label">Thumbnail Count (1–100)</label>
+                <div class="proc-input-group">
+                  <input class="proc-input" type="number" [(ngModel)]="opts.thumbnailCount" min="1" max="100" />
+                  <span class="proc-input-suffix">frames</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Section: Meme Controls ──────────────────────────────── -->
+        <div class="proc-section">
+          <div class="proc-section__header">
+            <div class="proc-section__icon proc-section__icon--violet">
+              <i class="fas fa-laugh"></i>
+            </div>
+            <div class="proc-section__title-group">
+              <div class="proc-section__title">Meme Controls</div>
+              <div class="proc-section__sub">Meme video, image &amp; audio overlays for main &amp; shorts</div>
+            </div>
+          </div>
+          <div class="proc-section__body">
+            <!-- Meme Videos -->
+            <div class="proc-pair-header">
+              <i class="fas fa-video"></i> Meme Videos
+            </div>
+            <div class="proc-pair-grid">
+              <div class="proc-pair">
+                <div class="proc-toggle-row proc-toggle-row--condensed">
+                  <span class="proc-toggle-label">Main Video</span>
+                  <label class="proc-switch proc-switch--sm">
+                    <input type="checkbox" [(ngModel)]="opts.mainVideoEnableMemeVideos" />
+                    <span class="proc-switch__track"></span>
+                  </label>
+                </div>
+                @if (opts.mainVideoEnableMemeVideos) {
+                  <input class="proc-input proc-input--sm" [(ngModel)]="opts.mainVideoMemeVideosPlacementMode" placeholder="Placement mode" />
+                }
+              </div>
+              <div class="proc-pair">
+                <div class="proc-toggle-row proc-toggle-row--condensed">
+                  <span class="proc-toggle-label">Shorts</span>
+                  <label class="proc-switch proc-switch--sm">
+                    <input type="checkbox" [(ngModel)]="opts.shortsEnableMemeVideos" />
+                    <span class="proc-switch__track"></span>
+                  </label>
+                </div>
+                @if (opts.shortsEnableMemeVideos) {
+                  <input class="proc-input proc-input--sm" [(ngModel)]="opts.shortsMemeVideosPlacementMode" placeholder="Placement mode" />
+                }
+              </div>
+            </div>
+
+            <div class="proc-divider"></div>
+
+            <!-- Meme Images -->
+            <div class="proc-pair-header">
+              <i class="fas fa-image"></i> Meme Images
+            </div>
+            <div class="proc-pair-grid">
+              <div class="proc-pair">
+                <div class="proc-toggle-row proc-toggle-row--condensed">
+                  <span class="proc-toggle-label">Main Video</span>
+                  <label class="proc-switch proc-switch--sm">
+                    <input type="checkbox" [(ngModel)]="opts.mainVideoEnableMemeImages" />
+                    <span class="proc-switch__track"></span>
+                  </label>
+                </div>
+                @if (opts.mainVideoEnableMemeImages) {
+                  <input class="proc-input proc-input--sm" [(ngModel)]="opts.mainVideoMemeImagesPlacementMode" placeholder="Placement mode" />
+                }
+              </div>
+              <div class="proc-pair">
+                <div class="proc-toggle-row proc-toggle-row--condensed">
+                  <span class="proc-toggle-label">Shorts</span>
+                  <label class="proc-switch proc-switch--sm">
+                    <input type="checkbox" [(ngModel)]="opts.shortsEnableMemeImages" />
+                    <span class="proc-switch__track"></span>
+                  </label>
+                </div>
+                @if (opts.shortsEnableMemeImages) {
+                  <input class="proc-input proc-input--sm" [(ngModel)]="opts.shortsMemeImagesPlacementMode" placeholder="Placement mode" />
+                }
+              </div>
+            </div>
+
+            <div class="proc-divider"></div>
+
+            <!-- Meme Audios -->
+            <div class="proc-pair-header">
+              <i class="fas fa-music"></i> Meme Audios
+            </div>
+            <div class="proc-pair-grid">
+              <div class="proc-pair">
+                <div class="proc-toggle-row proc-toggle-row--condensed">
+                  <span class="proc-toggle-label">Main Video</span>
+                  <label class="proc-switch proc-switch--sm">
+                    <input type="checkbox" [(ngModel)]="opts.mainVideoEnableMemeAudios" />
+                    <span class="proc-switch__track"></span>
+                  </label>
+                </div>
+                @if (opts.mainVideoEnableMemeAudios) {
+                  <input class="proc-input proc-input--sm" [(ngModel)]="opts.mainVideoMemeAudiosPlacementMode" placeholder="Placement mode" />
+                }
+              </div>
+              <div class="proc-pair">
+                <div class="proc-toggle-row proc-toggle-row--condensed">
+                  <span class="proc-toggle-label">Shorts</span>
+                  <label class="proc-switch proc-switch--sm">
+                    <input type="checkbox" [(ngModel)]="opts.shortsEnableMemeAudios" />
+                    <span class="proc-switch__track"></span>
+                  </label>
+                </div>
+                @if (opts.shortsEnableMemeAudios) {
+                  <input class="proc-input proc-input--sm" [(ngModel)]="opts.shortsMemeAudiosPlacementMode" placeholder="Placement mode" />
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Section: Visual Enhancements ────────────────────────── -->
+        <div class="proc-section">
+          <div class="proc-section__header">
+            <div class="proc-section__icon proc-section__icon--amber">
+              <i class="fas fa-wand-magic-sparkles"></i>
+            </div>
+            <div class="proc-section__title-group">
+              <div class="proc-section__title">Visual Enhancements</div>
+              <div class="proc-section__sub">B-Roll, SFX, split screen, emojis &amp; hook reorder</div>
+            </div>
+          </div>
+          <div class="proc-section__body">
+            <div class="proc-pair-grid">
+              <div class="proc-toggle-row proc-toggle-row--condensed">
+                <span class="proc-toggle-label">Main B-Roll</span>
+                <label class="proc-switch proc-switch--sm">
+                  <input type="checkbox" [(ngModel)]="opts.mainVideoEnableBroll" />
+                  <span class="proc-switch__track"></span>
+                </label>
+              </div>
+              <div class="proc-toggle-row proc-toggle-row--condensed">
+                <span class="proc-toggle-label">Shorts B-Roll</span>
+                <label class="proc-switch proc-switch--sm">
+                  <input type="checkbox" [(ngModel)]="opts.shortsEnableBroll" />
+                  <span class="proc-switch__track"></span>
+                </label>
+              </div>
+              <div class="proc-toggle-row proc-toggle-row--condensed">
+                <span class="proc-toggle-label">Main Micro SFX</span>
+                <label class="proc-switch proc-switch--sm">
+                  <input type="checkbox" [(ngModel)]="opts.mainVideoEnableMicroSFX" />
+                  <span class="proc-switch__track"></span>
+                </label>
+              </div>
+              <div class="proc-toggle-row proc-toggle-row--condensed">
+                <span class="proc-toggle-label">Shorts Micro SFX</span>
+                <label class="proc-switch proc-switch--sm">
+                  <input type="checkbox" [(ngModel)]="opts.shortsEnableMicroSFX" />
+                  <span class="proc-switch__track"></span>
+                </label>
+              </div>
+              <div class="proc-toggle-row proc-toggle-row--condensed">
+                <span class="proc-toggle-label">Main Split Screen</span>
+                <label class="proc-switch proc-switch--sm">
+                  <input type="checkbox" [(ngModel)]="opts.mainVideoEnableSplitScreen" />
+                  <span class="proc-switch__track"></span>
+                </label>
+              </div>
+              <div class="proc-toggle-row proc-toggle-row--condensed">
+                <span class="proc-toggle-label">Shorts Split Screen</span>
+                <label class="proc-switch proc-switch--sm">
+                  <input type="checkbox" [(ngModel)]="opts.shortsEnableSplitScreen" />
+                  <span class="proc-switch__track"></span>
+                </label>
+              </div>
+              <div class="proc-toggle-row proc-toggle-row--condensed">
+                <span class="proc-toggle-label">Main Semantic Emojis</span>
+                <label class="proc-switch proc-switch--sm">
+                  <input type="checkbox" [(ngModel)]="opts.mainVideoEnableSemanticEmojis" />
+                  <span class="proc-switch__track"></span>
+                </label>
+              </div>
+              <div class="proc-toggle-row proc-toggle-row--condensed">
+                <span class="proc-toggle-label">Shorts Semantic Emojis</span>
+                <label class="proc-switch proc-switch--sm">
+                  <input type="checkbox" [(ngModel)]="opts.shortsEnableSemanticEmojis" />
+                  <span class="proc-switch__track"></span>
+                </label>
+              </div>
+              <div class="proc-toggle-row proc-toggle-row--condensed">
+                <span class="proc-toggle-label">Main Hook Reorder</span>
+                <label class="proc-switch proc-switch--sm">
+                  <input type="checkbox" [(ngModel)]="opts.mainVideoEnableHookReorder" />
+                  <span class="proc-switch__track"></span>
+                </label>
+              </div>
+              <div class="proc-toggle-row proc-toggle-row--condensed">
+                <span class="proc-toggle-label">Shorts Hook Reorder</span>
+                <label class="proc-switch proc-switch--sm">
+                  <input type="checkbox" [(ngModel)]="opts.shortsEnableHookReorder" />
+                  <span class="proc-switch__track"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Save Bar ─────────────────────────────────────────────── -->
+        <div class="proc-save-bar">
+          <button class="btn btn-primary" (click)="save()">
+            <i class="fas fa-save"></i> Save Company Defaults
+          </button>
+        </div>
+
+      </div>
+    } @else {
+      <div class="proc-empty">
+        <i class="fas fa-tasks"></i>
+        <span>Loading processing settings...</span>
+      </div>
+    }
+  </div>
+</div>

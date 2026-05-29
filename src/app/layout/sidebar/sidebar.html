@@ -1,0 +1,22 @@
+<nav class="sidebar" [class.sidebar--collapsed]="uiStore.isCollapsed()" aria-label="Admin navigation">
+  
+  <div class="sidebar-scroll flex-1 flex flex-column gap-1 py-3 overflow-y-auto">
+    
+    <div class="snav-label px-3 py-1 text-4xs font-mono uppercase tracking-wider text-color-secondary">
+      {{ currentModuleTitle }}
+    </div>
+
+    <div class="flex flex-column gap-1" *ngIf="navItems().length > 0">
+      <ng-container *ngFor="let item of navItems()">
+        <a class="glass-nav-item" [class.glass-nav-item--sub]="!item.isParent" [routerLink]="item.route" [queryParams]="item.queryParams" [class.active]="isActiveNavItem(item)" [attr.aria-label]="item.label" [title]="item.label">
+          <i [class]="getIconClass(item.icon) + ' text-sm'"></i>
+          <span class="icon-label">{{ item.label }}</span>
+          @if (getBadge(item); as badge) {
+            <span class="nav-badge">{{ badge }}</span>
+          }
+        </a>
+      </ng-container>
+    </div>
+
+  </div>
+</nav>

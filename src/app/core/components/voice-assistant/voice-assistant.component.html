@@ -1,0 +1,110 @@
+<div class="voice-assistant-overlay" (click)="close()">
+  <div class="voice-assistant-card glass" (click)="$event.stopPropagation()">
+    <button class="close-btn" (click)="close()" title="Close Voice Assistant">
+      <i class="fas fa-times"></i>
+    </button>
+
+    <div class="card-content">
+      <!-- Status Badge -->
+      <div class="status-badge" [ngClass]="status()">
+        <span class="status-dot"></span>
+        <span class="status-text">
+          <ng-container [ngSwitch]="status()">
+            <span *ngSwitchCase="'listening'">Listening...</span>
+            <span *ngSwitchCase="'processing'">Brain is thinking...</span>
+            <span *ngSwitchCase="'speaking'">Speaking...</span>
+            <span *ngSwitchCase="'error'">System Alert</span>
+            <span *ngSwitchDefault>Ready</span>
+          </ng-container>
+        </span>
+      </div>
+
+      <!-- Animated Visualizer Waves -->
+      <div class="visualizer-wrapper">
+        <div class="visualizer-waves" [ngClass]="status()">
+          <!-- Listening Waves -->
+          <ng-container *ngIf="status() === 'listening'">
+            <div class="ripple ripple-1"></div>
+            <div class="ripple ripple-2"></div>
+            <div class="ripple ripple-3"></div>
+            <div class="visualizer-center listening">
+              <i class="fas fa-microphone"></i>
+            </div>
+          </ng-container>
+
+          <!-- Thinking / Processing Waves -->
+          <ng-container *ngIf="status() === 'processing'">
+            <div class="spinning-ring"></div>
+            <div class="visualizer-center processing">
+              <i class="fas fa-brain fa-pulse"></i>
+            </div>
+          </ng-container>
+
+          <!-- Speaking Waves -->
+          <ng-container *ngIf="status() === 'speaking'">
+            <div class="wave-bar-container">
+              <div class="wave-bar bar-1"></div>
+              <div class="wave-bar bar-2"></div>
+              <div class="wave-bar bar-3"></div>
+              <div class="wave-bar bar-4"></div>
+              <div class="wave-bar bar-5"></div>
+            </div>
+            <div class="visualizer-center speaking">
+              <i class="fas fa-volume-up"></i>
+            </div>
+          </ng-container>
+
+          <!-- Error / Idle State -->
+          <ng-container *ngIf="status() === 'error' || status() === 'idle'">
+            <div class="visualizer-center" [class.error]="status() === 'error'">
+              <i [class]="status() === 'error' ? 'fas fa-exclamation-triangle' : 'fas fa-microphone-slash'"></i>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <!-- Live User Transcript Display -->
+      <div class="text-display-box">
+        <p class="section-title">
+          {{ status() === 'speaking' ? 'AuraDesk Brain Reply' : 'What I Hear' }}
+        </p>
+        <div class="text-content">
+          <p *ngIf="status() === 'speaking'" class="ai-text">{{ aiResponse() }}</p>
+          <p *ngIf="status() !== 'speaking' && transcript()" class="user-text">{{ transcript() }}</p>
+          <p *ngIf="status() === 'listening' && !transcript()" class="placeholder-text">Speak now in {{ uiStore.brainLanguage() === 'ur' ? 'Urdu' : 'English' }}...</p>
+          <p *ngIf="status() === 'processing'" class="placeholder-text pulsing">Generating premium response...</p>
+          <p *ngIf="status() === 'error'" class="error-text">{{ errorMessage() }}</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-footer">
+        <button 
+          *ngIf="status() === 'listening'" 
+          class="send-now-btn" 
+          [disabled]="!transcript().trim()"
+          (click)="sendToBrain()"
+        >
+          <i class="fas fa-paper-plane mr-2"></i> Send Message
+        </button>
+
+        <button 
+          *ngIf="status() === 'speaking'" 
+          class="stop-now-btn" 
+          (click)="stopSpeaking()"
+        >
+          <i class="fas fa-stop mr-2"></i> Stop Speaking
+        </button>
+
+        <button 
+          *ngIf="status() === 'error'" 
+          class="retry-btn" 
+          (click)="startSession()"
+        >
+          <i class="fas fa-redo mr-2"></i> Try Again
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

@@ -1,0 +1,27 @@
+.glass-nav-item--sub {
+  padding-left: 36px !important;
+  font-size: 12px !important;
+  margin-left: 4px !important;
+  margin-right: 4px !important;
+
+  i {
+    font-size: 12px !important;
+    width: 16px !important;
+  }
+}
+
+.sidebar-scroll {
+  scrollbar-width: thin;
+}
+
+.nav-badge {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.15);
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.4;
+}

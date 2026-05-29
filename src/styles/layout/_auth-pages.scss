@@ -1,0 +1,487 @@
+// ============================================================
+//  LAYOUT / AUTH PAGES
+//  Modern, Glassmorphic Auth System (Login, Register, Confirm Email)
+// ============================================================
+
+.login-container,
+.register-container,
+.confirm-email-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40px 20px;
+  position: relative;
+  background-color: var(--bg);
+  background-image: 
+    radial-gradient(circle at 10% 10%, rgba(var(--accent-rgb), 0.08), transparent 45%),
+    radial-gradient(circle at 90% 90%, rgba(var(--accent2-rgb), 0.06), transparent 45%),
+    var(--gradient-bg);
+  box-sizing: border-box;
+
+  // Add scroll padding inside container for mobile views
+  overflow-y: auto;
+}
+
+.login-card,
+.register-card,
+.confirm-email-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 40px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  box-shadow: 
+    var(--shadow), 
+    0 0 50px rgba(var(--accent-rgb), 0.05);
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+
+  &.glass {
+    background: color-mix(in srgb, var(--bg2) 75%, transparent);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+  }
+
+  &:hover {
+    border-color: rgba(var(--accent-rgb), 0.25);
+    box-shadow: 
+      var(--shadow-lg), 
+      0 0 60px rgba(var(--accent-rgb), 0.08);
+  }
+}
+
+// ── HEADER ──────────────────────────────────────────────────
+.login-header,
+.register-header,
+.confirm-email-header {
+  text-align: center;
+  margin-bottom: 28px;
+
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: var(--radius-lg);
+    padding: 10px;
+    box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.25);
+    transition: transform var(--transition-bounce);
+    box-sizing: border-box;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    &:hover {
+      transform: scale(1.08) rotate(3deg);
+    }
+  }
+
+  h1 {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text);
+    margin: 18px 0 8px 0;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+  }
+
+  p {
+    font-size: 13.5px;
+    color: var(--text3);
+    line-height: 1.5;
+    margin: 0;
+    font-weight: 400;
+  }
+}
+
+// ── FORM ELEMENTS ───────────────────────────────────────────
+.login-form,
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  margin-bottom: 0; // Reset global margin-bottom from global-laptop.scss
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%; // Override any restricted max-width from global-laptop.scss
+
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text2);
+    margin-bottom: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: color var(--transition-fast);
+  }
+
+  &:focus-within label {
+    color: var(--accent);
+  }
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  > i {
+    position: absolute;
+    left: 14px;
+    color: var(--text3);
+    font-size: 14px;
+    transition: color var(--transition-fast);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  input {
+    width: 100%;
+    padding: 12px 14px 12px 42px;
+    background: rgba(var(--bg-rgb), 0.45);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    transition: all var(--transition-base);
+    outline: none;
+    box-sizing: border-box;
+
+    &::placeholder {
+      color: var(--muted);
+      opacity: 1;
+    }
+
+    &:hover {
+      border-color: rgba(var(--accent-rgb), 0.35);
+      background: rgba(var(--bg-rgb), 0.55);
+    }
+
+    &:focus {
+      border-color: var(--accent);
+      background: rgba(var(--bg-rgb), 0.7);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+  }
+
+  &:focus-within {
+    > i {
+      color: var(--accent);
+    }
+  }
+
+  &.password-field input {
+    padding-right: 44px;
+  }
+
+  .focus-ring {
+    position: absolute;
+    inset: -3px;
+    border: 2px solid rgba(var(--accent-rgb), 0.25);
+    border-radius: calc(var(--radius) + 3px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-fast) ease;
+    z-index: 1;
+  }
+
+  input:focus ~ .focus-ring {
+    opacity: 1;
+  }
+}
+
+.password-toggle {
+  position: absolute;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  padding: 4px;
+  font-size: 14px;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+  z-index: 2;
+
+  &:hover {
+    color: var(--text);
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.field-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--red);
+  font-size: 12px;
+  margin-top: 6px;
+  padding: 4px 0 0 0;
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+
+  i {
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+}
+
+.password-helper-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+  width: 100%;
+  animation: fadeIn 0.25s ease;
+}
+
+.password-strength {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+
+  .strength-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .strength-fill {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: 2px;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+
+    &.weak {
+      background-color: var(--red);
+    }
+    &.fair {
+      background-color: var(--pink);
+    }
+    &.good {
+      background-color: var(--amber);
+    }
+    &.strong {
+      background-color: var(--green);
+    }
+  }
+
+  .strength-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    transition: color 0.3s ease;
+    align-self: flex-start;
+
+    &.strength-weak {
+      color: var(--red);
+    }
+    &.strength-fair {
+      color: var(--pink);
+    }
+    &.strength-good {
+      color: var(--amber);
+    }
+    &.strength-strong {
+      color: var(--green);
+    }
+  }
+}
+
+.password-requirements {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding-left: 2px;
+
+  .requirement-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--red);
+    font-size: 11.5px;
+    font-weight: 500;
+    transition: color var(--transition-fast) ease;
+
+    i {
+      font-size: 12px;
+      color: var(--red);
+      transition: transform var(--transition-fast) ease, color var(--transition-fast) ease;
+    }
+
+    &.passed {
+      color: var(--green);
+
+      i {
+        color: var(--green);
+        transform: scale(1.1);
+      }
+    }
+  }
+}
+
+// ── BUTTONS & INTERACTIVE ───────────────────────────────────
+.btn-login,
+.btn-register {
+  width: 100%;
+  padding: 12px;
+  background: var(--accent-gradient) !important;
+  color: #080b10 !important; // Deep dark text for high contrast on light gradients
+  border: none !important;
+  border-radius: var(--radius);
+  font-weight: 700;
+  font-size: 14.5px;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  transition: all var(--transition-bounce) !important;
+  box-shadow: 0 4px 15px rgba(var(--accent-rgb), 0.25);
+  box-sizing: border-box;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 8px 24px rgba(var(--accent-rgb), 0.35),
+      0 0 15px rgba(var(--accent-rgb), 0.15);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  i.fa-spinner {
+    font-size: 14px;
+  }
+}
+
+.register-link {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 13.5px;
+  color: var(--text2);
+
+  a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 700;
+    transition: color var(--transition-fast);
+
+    &:hover {
+      color: var(--accent-hover);
+      text-decoration: underline;
+    }
+  }
+}
+
+// ── DIVIDER ─────────────────────────────────────────────────
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 24px 0;
+  color: var(--text3);
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  span {
+    padding: 0 14px;
+  }
+}
+
+// ── GOOGLE AUTHENTICATION ───────────────────────────────────
+.google-auth-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+
+  #googleButtonWrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    transition: transform var(--transition-bounce);
+
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
+}
+
+.server-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(var(--red-rgb), 0.08);
+  border: 1px solid rgba(var(--red-rgb), 0.2);
+  color: var(--red);
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  line-height: 1.45;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+
+  i {
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text3);
+  font-size: 13px;
+
+  i {
+    color: var(--accent);
+  }
+}

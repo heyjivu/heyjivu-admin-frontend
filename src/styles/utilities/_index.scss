@@ -1,0 +1,146 @@
+// ============================================================
+//  UTILITIES / INDEX
+//  Atomic utility classes following Tailwind-like patterns
+//  but using CSS custom properties for theming
+// ============================================================
+
+// Glassmorphism panel (used by appGlass directive)
+.glass-panel {
+  background: color-mix(in srgb, var(--text) calc(var(--glass-opacity, 0.05) * 100%), transparent);
+  backdrop-filter: blur(var(--glass-blur, 10px));
+  -webkit-backdrop-filter: blur(var(--glass-blur, 10px));
+  border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  box-shadow: 0 8px 32px 0 color-mix(in srgb, var(--text) 20%, transparent);
+}
+
+// Display
+.d-flex     { display: flex; }
+.d-grid     { display: grid; }
+.d-block    { display: block; }
+.d-inline   { display: inline; }
+.d-none     { display: none; }
+.d-contents { display: contents; }
+
+// Flexbox
+.flex-col        { flex-direction: column; }
+.flex-row        { flex-direction: row; }
+.flex-wrap       { flex-wrap: wrap; }
+.flex-nowrap     { flex-wrap: nowrap; }
+.items-start     { align-items: flex-start; }
+.items-center    { align-items: center; }
+.items-end       { align-items: flex-end; }
+.justify-start   { justify-content: flex-start; }
+.justify-center  { justify-content: center; }
+.justify-end     { justify-content: flex-end; }
+.justify-between { justify-content: space-between; }
+.gap-4  { gap: 4px; }
+.gap-6  { gap: 6px; }
+.gap-8  { gap: 8px; }
+.gap-10 { gap: 10px; }
+.gap-12 { gap: 12px; }
+.gap-16 { gap: 16px; }
+.gap-20 { gap: 20px; }
+.gap-24 { gap: 24px; }
+
+// Spacing (margin)
+.m-0  { margin: 0; }
+.mt-4 { margin-top: 4px; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mt-20 { margin-top: 20px; }
+.mt-24 { margin-top: 24px; }
+.mb-4 { margin-bottom: 4px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-12 { margin-bottom: 12px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-20 { margin-bottom: 20px; }
+.mb-24 { margin-bottom: 24px; }
+.ml-auto { margin-left: auto; }
+.mr-auto { margin-right: auto; }
+
+// Spacing (padding)
+.p-0  { padding: 0; }
+.p-8  { padding: 8px; }
+.p-12 { padding: 12px; }
+.p-16 { padding: 16px; }
+.p-20 { padding: 20px; }
+.p-24 { padding: 24px; }
+
+// Width / Height
+.w-full  { width: 100%; }
+.h-full  { height: 100%; }
+.min-w-0 { min-width: 0; }
+
+// Position
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed    { position: fixed; }
+
+// Overflow
+.overflow-auto   { overflow: auto; }
+.overflow-hidden { overflow: hidden; }
+.overflow-x-hidden { overflow-x: hidden; }
+
+// Cursor
+.cursor-pointer { cursor: pointer; }
+.cursor-default { cursor: default; }
+
+// White space
+.whitespace-nowrap { white-space: nowrap; }
+
+// Border radius
+.rounded-sm  { border-radius: 4px; }
+.rounded     { border-radius: var(--radius); }
+.rounded-lg  { border-radius: var(--radius-lg); }
+.rounded-xl  { border-radius: var(--radius-xl); }
+.rounded-full { border-radius: 999px; }
+
+// Backgrounds
+.bg-bg      { background-color: var(--bg); }
+.bg-bg2     { background-color: var(--bg2); }
+.bg-bg3     { background-color: var(--bg3); }
+.bg-surface { background-color: var(--surface); }
+.bg-surface-elevated { background-color: var(--surface-elevated); }
+.bg-surface-soft     { background-color: var(--surface-soft); }
+
+// Borders
+.border        { border: 1px solid var(--border); }
+.border-b      { border-bottom: 1px solid var(--border); }
+.border-t      { border-top: 1px solid var(--border); }
+.border-l      { border-left: 1px solid var(--border); }
+.border-r      { border-right: 1px solid var(--border); }
+.border-none   { border: none; }
+
+// Shadow
+.shadow-sm  { box-shadow: var(--shadow-sm); }
+.shadow     { box-shadow: var(--shadow); }
+.shadow-lg  { box-shadow: var(--shadow-lg); }
+
+// Transition
+.transition { transition: all var(--transition-base); }
+.transition-fast { transition: all var(--transition-fast); }
+
+// Hover lift
+.hover-lift {
+  transition: transform var(--transition-base);
+  &:hover { transform: translateY(-1px); }
+}
+
+// Glass effect
+.glass {
+  background: color-mix(in srgb, var(--bg2) 92%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+// Truncate
+truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Aspect ratios
+.aspect-video { aspect-ratio: 16 / 9; }
+.aspect-square { aspect-ratio: 1 / 1; }

@@ -1,0 +1,237 @@
+// ============================================================
+//  GLOBAL MOBILE & TABLET STYLES
+//  Responsive layout overrides and touch enhancements
+// ============================================================
+
+// ── TABLET LANDSCAPE & BELOW (max-width: 1024px) ───────────
+@media (max-width: 1024px) {
+  .navbar {
+    padding: 16px 24px;
+    
+    .navbar-nav {
+      gap: 16px;
+    }
+  }
+
+  .hero {
+    padding: 60px 24px 80px;
+
+    .hero-copy {
+      h1 {
+        font-size: 2.75rem;
+      }
+      .hero-subtitle {
+        font-size: 15px;
+      }
+    }
+  }
+
+  .proof-strip {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0 24px;
+    margin-bottom: 80px;
+  }
+
+  .section {
+    padding: 80px 24px;
+  }
+
+  .workflow-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .audience-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .pricing-grid {
+    grid-template-columns: 1fr;
+    max-width: 450px;
+    gap: 32px;
+  }
+
+  .faq-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ── TABLET PORTRAIT & BELOW (max-width: 768px) ─────────────
+@media (max-width: 768px) {
+  .navbar {
+    padding: 16px;
+
+    .navbar-nav,
+    .navbar-actions .currency-select,
+    .navbar-actions .theme-toggle,
+    .navbar-actions .btn:not(.start-btn) {
+      display: none !important; // Hide standard nav links
+    }
+
+    .navbar-menu-toggle {
+      display: flex;
+      align-items: center;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    // Mobile navigation panel drawer overlay
+    .nav-mobile-menu {
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 70px;
+      left: 0;
+      right: 0;
+      background: rgba(var(--bg-rgb), 0.95);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 24px;
+      gap: 20px;
+      z-index: 999;
+      transform: translateY(-100%);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+
+      &.open {
+        transform: translateY(0);
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      a {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text2);
+        text-decoration: none;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-subtle);
+
+        &:hover {
+          color: var(--accent);
+        }
+      }
+
+      .mobile-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 10px;
+
+        .btn {
+          width: 100%;
+        }
+      }
+    }
+  }
+
+  .hero {
+    padding: 40px 16px 60px;
+
+    .hero-copy {
+      h1 {
+        font-size: 2.25rem;
+      }
+      
+      .hero-actions {
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
+        
+        .btn {
+          width: 100%;
+          max-width: 280px;
+        }
+      }
+
+      .trust-row {
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+      }
+    }
+
+    // Hero Mockup responsive styling
+    .hero-product {
+      .pipeline {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .platform-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+    }
+  }
+
+  .proof-strip {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 16px;
+    margin-bottom: 60px;
+  }
+
+  .section {
+    padding: 60px 16px;
+
+    .section-header {
+      h2 {
+        font-size: 1.85rem;
+      }
+      p {
+        font-size: 14px;
+      }
+    }
+  }
+
+  .workflow-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .key-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+
+    .key-card {
+      padding: 24px;
+    }
+  }
+
+  .audience-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .footer {
+    flex-direction: column;
+    gap: 24px;
+    text-align: center;
+    padding: 40px 16px;
+
+    .brand {
+      align-items: center;
+    }
+
+    .footer-links {
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+  }
+}
+
+// ── EXTRA SMALL MOBILE DEVICE OVERRIDES (max-width: 480px) ──
+@media (max-width: 480px) {
+  .hero-product {
+    .platform-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+  }
+}

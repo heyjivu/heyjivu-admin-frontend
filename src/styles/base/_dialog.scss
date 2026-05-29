@@ -1,0 +1,96 @@
+// Consistent PrimeNG dialog styling using theme CSS custom properties
+// Applied via styleClass="consistent-dialog" on DialogService.open()
+
+.consistent-dialog {
+  .p-dialog-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(var(--bg-rgb), 0.4);
+
+    .p-dialog-title {
+      font-family: 'Syne', 'Inter', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .p-dialog-header-actions {
+      .p-dialog-header-icon {
+        color: var(--text3);
+        transition: color var(--transition-fast);
+
+        &:hover {
+          color: var(--text);
+        }
+      }
+    }
+  }
+
+  .p-dialog-content {
+    padding: 0;
+    background: color-mix(in srgb, var(--bg2) 95%, transparent);
+    color: var(--text);
+    overflow-y: auto;
+  }
+
+  .dialog-content {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .dialog-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.15);
+  }
+
+  .p-dialog-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.15);
+    margin: 0;
+  }
+
+  .p-dialog-mask {
+    background: rgba(var(--bg-rgb), 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
+// ── MOBILE: full-screen dialogs ──
+@media (max-width: 768px) {
+  .consistent-dialog {
+    .p-dialog {
+      max-height: 100dvh !important;
+      border-radius: 0 !important;
+      width: 100vw !important;
+      height: 100dvh !important;
+      margin: 0 !important;
+    }
+    .p-dialog-header {
+      padding: 14px 16px;
+      min-height: 52px;
+    }
+    .p-dialog-content {
+      flex: 1;
+      overflow-y: auto;
+      max-height: none !important;
+    }
+    .p-dialog-footer {
+      padding: 12px 16px;
+    }
+    .p-dialog-mask {
+      background: var(--bg);
+      backdrop-filter: none;
+    }
+  }
+}

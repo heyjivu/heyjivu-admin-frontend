@@ -1,0 +1,197 @@
+// ============================================================
+//  BASE / TYPOGRAPHY
+//  Global type scale and text utilities
+// ============================================================
+
+// Premium fonts (uncomment to enable DM Sans):
+// @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+// Headings - Responsive scaling
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.16;
+  color: var(--text);
+}
+
+h1 { font-size: clamp(1.4rem, 2.5vw, 1.75rem); }
+h2 { font-size: clamp(1.2rem, 2vw, 1.4rem); }
+h3 { font-size: clamp(1rem, 1.5vw, 1.15rem); }
+h4 { font-size: clamp(0.9rem, 1.2vw, 1rem); }
+h5 { font-size: clamp(0.8rem, 1vw, 0.875rem); }
+h6 { font-size: clamp(0.7rem, 0.9vw, 0.8rem); }
+
+p {
+  margin: 0;
+}
+
+small {
+  font-size: 0.75rem;
+}
+
+// Eyebrow / Label style
+.eyebrow {
+  color: var(--accent);
+  font: 800 10px/1 'JetBrains Mono', monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+// Screen title
+.screen-title {
+  font-size: clamp(22px, 2vw, 30px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+.screen-sub {
+  display: block;
+  margin-top: 8px;
+  color: var(--text3);
+  font-size: 13px;
+  max-width: 760px;
+}
+
+// Text colors
+.text-accent  { color: var(--accent) !important; }
+.text-accent2 { color: var(--accent2) !important; }
+.text-green   { color: var(--green) !important; }
+.text-red     { color: var(--red) !important; }
+.text-purple  { color: var(--purple) !important; }
+.text-amber   { color: var(--amber) !important; }
+.text-text2   { color: var(--text2) !important; }
+.text-text3   { color: var(--text3) !important; }
+.text-muted   { color: var(--muted) !important; }
+
+// Font weights
+.fw-500 { font-weight: 500; }
+.fw-600 { font-weight: 600; }
+.fw-700 { font-weight: 700; }
+.fw-800 { font-weight: 800; }
+
+// Font sizes
+.fs-9  { font-size: 9px; }
+.fs-10 { font-size: 10px; }
+.fs-11 { font-size: 11px; }
+.fs-12 { font-size: 12px; }
+.fs-13 { font-size: 13px; }
+.fs-14 { font-size: 14px; }
+.fs-15 { font-size: 15px; }
+.fs-16 { font-size: 16px; }
+.fs-18 { font-size: 18px; }
+.fs-20 { font-size: 20px; }
+.fs-22 { font-size: 22px; }
+.fs-24 { font-size: 24px; }
+.fs-28 { font-size: 28px; }
+.fs-32 { font-size: 32px; }
+
+// Text alignment
+.text-center { text-align: center; }
+.text-left   { text-align: left; }
+.text-right  { text-align: right; }
+
+// Text transforms
+.text-uppercase { text-transform: uppercase; letter-spacing: 0.03em; }
+
+// Premium text shadows
+.text-shadow-sm {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.text-shadow-md {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.text-shadow-glow {
+  text-shadow: 0 0 20px rgba(var(--accent-rgb), 0.5);
+}
+
+.text-shadow-glow-accent2 {
+  text-shadow: 0 0 20px rgba(var(--accent2-rgb), 0.5);
+}
+
+// Gradient text utilities
+.text-gradient {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-purple {
+  background: linear-gradient(135deg, var(--purple) 0%, var(--pink) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+// Line clamping
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// ── Accessibility Utilities ───────────────────────────────────
+// Screen reader only (visually hidden but accessible)
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// Skip to content link
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+  border-radius: var(--radius);
+  z-index: 10000;
+  transition: top 0.2s ease;
+
+  &:focus {
+    top: 8px;
+  }
+}
+
+// Icon sizing (FontAwesome only - no emojis)
+.icon-sm { font-size: 14px !important; }
+.icon-md { font-size: 16px !important; }
+.icon-lg { font-size: 20px !important; }
+.icon-nav { font-size: 20px !important; }
+
+.mono-label {
+  font-size: 10px;
+  color: var(--text3);
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 15px;
+}

@@ -1,0 +1,336 @@
+// ============================================================
+//  GLOBAL ANIMATIONS
+//  Single source of truth for all keyframe animations
+//  Component files should NOT define their own keyframes.
+// ============================================================
+
+// ── Fade & Slide ─────────────────────────────────────────────
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeIn-micro {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes slideUp-modal {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+// ── Premium Morphing Animations ──────────────────────────────
+@keyframes morph {
+  0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+}
+
+@keyframes blob {
+  0%, 100% { transform: scale(1) translate(0, 0); }
+  25% { transform: scale(1.05) translate(5px, -5px); }
+  50% { transform: scale(0.95) translate(-5px, 5px); }
+  75% { transform: scale(1.03) translate(-3px, -3px); }
+}
+
+// ── Glass Shimmer Effects ────────────────────────────────────
+@keyframes glassShimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes shimmerPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+// ── Spin & Float ─────────────────────────────────────────────
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+// ── Breathing / Pulse ───────────────────────────────────────
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.85); }
+}
+
+@keyframes pulse-strong {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+}
+
+@keyframes breathing {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0); }
+  50% { box-shadow: 0 0 20px 4px rgba(var(--accent-rgb), 0.15); }
+}
+
+// ── Status Indicators ───────────────────────────────────────
+@keyframes status-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 currentColor;
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 4px transparent;
+    opacity: 0.8;
+  }
+}
+
+@keyframes indicator-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.7; }
+}
+
+// ── Toast & Dropdown ─────────────────────────────────────────
+@keyframes toast-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+@keyframes dropdown-fade {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// ── Glow & Thinking ──────────────────────────────────────────
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.2); }
+  50% { box-shadow: 0 0 30px rgba(var(--accent-rgb), 0.3); }
+}
+
+@keyframes glow-strong {
+  0%, 100% { box-shadow: 0 0 30px rgba(var(--accent-rgb), 0.3), 0 0 60px rgba(var(--accent-rgb), 0.1); }
+  50% { box-shadow: 0 0 50px rgba(var(--accent-rgb), 0.5), 0 0 80px rgba(var(--accent-rgb), 0.2); }
+}
+
+@keyframes thinking-dot {
+  0%, 60%, 100% { opacity: .2; transform: scale(.8); }
+  30% { opacity: 1; transform: scale(1); }
+}
+
+// ── Slide Out ────────────────────────────────────────────────
+@keyframes slide-out {
+  to { opacity: 0; transform: scale(0.95); }
+}
+
+// ── Staggered Entrance ───────────────────────────────────────
+@keyframes staggerIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+// ── Hover Lift ───────────────────────────────────────────────
+// Note: Uses border/color change only, NOT scale (avoids layout shift)
+.animate-lift {
+  transition: border-color var(--transition-base),
+              box-shadow var(--transition-base),
+              background-color var(--transition-base);
+
+  &:hover {
+    border-color: var(--border-glow);
+    box-shadow: var(--shadow-glow);
+    background-color: rgba(var(--accent-rgb), 0.04);
+  }
+}
+
+// ── Rotate Border ────────────────────────────────────────────
+@keyframes rotateBorder {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+// ── Liquid Glass Flow ────────────────────────────────────────
+@keyframes liquidFlow {
+  0%, 100% { backdrop-filter: blur(20px) saturate(180%); }
+  50% { backdrop-filter: blur(24px) saturate(200%); }
+}
+
+// ── Reduced Motion - WCAG 2.1 AA Accessibility ───────────────
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-name: none !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .animate-fade-in,
+  .animate-fade-in-micro,
+  .animate-slide-down,
+  .animate-slide-up,
+  .animate-spin,
+  .animate-float,
+  .animate-pulse-dot,
+  .animate-pulse-strong,
+  .animate-glow,
+  .animate-glow-strong,
+  .animate-thinking,
+  .animate-toast-in,
+  .animate-dropdown,
+  .animate-slide-out,
+  .animate-morph,
+  .animate-blob,
+  .animate-glass-shimmer,
+  .animate-shimmer-pulse,
+  .animate-breathing,
+  .animate-breathe,
+  .animate-stagger,
+  .animate-lift,
+  .animate-liquid {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+// ============================================================
+//  ANIMATION UTILITY CLASSES
+// ============================================================
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-fade-in-micro {
+  animation: fadeIn-micro 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slide-down {
+  animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-spin {
+  animation: spin 2s linear infinite;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-dot {
+  animation: pulse-soft 1.8s infinite;
+}
+
+.animate-pulse-strong {
+  animation: pulse-strong 2s infinite;
+}
+
+.animate-glow {
+  animation: glow 3s infinite;
+}
+
+.animate-glow-strong {
+  animation: glow-strong 2.5s infinite;
+}
+
+.animate-thinking {
+  animation: thinking-dot 0.8s infinite;
+}
+
+.animate-toast-in {
+  animation: toast-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.animate-dropdown {
+  animation: dropdown-fade 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slide-out {
+  animation: slide-out 0.25s ease forwards;
+}
+
+.animate-morph {
+  animation: morph 8s ease-in-out infinite;
+}
+
+.animate-blob {
+  animation: blob 7s ease-in-out infinite;
+}
+
+.animate-glass-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: glassShimmer 3s ease-in-out infinite;
+}
+
+.animate-shimmer-pulse {
+  animation: shimmerPulse 2s ease-in-out infinite;
+}
+
+.animate-breathing {
+  animation: breathing 4s ease-in-out infinite;
+}
+
+.animate-breathe {
+  animation: breathe 3s ease-in-out infinite;
+}
+
+.animate-stagger {
+  animation: staggerIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.animate-lift {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-glow);
+  }
+}
+
+.animate-liquid {
+  animation: liquidFlow 4s ease-in-out infinite;
+}
+
+// Stagger delay utilities
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }
+.stagger-6 { animation-delay: 300ms; }

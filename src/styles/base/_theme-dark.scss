@@ -1,0 +1,99 @@
+:root, :root[data-theme='dark'] {
+  color-scheme: dark;
+
+  // Accessibility: Contrast ratios verified (4.5:1+ for normal, 3:1+ for large)
+  // Backgrounds - Rich gradient layers
+  --bg: #080b10;
+  --bg-rgb: 8, 11, 16;
+  --bg2: #0f141c;
+  --bg2-rgb: 15, 20, 28;
+  --bg3: #151c27;
+  --bg3-rgb: 21, 28, 39;
+  --bg4: #1d2734;
+  --surface: #111821;
+  --surface-elevated: #182231;
+  --surface-soft: #0d131b;
+
+  // PrimeNG theme variable mapping
+  --surface-card: var(--bg2);
+  --surface-ground: var(--bg);
+  --surface-border: var(--border);
+  --text-color: var(--text);
+  --text-color-secondary: var(--text3);
+  --primary-color: var(--accent);
+
+  // Glass surfaces - Liquid Glass effect (12-20px blur, 10-30% opacity)
+  --surface-glass: rgba(15, 20, 28, 0.72);
+  --surface-glass-light: rgba(21, 28, 39, 0.58);
+  --glass-blur: 16px;
+  --glass-blur-heavy: 32px;
+
+  // Borders - Enhanced visibility (WCAG compliant)
+  --border: rgba(148, 163, 184, 0.18);
+  --border-subtle: rgba(148, 163, 184, 0.1);
+  --border2: rgba(148, 163, 184, 0.32);
+  --border-glow: rgba(84, 166, 255, 0.4);
+
+  // Text - WCAG 2.1 AA compliant contrast ratios
+  --text: #f7f9fc;
+  --text2: #c9d4e4;
+  --text3: #8d9caf;
+  --muted: #697789;
+
+  // Accents - Vibrant with glow potential
+  --accent: #54a6ff;
+  --accent-rgb: 84, 166, 255;
+  --accent-hover: #6cb8ff;
+  --accent2: #27d6b6;
+  --accent2-rgb: 39, 214, 182;
+  --accent2-hover: #3de4c8;
+  --purple: #a78bfa;
+  --purple-rgb: 167, 139, 250;
+  --pink: #fb7185;
+  --pink-rgb: 251, 113, 133;
+  --amber: #f7c948;
+  --amber-rgb: 247, 201, 72;
+  --green: #38d996;
+  --green-rgb: 56, 217, 150;
+  --red: #ff6673;
+  --red-rgb: 255, 102, 115;
+  --accent-gradient: linear-gradient(135deg, #54a6ff 0%, #27d6b6 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #6cb8ff 0%, #3de4c8 100%);
+
+  // Focus outline - Accessibility
+  --focus-outline: 2px solid var(--accent);
+  --focus-offset: 2px;
+
+  // Premium gradients
+  --gradient-bg: radial-gradient(ellipse at 20% 0%, rgba(84, 166, 255, 0.12) 0%, transparent 50%),
+                 radial-gradient(ellipse at 80% 100%, rgba(39, 214, 182, 0.08) 0%, transparent 50%);
+
+  // Layout - Consistent spacing
+  --topbar: 62px;
+  --nav: 58px;
+  --radius: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.26);
+  --shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.18);
+  --shadow-lg: 0 28px 80px rgba(0, 0, 0, 0.34);
+  --shadow-glow: 0 0 50px rgba(84, 166, 255, 0.18);
+  --shadow-glow-accent2: 0 0 50px rgba(39, 214, 182, 0.15);
+
+  // Floating elements - 16px from edges
+  --float-offset: 16px;
+
+  // Transitions - Premium easing (150-300ms for hover, 200ms default)
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-glass: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  // Responsive breakpoints
+  --bp-mobile: 375px;
+  --bp-tablet: 768px;
+  --bp-desktop: 1024px;
+  --bp-large: 1440px;
+  --container-max: 1400px;
+}

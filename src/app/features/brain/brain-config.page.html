@@ -1,0 +1,331 @@
+<div class="screen">
+
+  <!-- ══ Screen Header ════════════════════════════════════════════════ -->
+  <div class="screen-header">
+    <div class="header-content">
+      <div class="screen-title">Brain Configuration</div>
+      <div class="screen-sub">Manage AI brain settings, models &amp; BYOK API keys</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-soft btn-sm" (click)="load()" [disabled]="loading()">
+        <i class="fas fa-sync" [class.fa-spin]="loading()"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="screen-container">
+
+    <!-- ══ BYOK Hero Panel ══════════════════════════════════════════════ -->
+    <div class="byok-hero">
+      <div class="hero-glow hero-glow-1"></div>
+      <div class="hero-glow hero-glow-2"></div>
+
+      <div class="d-flex items-start justify-between gap-20 flex-wrap hero-inner">
+        <div class="d-flex items-start gap-20">
+          <div class="byok-icon">
+            <i class="fas fa-brain"></i>
+          </div>
+          <div>
+            <h2 class="byok-title">AI Brain Keys <span class="byok-tag">BYOK</span></h2>
+            <p class="byok-sub">
+              Global AI API keys for each provider category. Used by all users unless overridden by individual BYOK configs.
+            </p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-soft btn-sm" (click)="load()" [disabled]="loading()">
+            <i class="fas" [ngClass]="loading() ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i> Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="byok-stats" *ngIf="!loading()">
+        <div class="byok-stat">
+          <div class="bstat-val bstat-accent">{{ totalKeys() }}</div>
+          <div class="bstat-lbl">Total Keys</div>
+        </div>
+        <div class="bstat-divider"></div>
+        <div class="byok-stat">
+          <div class="bstat-val bstat-green">{{ activeKeys() }}</div>
+          <div class="bstat-lbl">Active</div>
+        </div>
+        <div class="bstat-divider"></div>
+        <div class="byok-stat">
+          <div class="bstat-val" [class.bstat-red]="blockedKeys() > 0" [class.bstat-muted]="blockedKeys() === 0">{{ blockedKeys() }}</div>
+          <div class="bstat-lbl">Blocked</div>
+        </div>
+        <div class="bstat-divider"></div>
+        <div class="byok-stat">
+          <div class="bstat-val bstat-purple">{{ categoriesConfigured() }} / {{ categories.length }}</div>
+          <div class="bstat-lbl">Categories Set</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Loading State ═══════════════════════════════════════════════ -->
+    <div class="byok-loading" *ngIf="loading()">
+      <div class="byok-loading-ring"><i class="fas fa-spinner fa-spin"></i></div>
+      <p class="byok-loading-title">Loading Brain Configuration</p>
+      <p class="byok-loading-sub">Fetching AI provider key settings…</p>
+    </div>
+
+    <!-- ══ Accordion List ══════════════════════════════════════════════ -->
+    <div class="d-flex flex-col gap-12" *ngIf="!loading()">
+
+      <div
+        class="byok-cat-card"
+        *ngFor="let setting of settings(); trackBy: trackBySettingId"
+        [class.cat-card--open]="isCategoryOpen(setting.type)"
+      >
+        <!-- ── Category Header ─────────────────────────────────────── -->
+        <div class="cat-hdr" (click)="toggleCategory(setting.type)">
+          <div class="d-flex items-center gap-16 min-w-0" style="flex:1">
+            <div class="cat-icon-badge">
+              <i [class]="getCategoryInfo(setting.type).icon"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="d-flex items-center gap-8 flex-wrap">
+                <span class="cat-name">{{ getCategoryInfo(setting.type).name }}</span>
+                <span class="key-chip chip-active" *ngIf="keyCountForType(setting.type) > 0 && setting.isEnabled">
+                  <i class="fas fa-key" style="font-size:9px"></i> {{ keyCountForType(setting.type) }} key{{ keyCountForType(setting.type) !== 1 ? 's' : '' }}
+                </span>
+                <span class="key-chip" *ngIf="keyCountForType(setting.type) > 0 && !setting.isEnabled">
+                  <i class="fas fa-key" style="font-size:9px"></i> {{ keyCountForType(setting.type) }} keys
+                </span>
+                <span class="key-chip chip-empty" *ngIf="keyCountForType(setting.type) === 0">
+                  <i class="fas fa-server" style="font-size:9px"></i> No keys
+                </span>
+              </div>
+              <div class="cat-desc">{{ getCategoryInfo(setting.type).description }}</div>
+            </div>
+          </div>
+
+          <!-- Header Toggles & Info (Click propagation stopped for inputs) -->
+          <div class="d-flex items-center gap-16">
+            <div class="provider-meta-pill" *ngIf="!isCategoryOpen(setting.type)">
+              <span>{{ setting.provider }}</span>
+              <span class="text-muted" *ngIf="setting.model"> · {{ setting.model }}</span>
+            </div>
+
+            <!-- Global Category Enabled Toggle directly in Header -->
+            <div class="d-flex items-center gap-8 header-toggle-wrap" (click)="$event.stopPropagation()">
+              <span class="status-pill" [class.active]="setting.isEnabled">
+                {{ setting.isEnabled ? 'Enabled' : 'Disabled' }}
+              </span>
+              <label class="brain-switch brain-switch--sm">
+                <input type="checkbox" [checked]="setting.isEnabled" (change)="toggleEnabled(setting, $event)" />
+                <span class="brain-switch__track"></span>
+              </label>
+            </div>
+
+            <div class="cat-chevron" [class.chevron-open]="isCategoryOpen(setting.type)">
+              <i class="fas fa-chevron-down"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Category Body ───────────────────────────────────────── -->
+        <div class="cat-body" *ngIf="isCategoryOpen(setting.type)">
+
+          <!-- Consolidated Header & Add Button -->
+          <div class="keys-section-header">
+            <span class="section-title">
+              <i class="fas fa-key"></i>
+              API Keys Configuration
+              <span class="badge">{{ getCategoryKeysForDisplay(setting).length }}</span>
+            </span>
+            <button class="btn btn-soft btn-xs" (click)="addKey(setting)">
+              <i class="fas fa-plus"></i> Add API Key
+            </button>
+          </div>
+
+          <!-- Keys List -->
+          <div class="d-flex flex-col gap-8" *ngIf="getCategoryKeysForDisplay(setting).length > 0">
+            <ng-container *ngFor="let key of getCategoryKeysForDisplay(setting); trackBy: trackByKeyId">
+              <ng-container *ngTemplateOutlet="keyRowTpl; context: { key: key, setting: setting }"></ng-container>
+            </ng-container>
+          </div>
+          
+          <div class="key-empty" *ngIf="getCategoryKeysForDisplay(setting).length === 0">
+            <i class="fas fa-key icon-muted"></i>
+            <span>No API keys configured</span>
+          </div>
+
+        </div><!-- /cat-body -->
+      </div><!-- /byok-cat-card -->
+    </div><!-- /accordion-list -->
+
+    <!-- Empty state -->
+    <div class="key-empty key-empty--lg" *ngIf="!loading() && settings().length === 0">
+      <div class="empty-ring"><i class="fas fa-brain"></i></div>
+      <div class="byok-loading-title">No Brain Settings Loaded</div>
+      <div class="byok-loading-sub">Click Refresh to load the AI brain configuration from the server.</div>
+    </div>
+
+  </div><!-- /screen-container -->
+</div><!-- /screen -->
+
+<!-- ══ Key Row Template ══════════════════════════════════════════════════ -->
+<ng-template #keyRowTpl let-key="key" let-setting="setting">
+  <div class="key-row" 
+       [class.row-open]="getRowState(key.id).isOpen" 
+       [class.row-blocked]="!isVirtualKey(key.id) && key.isBlocked"
+       [class.row-virtual]="isVirtualKey(key.id)">
+
+    <!-- Row Header -->
+    <div class="key-row__header" (click)="toggleRow(key.id)">
+
+      <div class="d-flex items-center gap-12 min-w-0">
+        <div class="prov-icon" [ngClass]="getIconBadgeClass(key.provider || setting.provider)">
+          <img *ngIf="getProviderIcon(key.provider || setting.provider)"
+               [src]="getProviderIcon(key.provider || setting.provider)"
+               class="prov-img" alt=""
+               onerror="this.style.display='none'" />
+          <i class="fas fa-key" *ngIf="!getProviderIcon(key.provider || setting.provider)"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="prov-name">
+            {{ key.provider || setting.provider }}
+            <span class="prov-custom-label" *ngIf="key.customLabel">· {{ key.customLabel }}</span>
+          </div>
+          <div class="prov-model" *ngIf="key.modelName">{{ key.modelName }}</div>
+        </div>
+      </div>
+
+      <div class="d-flex items-center gap-8" (click)="$event.stopPropagation()">
+        <!-- Status Badges -->
+        <span class="status-badge badge-warning" *ngIf="isVirtualKey(key.id)">
+          <span class="status-dot"></span> Not Configured
+        </span>
+        <span class="status-badge badge-danger" *ngIf="!isVirtualKey(key.id) && key.isBlocked">
+          <span class="status-dot"></span> Blocked
+        </span>
+        <span class="status-badge badge-success" *ngIf="!isVirtualKey(key.id) && !key.isBlocked">
+          <span class="status-dot"></span> Active
+        </span>
+
+        <span class="usage-tag" *ngIf="key.usageCount > 0">{{ key.usageCount }} uses</span>
+
+        <!-- Test Connection Button -->
+        <button class="icon-btn action-test"
+                *ngIf="!isVirtualKey(key.id)"
+                [disabled]="getRowState(key.id).isTesting || key.isBlocked"
+                (click)="testKey(key.id, $event)"
+                title="Test Connection">
+          <i class="fas" [ngClass]="getRowState(key.id).isTesting ? 'fa-spinner fa-spin' : 'fa-vial'"></i>
+        </button>
+
+        <!-- Delete Key Button -->
+        <button class="icon-btn action-delete"
+                *ngIf="!isVirtualKey(key.id)"
+                (click)="removeKey(setting, key); $event.stopPropagation()"
+                title="Remove Key">
+          <i class="fas fa-trash-alt"></i>
+        </button>
+
+        <!-- Chevron Collapse Indicator -->
+        <div class="collapse-indicator" (click)="toggleRow(key.id); $event.stopPropagation()">
+          <i class="fas" [ngClass]="getRowState(key.id).isOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row Body (expanded) -->
+    <div class="key-row__body" *ngIf="getRowState(key.id).isOpen">
+
+      <!-- Free provider notice if virtual isFree -->
+      <div class="info-box info-box-accent" *ngIf="key.isFree" style="margin-bottom:12px">
+        <i class="fas fa-gift"></i>
+        Free provider — no API key required. Paste a key below only if you have a paid plan.
+      </div>
+
+      <!-- Balanced 2-Column Form Fields Grid -->
+      <div class="key-fields-grid">
+        
+        <!-- Left Column -->
+        <div class="grid-col">
+          <!-- API Key -->
+          <div class="form-group">
+            <label class="field-label">API Key</label>
+            <div class="key-input-wrap">
+              <input [type]="getRowState(key.id).showKey ? 'text' : 'password'"
+                     class="field-input premium-input" [(ngModel)]="key.key"
+                     placeholder="sk-… or your provider API key" />
+              <button class="key-eye-btn" (click)="toggleShowKey(key.id, $event)">
+                <i class="fas" [ngClass]="getRowState(key.id).showKey ? 'fa-eye-slash' : 'fa-eye'"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Nickname / Custom label -->
+          <div class="form-group">
+            <label class="field-label">Nickname <span class="muted-label">(Optional)</span></label>
+            <input type="text" class="field-input premium-input" [(ngModel)]="key.customLabel"
+                   placeholder="e.g. My Backup OpenAI Key" />
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="grid-col">
+          <!-- Provider override -->
+          <div class="form-group">
+            <label class="field-label">Provider Override <span class="muted-label">(Optional)</span></label>
+            <input type="text" class="field-input premium-input" [(ngModel)]="key.provider"
+                   [placeholder]="setting.provider || 'e.g. OpenAI'" />
+          </div>
+
+          <!-- Model with constants datalist -->
+          <div class="form-group">
+            <label class="field-label">Model Override <span class="muted-label">(Optional)</span></label>
+            <input type="text" class="field-input premium-input" [(ngModel)]="key.modelName"
+                   placeholder="e.g. gpt-4o, gemini-2.5-pro"
+                   [attr.list]="'model-' + key.id" />
+            <datalist [id]="'model-' + key.id" *ngIf="getModelsForKey(key, setting).length > 0">
+              <option *ngFor="let m of getModelsForKey(key, setting)" [value]="m.id">{{ m.label }}</option>
+            </datalist>
+          </div>
+
+          <!-- Role restriction -->
+          <div class="form-group">
+            <label class="field-label">Role Restriction <span class="muted-label">(Optional)</span></label>
+            <input type="text" class="field-input premium-input" [(ngModel)]="key.roleName"
+                   placeholder="e.g. Admin, Pro" />
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Toggles (only Blocked) -->
+      <div class="d-flex items-center gap-20 mt-12" *ngIf="!isVirtualKey(key.id)">
+        <label class="d-flex items-center gap-8 cursor-pointer" style="font-size:13px;color:var(--text2)">
+          <label class="brain-switch brain-switch--sm">
+            <input type="checkbox" [(ngModel)]="key.isBlocked" />
+            <span class="brain-switch__track brain-switch__track--danger"></span>
+          </label>
+          Blocked (Disable Key)
+        </label>
+      </div>
+
+      <!-- Test result -->
+      <div class="test-result-alert success mt-12"
+           *ngIf="getRowState(key.id).testResult as tr"
+           [ngClass]="tr.success ? 'success' : 'error'">
+        <i class="fas" [ngClass]="tr.success ? 'fa-check-circle' : 'fa-exclamation-circle'"></i>
+        <span class="test-message">
+          {{ tr.success ? 'Connection Successful!' : 'Connection Failed.' }}
+          <span *ngIf="tr.latencyMs" class="latency">({{ tr.latencyMs }}ms)</span>
+          <span *ngIf="tr.message" class="error-details"> — {{ tr.message }}</span>
+        </span>
+      </div>
+
+      <!-- Actions footer -->
+      <div class="body-actions">
+        <button class="btn btn-outline" (click)="toggleRow(key.id)">Cancel</button>
+        <button class="btn btn-primary" (click)="saveKey(setting, key)">
+          <i class="fas fa-save"></i> {{ isVirtualKey(key.id) ? 'Save Key' : 'Save Changes' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-template>

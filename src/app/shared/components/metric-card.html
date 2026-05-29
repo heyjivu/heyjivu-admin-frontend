@@ -1,0 +1,13 @@
+<p-card styleClass="shadow-2 border-round surface-card p-3 flex flex-column h-full">
+  <div class="text-500 font-medium mb-2">{{ label() }}</div>
+  <div class="text-900 font-bold text-3xl mb-2" [style.color]="color()">{{ value() }}</div>
+  <div class="flex align-items-center" *ngIf="subText()">
+    <span 
+      [class.text-green-500]="isPositive()" 
+      [class.text-red-500]="!isPositive()" 
+      class="font-medium mr-2">
+      {{ subPrefix() }}{{ subValue() }}
+    </span>
+    <span class="text-500 text-sm">{{ subText() }}</span>
+  </div>
+</p-card>

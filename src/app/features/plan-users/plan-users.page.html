@@ -1,0 +1,63 @@
+<div class="screen flex flex-column h-full">
+  <!-- Top Bar: Main Header & Actions -->
+  <div class="p-4 md:px-5 md:pt-4 border-bottom-1 surface-border">
+    <div class="d-flex items-start justify-between flex-wrap gap-16">
+      <div class="page-title-block">
+        <h2 class="page-heading"><i class="fas fa-layer-group text-accent" aria-hidden="true"></i> {{ planName() }} Users</h2>
+        <p class="text-text3 m-0 fs-14">Consolidated metrics and data for all users enrolled in the {{ planName() }} plan.</p>
+      </div>
+      <div class="header-actions page-actions">
+        <button class="btn btn-soft" (click)="fetchPlanStats()">
+          <i class="pi pi-refresh" [class.pi-spin]="loading()" aria-hidden="true"></i> Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Workspace Container -->
+  <main class="flex-1 p-4 md:p-5 overflow-y-auto bg-surface-ground">
+    <div class="screen-container max-w-7xl mx-auto">
+      
+      <div *ngIf="loading()" class="grid">
+        <div class="col-12 md:col-6 lg:col-3 p-2" *ngFor="let i of [1,2,3,4]">
+          <div class="skeleton-card glass-card p-4" style="height: 120px;">
+            <div class="skeleton skeleton-title mb-3" style="width: 50%;"></div>
+            <div class="skeleton skeleton-text" style="width: 80%; height: 2rem;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!loading() && stats()" class="grid animate-fade-in">
+        <div class="col-12 md:col-6 lg:col-3 p-2">
+          <div class="glass-card p-4 h-full">
+            <div class="stat-label">Total Users</div>
+            <div class="stat-value">{{ stats()?.totalUsers | number }}</div>
+            <div class="text-color-secondary text-sm"><i class="fas fa-users mr-1"></i> Active subscriptions</div>
+          </div>
+        </div>
+        <div class="col-12 md:col-6 lg:col-3 p-2">
+          <div class="glass-card p-4 h-full">
+            <div class="stat-label">Pipeline Minutes</div>
+            <div class="stat-value text-blue-400">{{ stats()?.totalPipelineMinutes | number }}</div>
+            <div class="text-color-secondary text-sm"><i class="fas fa-clock mr-1"></i> Compute time consumed</div>
+          </div>
+        </div>
+        <div class="col-12 md:col-6 lg:col-3 p-2">
+          <div class="glass-card p-4 h-full">
+            <div class="stat-label">Active Jobs</div>
+            <div class="stat-value text-orange-400">{{ stats()?.activeJobs | number }}</div>
+            <div class="text-color-secondary text-sm"><i class="fas fa-sync-alt mr-1"></i> Currently processing</div>
+          </div>
+        </div>
+        <div class="col-12 md:col-6 lg:col-3 p-2">
+          <div class="glass-card p-4 h-full">
+            <div class="stat-label">API Calls</div>
+            <div class="stat-value text-green-400">{{ stats()?.apiCalls | number }}</div>
+            <div class="text-color-secondary text-sm"><i class="fas fa-network-wired mr-1"></i> External requests</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>

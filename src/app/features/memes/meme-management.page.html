@@ -1,0 +1,170 @@
+<div class="screen">
+  <div class="screen-header screen-header-compact">
+    <div class="flex justify-content-between align-items-center px-4 py-3 screen-title-row">
+      <div class="flex align-items-center gap-3">
+        <div class="header-icon-wrap">
+          <i class="fas fa-laugh"></i>
+        </div>
+        <div>
+          <div class="screen-title">Meme Management</div>
+          <div class="screen-sub">Manage meme templates, overlays and sound effects</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-soft btn-sm" (click)="loadMemes()">
+          <i class="fas fa-sync" [class.fa-spin]="loading()"></i> Refresh
+        </button>
+        <button class="btn btn-primary btn-sm" (click)="openCreate()">
+          <i class="fas fa-plus"></i> Add Meme
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen-container">
+    <div class="meme-table-header">
+      <div class="meme-table-title">
+        <i class="fas fa-laugh"></i> Meme Library
+        <span class="meme-count-badge">{{ memes().length }}</span>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Active</th>
+            <th style="width: 100px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (meme of memes(); track meme.id) {
+            <tr>
+              <td>
+                <div class="meme-name-cell">
+                  <div class="meme-name-icon">
+                    @if (meme.type === 'Video') { <i class="fas fa-video"></i> }
+                    @else if (meme.type === 'Image') { <i class="fas fa-image"></i> }
+                    @else { <i class="fas fa-music"></i> }
+                  </div>
+                  <div>
+                    <div class="meme-name">{{ meme.name }}</div>
+                    @if (meme.description) {
+                      <div class="meme-desc">{{ meme.description }}</div>
+                    }
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="meme-type-pill" [class.meme-type-pill--video]="meme.type === 'Video'"
+                      [class.meme-type-pill--image]="meme.type === 'Image'"
+                      [class.meme-type-pill--audio]="meme.type === 'Audio'">
+                  {{ meme.type }}
+                </span>
+              </td>
+              <td>
+                <span class="meme-status-pill" [class.meme-status-pill--active]="meme.isActive">
+                  {{ meme.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td>
+                <div class="meme-actions">
+                  <button class="meme-icon-btn" (click)="openEdit(meme)" title="Edit meme">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="meme-icon-btn meme-icon-btn--danger" (click)="deleteMeme(meme.id)" title="Delete meme">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4">
+                <div class="meme-empty">
+                  <i class="fas fa-laugh"></i>
+                  <span>No memes found. Click "Add Meme" to create one.</span>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Create/Edit Modal ────────────────────────────────────────── -->
+  @if (showForm()) {
+    <div class="meme-overlay" (click)="cancelForm()">
+      <div class="meme-modal" (click)="$event.stopPropagation()">
+        <div class="meme-modal__header">
+          <div class="meme-modal__icon">
+            <i class="fas" [class.fa-plus]="!editing()" [class.fa-edit]="editing()"></i>
+          </div>
+          <div>
+            <div class="meme-modal__title">{{ editing() ? 'Edit Meme' : 'Create Meme' }}</div>
+            <div class="meme-modal__sub">{{ editing() ? 'Update meme details below' : 'Fill in the details to add a new meme' }}</div>
+          </div>
+          <button class="meme-modal__close" (click)="cancelForm()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="meme-modal__body">
+          <div class="meme-form-grid">
+            <div class="meme-field">
+              <label class="meme-label">Name</label>
+              <input class="meme-input" [(ngModel)]="formName" placeholder="Meme name" />
+            </div>
+            <div class="meme-field">
+              <label class="meme-label">Type</label>
+              <div class="meme-radio-group">
+                @for (t of ['Video', 'Image', 'Audio']; track t) {
+                  <label class="meme-radio" [class.meme-radio--active]="formType === t" (click)="formType = t">
+                    <input type="radio" name="memeType" [value]="t" [(ngModel)]="formType" />
+                    <i class="fas" [class.fa-video]="t === 'Video'" [class.fa-image]="t === 'Image'" [class.fa-music]="t === 'Audio'"></i>
+                    {{ t }}
+                  </label>
+                }
+              </div>
+            </div>
+            <div class="meme-field meme-field--full">
+              <label class="meme-label">Description</label>
+              <textarea class="meme-input meme-input--textarea" [(ngModel)]="formDescription" rows="2" placeholder="Brief description"></textarea>
+            </div>
+            <div class="meme-field">
+              <label class="meme-label">File URL (4K)</label>
+              <input class="meme-input" [(ngModel)]="formFileUrl4k" placeholder="https://..." />
+            </div>
+            <div class="meme-field">
+              <label class="meme-label">File URL (2K)</label>
+              <input class="meme-input" [(ngModel)]="formFileUrl2k" placeholder="https://..." />
+            </div>
+            <div class="meme-field">
+              <label class="meme-label">File URL (1K)</label>
+              <input class="meme-input" [(ngModel)]="formFileUrl1k" placeholder="https://..." />
+            </div>
+            <div class="meme-field meme-field--full">
+              <div class="meme-toggle-row">
+                <span class="meme-toggle-label">Active</span>
+                <label class="meme-switch">
+                  <input type="checkbox" [(ngModel)]="formIsActive" />
+                  <span class="meme-switch__track"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="meme-modal__footer">
+          <button class="btn btn-ghost" (click)="cancelForm()">Cancel</button>
+          <button class="btn btn-primary" (click)="saveMeme()">
+            <i class="fas fa-save"></i> {{ editing() ? 'Update' : 'Create' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

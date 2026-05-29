@@ -1,0 +1,19 @@
+// ============================================================
+//  BASE / THEME
+//  CSS Custom Properties (Theme System)
+//  Imports modular sub-themes: dark, light, and gold
+// ============================================================
+
+@use 'theme-dark';
+@use 'theme-light';
+@use 'theme-gold';
+
+@media (prefers-reduced-motion: reduce) {
+  :root, :root[data-theme='dark'], :root[data-theme='light'], :root[data-theme='gold'] {
+    --transition-fast: 0ms !important;
+    --transition-base: 0ms !important;
+    --transition-slow: 0ms !important;
+    --transition-bounce: 0ms !important;
+    --transition-glass: 0ms !important;
+  }
+}

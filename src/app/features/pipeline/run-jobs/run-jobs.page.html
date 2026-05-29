@@ -1,0 +1,121 @@
+<div class="screen">
+  <div class="screen-header">
+    <div class="flex align-items-center gap-3">
+      <div class="header-icon-wrap">
+        <i class="fas fa-play-circle"></i>
+      </div>
+      <div>
+        <div class="screen-title">Run Jobs</div>
+        <div class="screen-sub">Trigger administrative tasks manually for specific users or roles</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pipeline-scroll">
+    <div class="pipeline-tabs">
+      <button
+        class="pipeline-tab"
+        [class.active]="activeTab() === 'DashboardTrend'"
+        (click)="switchTab('DashboardTrend')"
+      >
+        <i class="fas fa-chart-line mr-1.5"></i> Dashboard Trend Run
+      </button>
+      <button
+        class="pipeline-tab"
+        [class.active]="activeTab() === 'Processing'"
+        (click)="switchTab('Processing')"
+      >
+        <i class="fas fa-video mr-1.5"></i> Processing Run
+      </button>
+      <button
+        class="pipeline-tab"
+        [class.active]="activeTab() === 'Trend'"
+        (click)="switchTab('Trend')"
+      >
+        <i class="fas fa-sync mr-1.5"></i> Trend Run
+      </button>
+    </div>
+
+    <div class="glass-card m-4 p-5 flex flex-column gap-4">
+      <div class="flex flex-column gap-2" [ngSwitch]="activeTab()">
+        
+        <!-- Dashboard Trend Run -->
+        <div *ngSwitchCase="'DashboardTrend'" class="flex flex-column gap-3">
+          <div class="text-xl font-semibold text-color-primary flex align-items-center gap-2">
+            <i class="fas fa-brain text-indigo-400"></i> Dashboard Trend Run Configuration
+          </div>
+          <p class="text-sm text-color-secondary leading-relaxed">
+            This job triggers memory-based niche recommendations for the selected target audience.
+            It uses the user's active niche profile stored in core memories and calls the LLM provider
+            to generate a three-tier JSON list (Today, Weekly, Monthly) of trending keyword recommendations.
+            The results are stored directly into the database to be displayed on the User's Dashboard.
+          </p>
+          <div class="job-meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">Execution Strategy:</span>
+              <span class="meta-value">Light-weight background job</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Local Execution:</span>
+              <span class="meta-value font-mono">True (Admin Local Queue)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Processing Run -->
+        <div *ngSwitchCase="'Processing'" class="flex flex-column gap-3">
+          <div class="text-xl font-semibold text-color-primary flex align-items-center gap-2">
+            <i class="fas fa-video text-purple-400"></i> Processing Run Configuration
+          </div>
+          <p class="text-sm text-color-secondary leading-relaxed">
+            Triggers a raw folder scan for target users. The scanner checks the user's Google Drive raw video folder
+            for unprocessed files, implements a distributed file name locking protocol (claiming the files as WORKING),
+            inserts job records in the database, and schedules video pipeline tasks.
+            The actual heavy rendering tasks are enqueued to standard Hangfire processing queues and routed to the Backend server.
+          </p>
+          <div class="job-meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">Execution Strategy:</span>
+              <span class="meta-value">Distributed scan & heavy background rendering</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Hangfire Queue:</span>
+              <span class="meta-value font-mono text-purple-300">processing</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trend Run -->
+        <div *ngSwitchCase="'Trend'" class="flex flex-column gap-3">
+          <div class="text-xl font-semibold text-color-primary flex align-items-center gap-2">
+            <i class="fas fa-sync text-emerald-400"></i> Trend Run Configuration
+          </div>
+          <p class="text-sm text-color-secondary leading-relaxed">
+            Triggers a heavy social trend cycle. This will fetch real-time external trend inputs, execute the niche mapping model,
+            rank relevance scores against the user profile settings, and enqueue social media post generation pipelines.
+            The heavy workflow tasks are routed to the Backend Hangfire worker nodes on the trends queue.
+          </p>
+          <div class="job-meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">Execution Strategy:</span>
+              <span class="meta-value">Heavy external trend discovery & social scheduling</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Hangfire Queue:</span>
+              <span class="meta-value font-mono text-emerald-300">trends</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="flex justify-content-start align-items-center mt-3 pt-3 border-top-1 border-color-muted">
+        <button class="btn btn-primary px-5 py-3" (click)="openRunDialog()" [disabled]="isLoading()">
+          <i class="fas fa-play mr-2"></i> Trigger Manual Run
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
