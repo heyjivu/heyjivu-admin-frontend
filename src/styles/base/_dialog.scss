@@ -8,7 +8,7 @@
     background: rgba(var(--bg-rgb), 0.4);
 
     .p-dialog-title {
-      font-family: 'Syne', 'Inter', sans-serif;
+      font-family: var(--font-display);
       font-size: 1.1rem;
       font-weight: 700;
       color: var(--text);

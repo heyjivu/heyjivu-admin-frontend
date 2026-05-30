@@ -16,7 +16,7 @@
 // ── Section title ────────────────────────────────────────────────────
 .dash-section-title {
   font-size: 10px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text3);
@@ -93,7 +93,7 @@
 .dash-stat-value {
   font-size: 28px;
   font-weight: 700;
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-display);
   color: var(--text);
   line-height: 1;
 }

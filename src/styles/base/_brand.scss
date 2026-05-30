@@ -104,7 +104,7 @@
   display: inline-flex;
   align-items: baseline;
   gap: 0.05em;
-  font-family: 'Syne', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 900;
   letter-spacing: -0.065em;
   line-height: 0.95;
@@ -118,7 +118,7 @@
   display: inline-flex;
   align-items: baseline;
   gap: 0.05em;
-  font-family: 'Syne', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 900;
   letter-spacing: -0.065em;
   line-height: 0.95;
@@ -162,7 +162,7 @@
 .hj-brand-subtitle {
   display: block;
   margin-top: 2px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.15em;
@@ -188,7 +188,7 @@
 }
 
 .hj-product-kicker {
-  font-family: 'Syne', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 900;
   letter-spacing: -0.07em;
   background: linear-gradient(135deg, var(--accent), var(--accent2));
@@ -198,7 +198,7 @@
 }
 
 .hj-product-suffix {
-  font-family: 'Syne', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 850;
   letter-spacing: -0.055em;
   color: var(--text);
@@ -206,7 +206,7 @@
 
 .hj-brand-tagline {
   display: inline-block;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.22em;

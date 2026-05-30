@@ -32,7 +32,7 @@ small {
 // Eyebrow / Label style
 .eyebrow {
   color: var(--accent);
-  font: 800 10px/1 'JetBrains Mono', monospace;
+  font: 800 10px/1 var(--font-mono);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -190,7 +190,7 @@ small {
 .mono-label {
   font-size: 10px;
   color: var(--text3);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 15px;

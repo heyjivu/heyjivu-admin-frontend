@@ -6,6 +6,28 @@ import { FormsModule } from '@angular/forms';
 
 import { Rights } from '../../../core/constants/rights.constants';
 
+interface UserQuotaCard {
+  label: 'Creation Wallet' | 'Video Creation Minutes' | 'Voice Minutes' | 'AI Video Clips' | 'Storage';
+  lines: Array<{ label: string; value: string }>;
+  stack: Array<{ label: string; value: string }>;
+}
+
+const PLAN_ROLE_LABELS: Record<string, string> = {
+  freeguest: 'Free',
+  free_guest: 'Free',
+  socialmerchant: 'Student',
+  social_merchant: 'Student',
+  procreator: 'Merchant',
+  pro_creator: 'Merchant',
+  agencyadmin: 'Premium',
+  agency_admin: 'Premium',
+  agencypro: 'Premium',
+  agency_pro: 'Premium',
+  expertbyok: 'BYOK',
+  expert_byok: 'BYOK',
+  company: 'Premium'
+};
+
 @Component({
   selector: 'app-user-management',
   standalone: true,
@@ -148,6 +170,133 @@ export class UserManagementComponent implements OnInit {
     this.totalJobs.set(total);
   }
 
+  displayRoleName(roleName: string | null | undefined): string {
+    if (!roleName) return 'Unassigned';
+    return PLAN_ROLE_LABELS[this.compactKey(roleName)] ?? roleName;
+  }
+
+  getUserPlanLabel(user: UserManagementDto): string {
+    const explicitPlan = user.planName || user.planCode;
+    if (explicitPlan) return this.displayRoleName(explicitPlan);
+
+    const roleLabel = this.displayRoleName(user.roleName);
+    return ['Free', 'Student', 'Merchant', 'Premium', 'BYOK'].includes(roleLabel)
+      ? roleLabel
+      : 'Plan not exposed';
+  }
+
+  getUserQuotaCards(user: UserManagementDto): UserQuotaCard[] {
+    const buckets = this.extractQuotaBuckets(user.quotaBuckets ?? user.quotaSummary ?? user.quotas ?? user.quotaOverrides);
+    return buckets.map(bucket => {
+      const label = this.quotaLabel(this.firstString(bucket, ['label', 'name', 'displayName', 'key', 'bucket', 'type']));
+      return {
+        label,
+        lines: [{ label: this.quotaDetailLabel(bucket, label), value: this.quotaValue(bucket) }],
+        stack: this.quotaStack(bucket)
+      };
+    });
+  }
+
+  getQuotaPreview(quota: UserQuotaCard): string {
+    return quota.lines.slice(0, 2).map(line => `${line.label}: ${line.value}`).join(' | ');
+  }
+
+  private extractQuotaBuckets(source: unknown): Array<Record<string, unknown>> {
+    if (Array.isArray(source)) return source.filter(this.isRecord);
+    if (!this.isRecord(source)) return [];
+
+    for (const key of ['quotaBuckets', 'quotas', 'buckets', 'limits', 'wallets']) {
+      const nestedBuckets = this.extractQuotaBuckets(source[key]);
+      if (nestedBuckets.length > 0) return nestedBuckets;
+    }
+
+    return Object.entries(source).map(([key, value]) => this.isRecord(value) ? { ...value, key: value['key'] ?? key } : { key, value });
+  }
+
+  private quotaStack(bucket: Record<string, unknown>): Array<{ label: string; value: string }> {
+    const stack = ['stack', 'sources', 'components', 'segments', 'breakdown']
+      .map(key => bucket[key])
+      .find(Array.isArray);
+
+    return stack
+      ? stack.map(item => this.isRecord(item)
+        ? { label: this.stackLabel(this.firstString(item, ['label', 'name', 'source', 'sourceType', 'type'])), value: this.quotaValue(item) }
+        : { label: 'Stacked bucket', value: String(item ?? 'Available') })
+      : [];
+  }
+
+  private quotaLabel(value: string | null): UserQuotaCard['label'] {
+    const text = this.compactKey(value);
+    if (text.includes('storage')) return 'Storage';
+    if (text.includes('voice') || text.includes('tts') || text.includes('speech')) return 'Voice Minutes';
+    if (text.includes('image') && text.includes('motion')) return 'Creation Wallet';
+    if ((text.includes('ai') && text.includes('video')) || text.includes('providerclip')) return 'AI Video Clips';
+    if (text.includes('video') || text.includes('smart') || text.includes('pipeline')) return 'Video Creation Minutes';
+    return 'Creation Wallet';
+  }
+
+  private quotaDetailLabel(bucket: Record<string, unknown>, fallback: UserQuotaCard['label']): string {
+    const text = this.compactKey(this.firstString(bucket, ['label', 'name', 'displayName', 'key', 'bucket', 'type']));
+    if (text.includes('stockclipminute')) return 'Stock clip minutes';
+    if (text.includes('stockclip')) return 'Stock clips';
+    if (text.includes('stockimage')) return 'Stock images';
+    if (text.includes('aiimage')) return 'AI images';
+    if (fallback === 'AI Video Clips') return 'Provider clips';
+    return 'Allowance';
+  }
+
+  private stackLabel(value: string | null): string {
+    const text = this.compactKey(value);
+    if (text.includes('base') || text.includes('plan')) return 'Base plan';
+    if (text.includes('override') || text.includes('admin') || text.includes('user')) return 'Override';
+    if (text.includes('addon') || text.includes('topup')) return 'Add-on';
+    return 'Stacked bucket';
+  }
+
+  private quotaValue(bucket: Record<string, unknown>): string {
+    const unit = this.firstString(bucket, ['unit', 'units']);
+    const display = this.firstString(bucket, ['displayValue', 'summary', 'text']);
+    if (display) return display;
+
+    const parts = [
+      this.quotaValuePart('Limit', bucket['limit'] ?? bucket['total'] ?? bucket['allowed'] ?? bucket['allowance'], unit),
+      this.quotaValuePart('Used', bucket['used'] ?? bucket['consumed'], unit),
+      this.quotaValuePart('Remaining', bucket['remaining'] ?? bucket['available'], unit)
+    ].filter(Boolean);
+
+    return parts.length > 0 ? parts.join(' / ') : this.quotaPrimitive(bucket['value'] ?? bucket['amount'], unit);
+  }
+
+  private quotaValuePart(label: string, value: unknown, unit: string | null): string | null {
+    return value === undefined ? null : `${label} ${this.quotaPrimitive(value, unit)}`;
+  }
+
+  private quotaPrimitive(value: unknown, unit: string | null): string {
+    if (typeof value === 'number') {
+      const formatted = new Intl.NumberFormat('en-PK', { maximumFractionDigits: 2 }).format(value);
+      return unit ? `${formatted} ${unit}` : formatted;
+    }
+    if (typeof value === 'string') return unit ? `${value} ${unit}` : value;
+    if (value === null) return 'Inherited';
+    return 'Available';
+  }
+
+  private firstString(record: Record<string, unknown>, keys: string[]): string | null {
+    for (const key of keys) {
+      const value = record[key];
+      if (typeof value === 'string' && value.trim()) return value;
+    }
+    return null;
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private compactKey(value: unknown): string {
+    return String(value ?? '').toLowerCase().replace(/[^a-z0-9_]/g, '');
+  }
+
   editUserProcessingSettings(user: UserManagementDto) {
     this.editingUser.set(user);
     this.adminService.getUserProcessingOptions(user.id).subscribe({
@@ -244,7 +393,7 @@ export class UserManagementComponent implements OnInit {
   createNewRole() {
     this.selectedRole.set({
       id: '',
-      name: 'New Role',
+      name: 'New Plan Role',
       description: '',
       scope: 1,
       rights: []

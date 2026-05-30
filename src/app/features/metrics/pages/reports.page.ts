@@ -30,7 +30,7 @@ export class ReportsPage implements OnInit {
 
   
 
-  activeTab = signal<'combined' | 'byok' | 'company' | 'egress'>('combined');
+  activeTab = signal<'combined' | 'byok' | 'company'>('combined');
   
   loading = signal(false);
   error = signal<string | null>(null);
@@ -42,7 +42,7 @@ export class ReportsPage implements OnInit {
   selectedRole = signal<string>('');
   selectedUser = signal<string>('');
   
-  roles = [{ label: 'All Roles', value: '' }, { label: 'ExpertBYOK', value: 'ExpertBYOK' }, { label: 'FreeGuest', value: 'FreeGuest' }, { label: 'Company', value: 'Company' }];
+  roles = [{ label: 'All Roles', value: '' }, { label: 'BYOK', value: 'ExpertBYOK' }, { label: 'Free', value: 'FreeGuest' }, { label: 'Premium', value: 'Company' }];
   users = signal<any[]>([{ label: 'All Users', value: '' }]);
 
   // Data
@@ -57,7 +57,6 @@ export class ReportsPage implements OnInit {
 
   adminTimelineChartOptions: any;
   adminBreakdownChartOptions: any;
-  egressComparisonChartOptions: any;
 
   constructor() {
     this.initChartOptions();
@@ -81,11 +80,7 @@ export class ReportsPage implements OnInit {
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
        const view = params['view'];
-       if (view === 'combined' || view === 'egress') {
-         this.activeTab.set(view);
-       } else {
-         this.activeTab.set('combined');
-       }
+       this.activeTab.set(view === 'combined' ? 'combined' : 'combined');
     });
     this.loadReports();
     this.loadUsers();
@@ -130,8 +125,8 @@ export class ReportsPage implements OnInit {
 
     this.adminTimelineChartOptions = {
       series: [
-        { name: 'Company Cost', data: [] },
-        { name: 'BYOK Cost', data: [] }
+        { name: 'Included Usage', data: [] },
+        { name: 'BYOK Usage', data: [] }
       ],
       chart: { type: this.chartView(), height: 320, toolbar: { show: false }, background: 'transparent', foreColor: '#8d9caf' },
       colors: ['#a78bfa', '#ff6673'],
@@ -146,7 +141,7 @@ export class ReportsPage implements OnInit {
 
     this.adminBreakdownChartOptions = {
       series: [50, 50],
-      labels: ['Company Driven', 'BYOK Driven'],
+      labels: ['Included', 'BYOK'],
       chart: { type: this.costBreakdownView(), height: 320, background: 'transparent', foreColor: '#8d9caf' },
       colors: ['#a78bfa', '#ff6673'],
       dataLabels: { enabled: true, formatter: (val: any) => `${val?.toFixed(0) || 0}%` },
@@ -155,24 +150,6 @@ export class ReportsPage implements OnInit {
       stroke: { colors: ['#0f141c'] }
     };
     
-    // Egress Drive vs R2 comparison
-    this.egressComparisonChartOptions = {
-      series: [
-        { name: 'Drive Upload (Egress Free)', data: [0, 0, 0, 0, 0, 0, 0] },
-        { name: 'R2 (Egress Free)', data: [0, 0, 0, 0, 0, 0, 0] },
-        { name: 'Standard S3 (Simulated Paid Egress)', data: [1.2, 1.8, 1.5, 2.1, 2.8, 2.4, 3.2] }
-      ],
-      chart: { type: 'bar', height: 320, toolbar: { show: false }, background: 'transparent', foreColor: '#8d9caf' },
-      colors: ['#27d6b6', '#54a6ff', '#ff6673'],
-      plotOptions: { bar: { horizontal: false, columnWidth: '55%', borderRadius: 4 } },
-      dataLabels: { enabled: false },
-      stroke: { show: true, width: 2, colors: ['transparent'] },
-      xaxis: { categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], axisBorder: { show: false }, axisTicks: { show: false } },
-      yaxis: { title: { text: 'Egress Cost (USD)', style: { color: '#8d9caf' } } },
-      fill: { opacity: 0.9 },
-      tooltip: { theme: 'dark' },
-      grid: { borderColor: 'rgba(148, 163, 184, 0.1)', strokeDashArray: 4 }
-    };
   }
 
   updateCharts(report: CombinedAdminReport) {
@@ -206,8 +183,8 @@ export class ReportsPage implements OnInit {
     this.adminTimelineChartOptions = {
        ...this.adminTimelineChartOptions,
        series: [
-          { name: 'Company Cost', data: companySeries },
-          { name: 'BYOK Cost', data: byokSeries }
+          { name: 'Included Usage', data: companySeries },
+          { name: 'BYOK Usage', data: byokSeries }
        ],
        xaxis: { ...this.adminTimelineChartOptions.xaxis, categories: days }
     };

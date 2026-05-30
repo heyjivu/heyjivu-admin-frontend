@@ -101,7 +101,7 @@
   color: var(--text3);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
 }
 
 .pm-input-wrap,
@@ -320,7 +320,7 @@
   display: block;
   margin-top: 6px;
   font-size: 10.5px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   color: #a78bfa;
   background: rgba(139,92,246,0.1);
   border: 1px solid rgba(139,92,246,0.2);
@@ -339,7 +339,7 @@
   align-items: center;
   gap: 8px;
   font-size: 10px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text3);
@@ -354,7 +354,7 @@
 .pm-provider-name {
   font-size: 22px;
   font-weight: 700;
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-display);
   color: var(--text);
   margin-bottom: 6px;
 }

@@ -14,13 +14,19 @@ export interface UserManagementDto {
   onboardingStep: number;
   roleName: string;
   roleId: string | null;
+  planCode?: string | null;
+  planName?: string | null;
   organizationName: string;
   organizationId: string | null;
-  usage: {
+  usage?: {
     processingJobs: number;
     trendJobs: number;
     smartVideoJobs: number;
-  };
+  } | null;
+  quotas?: unknown;
+  quotaBuckets?: unknown;
+  quotaOverrides?: unknown;
+  quotaSummary?: unknown;
   isByokProcessing: boolean;
   isByokTrend: boolean;
   isByokVideoGeneration: boolean;
@@ -54,6 +60,28 @@ export interface PagedResult<T> {
   totalCount: number;
   pageNumber: number;
   pageSize: number;
+}
+
+export interface PlanQuotaOverviewDto {
+  planCode?: string | null;
+  planName?: string | null;
+  totalUsers?: number | null;
+  usersWithOverrides?: number | null;
+  activeQuotaBuckets?: number | null;
+  storageAllocatedGb?: number | null;
+  quotas?: unknown;
+  quotaBuckets?: unknown;
+  quotaSummary?: unknown;
+}
+
+export interface UserQuotaOverviewDto {
+  userId?: string;
+  planCode?: string | null;
+  planName?: string | null;
+  quotas?: unknown;
+  quotaBuckets?: unknown;
+  quotaOverrides?: unknown;
+  quotaSummary?: unknown;
 }
 
 @Injectable({
@@ -148,5 +176,14 @@ export class AdminService {
   updateUserProcessingOptions(userId: string, data: any): Observable<any> {
     return this.http.put<any>(`${this.apiUrl}/${userId}/processing-options`, data);
   }
-}
 
+  getPlanQuotaOverview(planCode: string): Observable<PlanQuotaOverviewDto> {
+    const encodedPlan = encodeURIComponent(planCode);
+    return this.http.get<PlanQuotaOverviewDto>(`${environment.apiUrl}/admin/plans/${encodedPlan}/quota-overview`);
+  }
+
+  getUserQuotaOverview(userId: string): Observable<UserQuotaOverviewDto> {
+    const encodedUser = encodeURIComponent(userId);
+    return this.http.get<UserQuotaOverviewDto>(`${this.apiUrl}/${encodedUser}/quota-overview`);
+  }
+}

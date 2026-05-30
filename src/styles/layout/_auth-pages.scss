@@ -132,7 +132,7 @@
     font-weight: 700;
     color: var(--text2);
     margin-bottom: 8px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     transition: color var(--transition-fast);
@@ -424,7 +424,7 @@
   margin: 24px 0;
   color: var(--text3);
   font-size: 11px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-weight: 600;
   letter-spacing: 0.05em;
 

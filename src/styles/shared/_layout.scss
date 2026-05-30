@@ -39,7 +39,7 @@
   }
 
   .topbar-logo {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-weight: 800;
     font-size: 15px;
     color: var(--text);
@@ -105,7 +105,7 @@
   }
   
   .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-  .topbar-meta { font-size: 10px; color: var(--text3); font-family: 'JetBrains Mono', monospace; }
+  .topbar-meta { font-size: 10px; color: var(--text3); font-family: var(--font-mono); }
   
   .btn-brain-chat {
     background: var(--bg3);
@@ -143,7 +143,7 @@
     &:hover { background: var(--bg3); color: var(--text2); }
     &.active { background: rgba(var(--accent-rgb), 0.15); color: var(--accent); }
     .icon-emoji { font-size: 16px; line-height: 1; }
-    .icon-label { font-size: 8px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; line-height: 1; }
+    .icon-label { font-size: 8px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase; font-family: var(--font-mono); line-height: 1; }
     .nav-badge {
       position: absolute; top: 3px; right: 3px; background: var(--amber); color: var(--bg); 
       font-size: 8px; font-weight: 700; width: 14px; height: 14px; border-radius: 50%; 
@@ -207,8 +207,8 @@
 
   .chat-title {
     flex: 1;
-    .name { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); }
-    .status { font-size: 10px; color: var(--green); font-family: 'JetBrains Mono', monospace; display: flex; align-items: center; gap: 4px; }
+    .name { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--text); }
+    .status { font-size: 10px; color: var(--green); font-family: var(--font-mono); display: flex; align-items: center; gap: 4px; }
   }
 
   .chat-controls { display: flex; gap: 4px; }
@@ -243,7 +243,7 @@
     border-radius: 4px 12px 12px 12px;
   }
 
-  .msg-time { font-size: 9px; color: var(--text3); font-family: 'JetBrains Mono', monospace; }
+  .msg-time { font-size: 9px; color: var(--text3); font-family: var(--font-mono); }
 
   .chat-quick-actions {
     padding: 8px 14px;
@@ -264,13 +264,13 @@
     cursor: pointer;
     white-space: nowrap;
     transition: all .1s;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     &:hover { background: var(--bg4); color: var(--text); border-color: var(--accent); }
   }
 
   .context-pills { padding: 8px 14px; border-top: 1px solid var(--border); display: flex; gap: 6px; flex-shrink: 0; }
   .ctx-pill { 
-    padding: 3px 9px; border-radius: 20px; font-size: 9px; font-family: 'JetBrains Mono', monospace; 
+    padding: 3px 9px; border-radius: 20px; font-size: 9px; font-family: var(--font-mono);
     display: flex; align-items: center; gap: 4px; cursor: pointer; transition: opacity .15s;
     &.active { opacity: 1; border: 1px solid var(--accent); color: var(--accent); }
     &.inactive { opacity: .35; border: 1px solid var(--border); color: var(--text3); }
@@ -292,7 +292,7 @@
     padding: 9px 12px;
     color: var(--text);
     font-size: 12px;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-ui);
     outline: none;
     resize: none;
     height: 38px;
