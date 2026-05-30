@@ -1,65 +1,125 @@
-import { HttpInterceptorFn, HttpRequest, HttpHandlerFn, HttpErrorResponse } from '@angular/common/http';
+import { HttpContextToken, HttpErrorResponse, HttpHandlerFn, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject, Injector } from '@angular/core';
-import { finalize, catchError, throwError, takeUntil } from 'rxjs';
+import { catchError, switchMap, throwError } from 'rxjs';
+import { takeUntil } from 'rxjs';
 import { AuthStore } from '../../core/auth/state/auth.store';
 import { HttpCancelService } from '../services/http-cancel.service';
+import { environment } from '../../../environments/environment';
+
+const REFRESH_RETRY_TOKEN = new HttpContextToken<boolean>(() => false);
+
+const isAuthPublicEndpoint = (url: string) => {
+  return url.includes('/api/auth/login') ||
+    url.includes('/api/auth/google') ||
+    url.includes('/api/auth/register') ||
+    url.includes('/api/auth/confirm-email') ||
+    url.includes('/api/auth/verify-otp') ||
+    url.includes('/api/auth/forgot-password') ||
+    url.includes('/api/auth/reset-password') ||
+    url.includes('/api/auth/resend-confirmation') ||
+    url.includes('/api/auth/refresh') ||
+    url.includes('/api/auth/logout');
+};
+
+const knownApiHosts = [
+  new URL(environment.apiUrl).host,
+  new URL(environment.authApiUrl).host
+];
+
+const isKnownApiRequest = (url: string) => {
+  if (!url.startsWith('http')) {
+    return true;
+  }
+
+  try {
+    return knownApiHosts.includes(new URL(url).host);
+  } catch {
+    return false;
+  }
+};
 
 export const callInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, next: HttpHandlerFn) => {
   const injector = inject(Injector);
   const cancelService = injector.get(HttpCancelService);
+  const authStore = injector.get(AuthStore);
+  const isStreamEndpoint = req.url.includes('/stream');
+  const isExternalRequest = req.url.startsWith('http') && !isKnownApiRequest(req.url);
+  const authAttempted = req.context.get(REFRESH_RETRY_TOKEN);
+  const publicAuthEndpoint = isAuthPublicEndpoint(req.url);
 
-  // Bypass interceptor entirely for external API calls (e.g. Pexels API)
-  const isExternalUrl = req.url.startsWith('http') && !req.url.includes('localhost') && !req.url.includes(window.location.host);
-  if (isExternalUrl) {
+  if (isExternalRequest) {
     return next(req);
   }
 
-  const token = localStorage.getItem('ai-content-token');
-  
-  const isPublicAuthEndpoint = req.url.includes('/api/auth/login') || 
-                               req.url.includes('/api/auth/google') || 
-                               req.url.includes('/api/auth/register') || 
-                               req.url.includes('/api/auth/confirm-email') || 
-                               req.url.includes('/api/auth/resend-confirmation');
+  const token = authStore.token();
+  let authReq = req.clone({
+    withCredentials: true
+  });
 
-  const isStreamEndpoint = req.url.includes('/stream');
-
-  // Prevent making protected local API calls if there is no token
-  if (!token && !isPublicAuthEndpoint && !isStreamEndpoint && req.url.includes('/api/')) {
-    console.warn(`Blocked protected API call because user is not authenticated: ${req.url}`);
-    return throwError(() => new HttpErrorResponse({
-      status: 401,
-      statusText: 'Unauthorized (No Token)',
-      url: req.url
-    }));
-  }
-
-  let authReq = req;
-  
-  if (!isStreamEndpoint) {
+  if (!isStreamEndpoint && !publicAuthEndpoint) {
     const headers: { [name: string]: string } = {
       'X-App-Version': '21.0.0'
     };
 
-    if (token && !isPublicAuthEndpoint) {
+    if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    authReq = req.clone({ setHeaders: headers });
+    authReq = req.clone({
+      setHeaders: headers,
+      withCredentials: true
+    });
   }
 
   return next(authReq).pipe(
     takeUntil(cancelService.getCancelObservable()),
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 && !req.url.includes('/api/auth/login')) {
-        const authStore = injector.get(AuthStore);
-        authStore.logout();
+      if (error.status !== 401 || publicAuthEndpoint) {
+        return throwError(() => error);
       }
-      return throwError(() => error);
+
+      if (authAttempted) {
+        authStore.logout();
+        return throwError(() => error);
+      }
+
+      return authStore.refreshSession().pipe(
+        switchMap((restored) => {
+          if (!restored) {
+            authStore.logout();
+            return throwError(() => error);
+          }
+
+          const refreshToken = authStore.token();
+          if (isStreamEndpoint) {
+            const retryReq = req.clone({
+              withCredentials: true,
+              context: req.context.set(REFRESH_RETRY_TOKEN, true)
+            });
+            return next(retryReq);
+          }
+
+          const headers: { [name: string]: string } = {
+            'X-App-Version': '21.0.0'
+          };
+
+          if (refreshToken) {
+            headers['Authorization'] = `Bearer ${refreshToken}`;
+          }
+
+          const retryReq = req.clone({
+            setHeaders: headers,
+            withCredentials: true,
+            context: req.context.set(REFRESH_RETRY_TOKEN, true)
+          });
+
+          return next(retryReq);
+        }),
+        catchError(() => {
+          authStore.logout();
+          return throwError(() => error);
+        })
+      );
     }),
-    finalize(() => {
-      // Logic for after the call completes
-    })
   );
 };
-

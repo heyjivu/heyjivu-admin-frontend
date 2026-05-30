@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule, TitleCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminPaymentService, PaymentSettingDto } from './services/admin-payment.service';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-payment-management',
@@ -12,6 +13,7 @@ import { AdminPaymentService, PaymentSettingDto } from './services/admin-payment
 })
 export class PaymentManagementPage implements OnInit {
   private paymentService = inject(AdminPaymentService);
+  private toast = inject(ToastService);
   
   settings = signal<PaymentSettingDto[]>([]);
   loading = signal(false);
@@ -51,10 +53,10 @@ export class PaymentManagementPage implements OnInit {
     this.paymentService.updateSetting(this.form()).subscribe({
       next: () => {
         this.loadSettings();
-        alert('Payment settings updated successfully!');
+        this.toast.success('Payment settings updated successfully.');
       },
-      error: (err) => {
-        alert('Failed to update settings');
+      error: () => {
+        this.toast.error('Failed to update payment settings.');
         this.loading.set(false);
       }
     });

@@ -1,5 +1,6 @@
 ﻿<div class="topbar" [class.collapsed]="isMobile()">
   <button 
+    *ngIf="showSidebarToggle()"
     class="sidebar-toggle-btn" 
     (click)="uiStore.toggleCollapsed()" 
     [attr.aria-label]="uiStore.isCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"

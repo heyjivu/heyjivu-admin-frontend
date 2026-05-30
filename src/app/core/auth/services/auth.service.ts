@@ -10,25 +10,34 @@ import { environment } from '../../../../environments/environment';
 export class AuthService {
   private http = inject(HttpClient);
   private apiUrl = `${environment.authApiUrl}/auth`;
+  private withCredentials = { withCredentials: true };
 
   googleLogin(request: GoogleLoginRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/google`, request);
+    return this.http.post<AuthResponse>(`${this.apiUrl}/google`, request, this.withCredentials);
   }
 
   login(request: LoginRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, request);
+    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, request, this.withCredentials);
+  }
+
+  refresh(): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/refresh`, {}, this.withCredentials);
   }
 
   register(request: RegisterRequest): Observable<{ userId: string, email: string, message: string }> {
-    return this.http.post<{ userId: string, email: string, message: string }>(`${this.apiUrl}/register`, request);
+    return this.http.post<{ userId: string, email: string, message: string }>(`${this.apiUrl}/register`, request, this.withCredentials);
   }
 
   confirmEmail(token: string): Observable<AuthResponse> {
-    return this.http.get<AuthResponse>(`${this.apiUrl}/confirm-email?token=${token}`);
+    return this.http.get<AuthResponse>(`${this.apiUrl}/confirm-email?token=${token}`, this.withCredentials);
+  }
+
+  logout(): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/logout`, {}, this.withCredentials);
   }
 
   getMe(): Observable<AuthUser> {
-    return this.http.get<AuthUser>(`${this.apiUrl}/me`);
+    return this.http.get<AuthUser>(`${this.apiUrl}/me`, this.withCredentials);
   }
 }
 

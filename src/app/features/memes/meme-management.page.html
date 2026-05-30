@@ -74,7 +74,9 @@
                   <button class="meme-icon-btn" (click)="openEdit(meme)" title="Edit meme">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button class="meme-icon-btn meme-icon-btn--danger" (click)="deleteMeme(meme.id)" title="Delete meme">
+                  <button class="meme-icon-btn meme-icon-btn--danger"
+                          (click)="deleteMeme(meme.id)"
+                          [title]="pendingDeleteMemeId() === meme.id ? 'Click again to delete meme' : 'Delete meme'">
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>

@@ -14,6 +14,21 @@ export const routes: Routes = [
     loadComponent: () => import('./layout/shell/auth-layout/auth-layout').then(m => m.AuthLayout),
     children: [
       {
+        path: 'privacy',
+        loadComponent: () => import('./core/legal/pages/legal-page').then((m) => m.LegalPageComponent),
+        data: { page: 'privacy' },
+      },
+      {
+        path: 'terms',
+        loadComponent: () => import('./core/legal/pages/legal-page').then((m) => m.LegalPageComponent),
+        data: { page: 'terms' },
+      },
+      {
+        path: 'google-oauth-disclosure',
+        loadComponent: () => import('./core/legal/pages/legal-page').then((m) => m.LegalPageComponent),
+        data: { page: 'oauth' },
+      },
+      {
         path: 'login',
         canActivate: [guestGuard],
         loadComponent: () => import('./core/auth/pages/login/login.page').then((m) => m.LoginPage),

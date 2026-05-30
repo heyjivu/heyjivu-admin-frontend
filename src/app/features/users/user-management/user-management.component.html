@@ -63,8 +63,8 @@
       </div>
     </div>
 
-    <div class="table-container glass-card">
-      <table class="admin-table">
+    <div class="table-container glass-card users-table-container">
+      <table class="admin-table users-table">
         <thead>
           <tr>
             <th>User</th>
@@ -107,7 +107,7 @@
             <td>
               <span class="plan-pill">{{ getUserPlanLabel(user) }}</span>
             </td>
-            <td>
+            <td class="usage-cell">
               <div class="usage-badges">
                 <span class="badge processing" title="Video Creation">
                   <i class="fas fa-video"></i> {{ user.usage?.processingJobs || 0 }}
@@ -120,14 +120,16 @@
                 </span>
               </div>
             </td>
-            <td>
+            <td class="quota-cell">
               <div class="quota-preview" *ngIf="getUserQuotaCards(user) as quotaCards">
                 <ng-container *ngIf="quotaCards.length > 0; else quotaUnavailable">
-                  <div class="quota-preview-row" *ngFor="let quota of quotaCards">
-                    <strong>{{ quota.label }}</strong>
-                    <span>{{ getQuotaPreview(quota) }}</span>
-                    <small *ngIf="quota.stack.length > 0">Base plan + override/add-on</small>
+                  <div class="quota-preview-row"
+                       *ngFor="let quota of quotaCards.slice(0, 3)"
+                       [title]="getQuotaPreview(quota)">
+                    <strong>{{ getQuotaDisplayLabel(quota) }}</strong>
+                    <span>{{ getQuotaPreviewValue(quota) }}</span>
                   </div>
+                  <span class="quota-more" *ngIf="quotaCards.length > 3">+{{ quotaCards.length - 3 }} more quotas</span>
                 </ng-container>
               </div>
               <ng-template #quotaUnavailable>
@@ -138,7 +140,7 @@
               <div class="byok-toggles">
                 <label class="byok-toggle" [title]="'Video Creation Minutes BYOK'" [class.requested]="user.byokRequested">
                   <input type="checkbox" [checked]="user.isByokProcessing" (change)="toggleByok(user, 'isByokProcessing')">
-                  <span class="pill"><i class="fas fa-clock"></i> Video min</span>
+                  <span class="pill"><i class="fas fa-clock"></i> Video</span>
                 </label>
                 <label class="byok-toggle" [title]="'Creation Wallet BYOK'" [class.requested]="user.byokRequested">
                   <input type="checkbox" [checked]="user.isByokTrend" (change)="toggleByok(user, 'isByokTrend')">
@@ -146,11 +148,11 @@
                 </label>
                 <label class="byok-toggle" [title]="'AI Video Clips BYOK'" [class.requested]="user.byokRequested">
                   <input type="checkbox" [checked]="user.isByokVideoGeneration" (change)="toggleByok(user, 'isByokVideoGeneration')">
-                  <span class="pill"><i class="fas fa-film"></i> AI clips</span>
+                  <span class="pill"><i class="fas fa-film"></i> Clips</span>
                 </label>
-                <label class="byok-toggle" [title]="'Creation Wallet BYOK'" [class.requested]="user.byokRequested">
+                <label class="byok-toggle" [title]="'Post Generation BYOK'" [class.requested]="user.byokRequested">
                   <input type="checkbox" [checked]="user.isByokPosts" (change)="toggleByok(user, 'isByokPosts')">
-                  <span class="pill"><i class="fas fa-layer-group"></i> Wallet</span>
+                  <span class="pill"><i class="fas fa-layer-group"></i> Posts</span>
                 </label>
               </div>
             </td>
@@ -288,6 +290,20 @@
                     <i class="fas fa-plus-circle"></i>
                   </button>
                 </div>
+                <div class="inline-create" *ngIf="showSectionForm()">
+                  <input class="field-input inline-create__input"
+                         [(ngModel)]="newSectionName"
+                         placeholder="Section name"
+                         autocomplete="off">
+                  <div class="inline-create__actions">
+                    <button class="icon-btn btn-xs" (click)="saveSection()" title="Save section">
+                      <i class="fas fa-check"></i>
+                    </button>
+                    <button class="icon-btn btn-xs" (click)="cancelSectionForm()" title="Cancel">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </div>
                 <div class="category-item" 
                      *ngFor="let cat of getCategories()" 
                      [class.active]="activeCategory() === cat"
@@ -303,6 +319,27 @@
                   <button class="btn btn-ghost btn-xs" (click)="addRightToSection(activeCategory()!)">
                     <i class="fas fa-plus"></i> Add Right to Section
                   </button>
+                </div>
+
+                <div class="right-create-panel" *ngIf="showRightForm() && activeCategory()">
+                  <div class="right-create-panel__grid">
+                    <input class="field-input"
+                           [(ngModel)]="newRightName"
+                           placeholder="Right display name"
+                           autocomplete="off">
+                    <input class="field-input"
+                           [(ngModel)]="newRightKey"
+                           placeholder="Right key, e.g. Category_Action"
+                           autocomplete="off"
+                           autocapitalize="none"
+                           spellcheck="false">
+                  </div>
+                  <div class="right-create-panel__actions">
+                    <button class="btn btn-primary btn-xs" (click)="saveRightToSection(activeCategory()!)">
+                      <i class="fas fa-check"></i> Save Right
+                    </button>
+                    <button class="btn btn-ghost btn-xs" (click)="cancelRightForm()">Cancel</button>
+                  </div>
                 </div>
                 
                 <div class="rights-grid-scroll" *ngIf="activeCategory()">

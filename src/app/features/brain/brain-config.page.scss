@@ -318,7 +318,7 @@
   border-radius: 10px;
   overflow: hidden;
   transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-  max-width: 800px; // Align with config strip
+  max-width: 980px; // Align with the expanded editor surface.
 
   &:hover {
     border-color: rgba(99, 102, 241, 0.22);
@@ -350,6 +350,7 @@
 .key-row__header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 8px 14px;
   cursor: pointer;
   user-select: none;
@@ -359,11 +360,21 @@
   &:hover {
     background: rgba(255, 255, 255, 0.015);
   }
+
+  > .d-flex:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  > .d-flex:last-child {
+    flex: 0 0 auto;
+  }
 }
 
 .key-row__body {
   padding: 0 14px 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.08);
   animation: slideDown 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -535,7 +546,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   padding-top: 12px;
-  max-width: 700px; // Maintain compact sizing
+  max-width: none;
 
   @media (max-width: 576px) {
     grid-template-columns: 1fr;
@@ -587,6 +598,11 @@
     background: rgba(0, 0, 0, 0.35);
     outline: none;
   }
+}
+
+.secret-input--masked {
+  -webkit-text-security: disc;
+  text-security: disc;
 }
 
 // API key input wrapper with eye button
@@ -693,12 +709,75 @@
 
 .body-actions {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 10px 12px;
+  max-width: none;
+  min-height: 54px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+
+  &.save-success {
+    border-color: rgba(16, 185, 129, 0.2);
+
+    .save-meta {
+      color: #10b981;
+    }
+  }
+
+  &.save-error {
+    border-color: rgba(239, 68, 68, 0.22);
+
+    .save-meta {
+      color: #ef4444;
+    }
+  }
+}
+
+.save-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text3);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+
+  i {
+    width: 16px;
+    text-align: center;
+    color: currentColor;
+  }
+}
+
+.save-buttons {
+  display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 18px;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
-  padding-top: 14px;
-  max-width: 700px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 576px) {
+  .body-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .save-buttons {
+    width: 100%;
+
+    .btn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
 }
 
 // Toggle switch (used only in brain config body)

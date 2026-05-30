@@ -416,6 +416,27 @@
   }
 }
 
+.auth-legal-links {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  color: var(--text3);
+  font-size: 12px;
+  line-height: 1.55;
+  text-align: center;
+
+  a {
+    color: var(--accent);
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
 // ── DIVIDER ─────────────────────────────────────────────────
 .divider {
   display: flex;

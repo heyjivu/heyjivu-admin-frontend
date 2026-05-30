@@ -21,7 +21,7 @@ export const environment = {
   googleClientId: '579233474156-9dpbpojf1k3nop0884sniru752e6s4q6.apps.googleusercontent.com',
 
   // ── Encryption ─────────────────────────────────────────────────
-  masterEncryptionKey: 'dev_super_secret_encryption_key_32',
+  masterEncryptionKey: '',
 
   // ── Feature Flags ─────────────────────────────────────────────
   enableMockData: false,

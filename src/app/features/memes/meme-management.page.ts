@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MemesApiService, MemeDto } from './services/memes-api.service';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-meme-management',
@@ -12,11 +13,13 @@ import { MemesApiService, MemeDto } from './services/memes-api.service';
 })
 export class MemeManagementPage implements OnInit {
   private api = inject(MemesApiService);
+  private toast = inject(ToastService);
 
   memes = signal<MemeDto[]>([]);
   loading = signal(false);
   showForm = signal(false);
   editing = signal<MemeDto | null>(null);
+  pendingDeleteMemeId = signal<string | null>(null);
 
   formName = '';
   formDescription = '';
@@ -90,9 +93,24 @@ export class MemeManagementPage implements OnInit {
   }
 
   deleteMeme(id: string) {
-    if (!confirm('Delete this meme?')) return;
+    if (this.pendingDeleteMemeId() !== id) {
+      this.pendingDeleteMemeId.set(id);
+      this.toast.show('Click delete again to remove this meme.', 'warning', 5000);
+      setTimeout(() => {
+        if (this.pendingDeleteMemeId() === id) {
+          this.pendingDeleteMemeId.set(null);
+        }
+      }, 5000);
+      return;
+    }
+
+    this.pendingDeleteMemeId.set(null);
     this.api.deleteMeme(id).subscribe({
-      next: () => this.loadMemes()
+      next: () => {
+        this.toast.success('Meme deleted.');
+        this.loadMemes();
+      },
+      error: () => this.toast.error('Failed to delete meme.')
     });
   }
 }

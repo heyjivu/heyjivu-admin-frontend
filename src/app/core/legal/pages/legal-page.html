@@ -1,0 +1,115 @@
+<main class="legal-page">
+  <header class="legal-header">
+    <a class="legal-brand" routerLink="/" aria-label="HeyJivu home">
+      <span class="legal-brand-mark">hj</span>
+      <span>heyjivu</span>
+    </a>
+
+    <nav class="legal-nav" aria-label="Legal pages">
+      <a routerLink="/privacy" routerLinkActive="active">Privacy</a>
+      <a routerLink="/terms" routerLinkActive="active">Terms</a>
+      <a routerLink="/google-oauth-disclosure" routerLinkActive="active">Google OAuth</a>
+      <a routerLink="/login">Login</a>
+    </nav>
+  </header>
+
+  <section class="legal-hero">
+    <p class="legal-kicker">Last updated {{ updatedOn }}</p>
+    <h1>{{ pageTitle }}</h1>
+    <p>{{ pageIntro }}</p>
+  </section>
+
+  <section class="legal-content" [ngSwitch]="page">
+    <ng-container *ngSwitchCase="'privacy'">
+      <article>
+        <h2>Information We Collect</h2>
+        <p>HeyJivu collects the information needed to create your account, authenticate you, run your content workflows, and connect optional services you choose to enable.</p>
+        <ul>
+          <li>Account details such as name, email address, login method, and organization membership.</li>
+          <li>User content such as uploaded videos, generated media, templates, prompts, captions, and publishing metadata.</li>
+          <li>Configuration data such as storage settings, AI provider settings, and connected service tokens when you authorize an integration.</li>
+          <li>Operational data such as job status, logs, device/browser metadata, and security events used to keep the service reliable.</li>
+        </ul>
+      </article>
+
+      <article>
+        <h2>How We Use Information</h2>
+        <p>We use information to provide the app, process jobs, authenticate users, store files, prevent abuse, troubleshoot issues, and improve reliability. We do not sell Google user data or use it for advertising.</p>
+      </article>
+
+      <article>
+        <h2>Google User Data</h2>
+        <p>Google Sign-In is used for account authentication. Optional Google Drive access is limited to files and folders created by HeyJivu or explicitly selected for use with HeyJivu. Google data is used only to provide user-facing app features that the user requested.</p>
+      </article>
+
+      <article>
+        <h2>User Control</h2>
+        <p>You can disconnect optional Google integrations from your settings, remove stored credentials where available, or contact us to request account and data deletion.</p>
+      </article>
+
+      <article>
+        <h2>Contact</h2>
+        <p>For privacy requests, contact <a href="mailto:admin@heyjivu.com">admin@heyjivu.com</a>.</p>
+      </article>
+    </ng-container>
+
+    <ng-container *ngSwitchCase="'terms'">
+      <article>
+        <h2>Use of HeyJivu</h2>
+        <p>You may use HeyJivu to create, process, store, and publish content that you own or have permission to use. You are responsible for the content and connected accounts you authorize.</p>
+      </article>
+
+      <article>
+        <h2>Accounts and Security</h2>
+        <p>You must keep your account credentials secure and notify us if you believe your account or connected services have been accessed without permission.</p>
+      </article>
+
+      <article>
+        <h2>Connected Services</h2>
+        <p>When you connect Google Drive, YouTube, or another third-party service, HeyJivu uses that access only to perform the actions you request. You can revoke access through HeyJivu settings or through the third-party account controls.</p>
+      </article>
+
+      <article>
+        <h2>Acceptable Use</h2>
+        <p>You may not use HeyJivu to violate laws, infringe rights, bypass platform rules, distribute malicious content, or interfere with the service.</p>
+      </article>
+
+      <article>
+        <h2>Service Changes</h2>
+        <p>We may update features, limits, pricing, and these terms as the product evolves. Continued use after an update means you accept the revised terms.</p>
+      </article>
+    </ng-container>
+
+    <ng-container *ngSwitchCase="'oauth'">
+      <article>
+        <h2>Google OAuth Scope Summary</h2>
+        <p>HeyJivu requests the minimum Google access needed for authentication and optional connected workflows. Optional integrations are requested only when a user chooses to connect that service.</p>
+
+        <div class="scope-table" role="table" aria-label="Google OAuth scope justification">
+          <div class="scope-row scope-row-head" role="row">
+            <span role="columnheader">Scope</span>
+            <span role="columnheader">Feature</span>
+            <span role="columnheader">Purpose</span>
+            <span role="columnheader">Data Accessed</span>
+          </div>
+          <div class="scope-row" role="row" *ngFor="let row of scopeRows; trackBy: trackByScope">
+            <span role="cell" class="scope-name">{{ row.scope }}</span>
+            <span role="cell">{{ row.feature }}</span>
+            <span role="cell">{{ row.why }}</span>
+            <span role="cell">{{ row.data }}</span>
+          </div>
+        </div>
+      </article>
+
+      <article>
+        <h2>Limited Use Commitment</h2>
+        <p>HeyJivu's use and transfer of information received from Google APIs follows the Google API Services User Data Policy, including the Limited Use requirements. Google user data is not sold, used for advertising, or shared except as needed to provide the user-requested feature.</p>
+      </article>
+
+      <article>
+        <h2>Review Notes</h2>
+        <p>Google Sign-In uses an ID token for account authentication. Google Drive uses the narrow Drive File permission. YouTube permissions should be enabled only for the YouTube publishing flow and only after the production OAuth implementation is active.</p>
+      </article>
+    </ng-container>
+  </section>
+</main>

@@ -8,6 +8,7 @@ import {
   TestKeyResult
 } from './services/memory-api.service';
 import { getProviderModels, AIModelOption } from '../../core/constants/ai-models.constants';
+import { ToastService } from '../../core/services/toast.service';
 
 interface AIProviderInfo {
   name: string;
@@ -22,12 +23,16 @@ interface CategoryInfo {
   providers: AIProviderInfo[];
 }
 
+type KeySaveStatus = 'idle' | 'success' | 'error';
+
 interface KeyRowState {
   isOpen: boolean;
   showKey: boolean;
   isTesting: boolean;
   isSaving: boolean;
   testResult: TestKeyResult | null;
+  saveStatus: KeySaveStatus;
+  saveMessage: string | null;
 }
 
 @Component({
@@ -39,11 +44,14 @@ interface KeyRowState {
 })
 export class BrainConfigPage implements OnInit {
   private api = inject(MemoryApiService);
+  private toast = inject(ToastService);
 
   loading = signal(false);
   settings = signal<BrainSettingsDto[]>([]);
   openCategories = signal<Record<string, boolean>>({});
   keyRowStates = signal<Record<string, KeyRowState>>({});
+  pendingRemoveKeyId = signal<string | null>(null);
+  private virtualKeyDrafts: Record<string, BrainApiKeyDto> = {};
 
   // Hero stats
   totalKeys = computed(() => this.settings().reduce((acc, s) => acc + s.apiKeys.length, 0));
@@ -152,11 +160,18 @@ export class BrainConfigPage implements OnInit {
       next: (data) => {
         this.settings.set(data);
         // Init key row states
+        const previousStates = this.keyRowStates();
         const states: Record<string, KeyRowState> = {};
         data.forEach(s => s.apiKeys.forEach(k => {
-          states[k.id] = { isOpen: false, showKey: false, isTesting: false, isSaving: false, testResult: null };
+          states[k.id] = {
+            ...this.defaultRowState(),
+            ...(previousStates[k.id] ?? {}),
+            isSaving: false,
+            testResult: null
+          };
         }));
         this.keyRowStates.set(states);
+        this.pendingRemoveKeyId.set(null);
       },
       complete: () => this.loading.set(false)
     });
@@ -205,17 +220,7 @@ export class BrainConfigPage implements OnInit {
       catInfo.providers.forEach(prov => {
         const hasKey = setting.apiKeys.some(k => (k.provider || '').toLowerCase() === prov.name.toLowerCase());
         if (!hasKey) {
-          keysList.push({
-            id: `virtual-${setting.type}-${prov.name}`,
-            key: '',
-            isBlocked: false,
-            usageCount: 0,
-            provider: prov.name,
-            modelName: null,
-            roleName: null,
-            isFree: prov.isFree || false,
-            customLabel: null
-          });
+          keysList.push(this.getVirtualKeyDraft(setting, prov));
         }
       });
     }
@@ -225,19 +230,19 @@ export class BrainConfigPage implements OnInit {
 
   // ── Key row state helpers ────────────────────────────────────────────
   getRowState(keyId: string): KeyRowState {
-    return this.keyRowStates()[keyId] ?? { isOpen: false, showKey: false, isTesting: false, isSaving: false, testResult: null };
+    return this.keyRowStates()[keyId] ?? this.defaultRowState();
   }
 
   updateRowState(keyId: string, patch: Partial<KeyRowState>) {
     this.keyRowStates.update(prev => ({
       ...prev,
-      [keyId]: { ...(prev[keyId] ?? { isOpen: false, showKey: false, isTesting: false, isSaving: false, testResult: null }), ...patch }
+      [keyId]: { ...this.defaultRowState(), ...(prev[keyId] ?? {}), ...patch }
     }));
   }
 
   toggleRow(keyId: string) {
     const current = this.getRowState(keyId);
-    this.updateRowState(keyId, { isOpen: !current.isOpen, testResult: null });
+    this.updateRowState(keyId, { isOpen: !current.isOpen, testResult: null, saveStatus: 'idle', saveMessage: null });
   }
 
   toggleShowKey(keyId: string, event: Event) {
@@ -263,36 +268,108 @@ export class BrainConfigPage implements OnInit {
     // Auto-open the new row
     this.keyRowStates.update(prev => ({
       ...prev,
-      [newKey.id]: { isOpen: true, showKey: false, isTesting: false, isSaving: false, testResult: null }
+      [newKey.id]: { ...this.defaultRowState(), isOpen: true }
     }));
   }
 
   removeKey(setting: BrainSettingsDto, key: BrainApiKeyDto) {
-    if (!confirm(`Remove this key for ${key.provider || setting.provider}?`)) return;
+    const provider = key.provider || setting.provider || 'this provider';
+    if (this.pendingRemoveKeyId() !== key.id) {
+      this.pendingRemoveKeyId.set(key.id);
+      this.toast.show(`Click remove again to delete the ${provider} key.`, 'warning', 5000);
+      setTimeout(() => {
+        if (this.pendingRemoveKeyId() === key.id) {
+          this.pendingRemoveKeyId.set(null);
+        }
+      }, 5000);
+      return;
+    }
+
+    this.pendingRemoveKeyId.set(null);
     setting.apiKeys = setting.apiKeys.filter(k => k !== key);
+    this.saveAll(setting, `${provider} key removed.`);
   }
 
   saveKey(setting: BrainSettingsDto, key: BrainApiKeyDto) {
-    if (this.isVirtualKey(key.id)) {
-      if (!key.key) {
-        alert('Please enter an API Key first.');
-        return;
-      }
+    const rowId = key.id;
+    const wasVirtual = this.isVirtualKey(rowId);
+    const previousApiKeys = setting.apiKeys.map(existingKey => ({ ...existingKey }));
+    let keyToSave = key;
+
+    if (!this.canSaveKey(key)) {
+      this.updateRowState(rowId, {
+        saveStatus: 'error',
+        saveMessage: 'API key required'
+      });
+      this.toast.show('Enter an API key before saving this provider.', 'warning');
+      return;
+    }
+
+    if (wasVirtual) {
       // Convert to a real key
       const newKey: BrainApiKeyDto = {
         ...key,
-        id: crypto.randomUUID()
+        id: crypto.randomUUID(),
+        key: key.key?.trim() ?? '',
+        provider: key.provider || setting.provider,
+        modelName: this.nullableText(key.modelName),
+        roleName: this.nullableText(key.roleName),
+        customLabel: this.nullableText(key.customLabel)
       };
       setting.apiKeys = [...setting.apiKeys, newKey];
+      keyToSave = newKey;
+    } else {
+      key.key = key.key?.trim() ?? '';
+      key.modelName = this.nullableText(key.modelName);
+      key.roleName = this.nullableText(key.roleName);
+      key.customLabel = this.nullableText(key.customLabel);
     }
-    this.saveAll(setting);
+
+    this.updateRowState(rowId, { isSaving: true, saveStatus: 'idle', saveMessage: null });
+
+    this.saveAll(
+      setting,
+      `${keyToSave.provider || setting.provider || 'Provider'} key saved.`,
+      () => {
+        if (wasVirtual) {
+          delete this.virtualKeyDrafts[rowId];
+        }
+        this.updateRowState(rowId, {
+          isSaving: false,
+          saveStatus: 'success',
+          saveMessage: 'Saved'
+        });
+      },
+      () => {
+        setting.apiKeys = previousApiKeys;
+        this.updateRowState(rowId, {
+          isSaving: false,
+          saveStatus: 'error',
+          saveMessage: 'Save failed'
+        });
+      },
+      keyToSave
+    );
   }
 
-  saveAll(setting: BrainSettingsDto) {
-    // Automatically set default provider and default model from the first active key configured
-    if (setting.apiKeys.length > 0) {
-      setting.provider = setting.apiKeys[0].provider;
-      setting.model = setting.apiKeys[0].modelName || this.getDefaultModelForProvider(setting.type, setting.provider);
+  saveAll(
+    setting: BrainSettingsDto,
+    successMessage = 'Brain settings saved.',
+    afterSuccess?: () => void,
+    afterError?: () => void,
+    preferredKey?: BrainApiKeyDto
+  ) {
+    // Automatically set default provider and default model from the saved active key first.
+    const preferredKeyInSetting = preferredKey
+      ? (setting.apiKeys.find(k => k.id === preferredKey.id) ?? preferredKey)
+      : null;
+    const defaultKey = preferredKeyInSetting && !preferredKeyInSetting.isBlocked
+      ? preferredKeyInSetting
+      : (setting.apiKeys.find(k => !k.isBlocked) ?? setting.apiKeys[0]);
+
+    if (defaultKey) {
+      setting.provider = defaultKey.provider || setting.provider;
+      setting.model = defaultKey.modelName || this.getDefaultModelForProvider(setting.type, setting.provider);
     } else {
       // Fallback if no keys configured: use first standard provider for the category
       const catInfo = this.getCategoryInfo(setting.type);
@@ -313,14 +390,22 @@ export class BrainConfigPage implements OnInit {
         isBlocked: k.isBlocked,
         usageCount: k.usageCount,
         provider: k.provider || setting.provider,
-        modelName: k.modelName,
-        roleName: k.roleName,
+        modelName: this.nullableText(k.modelName),
+        roleName: this.nullableText(k.roleName),
         isFree: k.isFree,
-        customLabel: k.customLabel
+        customLabel: this.nullableText(k.customLabel)
       }))
     };
     this.api.saveBrainSettings(payload).subscribe({
-      next: () => this.load()
+      next: () => {
+        afterSuccess?.();
+        this.toast.success(successMessage);
+        this.load();
+      },
+      error: () => {
+        afterError?.();
+        this.toast.error('Failed to save brain settings.');
+      }
     });
   }
 
@@ -391,6 +476,63 @@ export class BrainConfigPage implements OnInit {
     if (p.includes('kling')) return 'badge-red';
     if (p.includes('runway')) return 'badge-neutral';
     return 'badge-neutral';
+  }
+
+  private nullableText(value: string | null | undefined): string | null {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : null;
+  }
+
+  private defaultRowState(): KeyRowState {
+    return {
+      isOpen: false,
+      showKey: false,
+      isTesting: false,
+      isSaving: false,
+      testResult: null,
+      saveStatus: 'idle',
+      saveMessage: null
+    };
+  }
+
+  private getVirtualKeyDraft(setting: BrainSettingsDto, provider: AIProviderInfo): BrainApiKeyDto {
+    const id = `virtual-${setting.type}-${provider.name}`;
+    if (!this.virtualKeyDrafts[id]) {
+      this.virtualKeyDrafts[id] = {
+        id,
+        key: '',
+        isBlocked: false,
+        usageCount: 0,
+        provider: provider.name,
+        modelName: null,
+        roleName: null,
+        isFree: provider.isFree || false,
+        customLabel: null
+      };
+    }
+
+    return this.virtualKeyDrafts[id];
+  }
+
+  canSaveKey(key: BrainApiKeyDto): boolean {
+    return !this.isVirtualKey(key.id) || key.isFree || !!key.key?.trim();
+  }
+
+  getSaveStatusIcon(key: BrainApiKeyDto): string {
+    const state = this.getRowState(key.id);
+    if (state.isSaving) return 'fa-spinner fa-spin';
+    if (state.saveStatus === 'success') return 'fa-check-circle';
+    if (state.saveStatus === 'error') return 'fa-exclamation-circle';
+    if (!this.canSaveKey(key)) return 'fa-key';
+    return 'fa-save';
+  }
+
+  getSaveStatusText(key: BrainApiKeyDto): string {
+    const state = this.getRowState(key.id);
+    if (state.isSaving) return 'Saving changes';
+    if (state.saveMessage) return state.saveMessage;
+    if (!this.canSaveKey(key)) return 'API key required';
+    return this.isVirtualKey(key.id) ? 'Ready to save' : 'Ready';
   }
 
   trackByKeyId(_: number, key: BrainApiKeyDto) { return key.id; }

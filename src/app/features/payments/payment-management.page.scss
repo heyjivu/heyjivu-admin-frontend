@@ -141,6 +141,12 @@
 }
 
 // ── Radio Group ──────────────────────────────────────────────────────
+.pm-input-secret {
+  -webkit-text-security: disc;
+  text-security: disc;
+  font-family: var(--font-mono);
+}
+
 .pm-radio-group {
   display: flex;
   gap: 10px;

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AdminService, UserManagementDto, RoleDto, OrganizationDto, RightDto } from '../services/admin.service';
 import { FormsModule } from '@angular/forms';
+import { ToastService } from '../../../core/services/toast.service';
 
 import { Rights } from '../../../core/constants/rights.constants';
 
@@ -39,6 +40,7 @@ export class UserManagementComponent implements OnInit {
   private adminService = inject(AdminService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private toast = inject(ToastService);
   public readonly Rights = Rights;
   
   activeTab = signal<'users' | 'orgs' | 'roles'>('users');
@@ -91,6 +93,11 @@ export class UserManagementComponent implements OnInit {
   editorTab = signal<'basic' | 'rights' | 'processing'>('basic');
   roleProcessingOptions = signal<any>(null);
   activeCategory = signal<string | null>(null);
+  showSectionForm = signal(false);
+  showRightForm = signal(false);
+  newSectionName = '';
+  newRightName = '';
+  newRightKey = '';
 
   totalJobs = signal(0);
 
@@ -199,6 +206,14 @@ export class UserManagementComponent implements OnInit {
 
   getQuotaPreview(quota: UserQuotaCard): string {
     return quota.lines.slice(0, 2).map(line => `${line.label}: ${line.value}`).join(' | ');
+  }
+
+  getQuotaDisplayLabel(quota: UserQuotaCard): string {
+    return quota.lines[0]?.label || quota.label;
+  }
+
+  getQuotaPreviewValue(quota: UserQuotaCard): string {
+    return quota.lines[0]?.value || this.getQuotaPreview(quota);
   }
 
   private extractQuotaBuckets(source: unknown): Array<Record<string, unknown>> {
@@ -353,13 +368,13 @@ export class UserManagementComponent implements OnInit {
 
     this.adminService.updateUserProcessingOptions(user.id, this.userProcessingOptions()).subscribe({
       next: () => {
-        alert('User processing options updated successfully!');
+        this.toast.success('User processing options updated successfully.');
         this.editingUser.set(null);
         this.userProcessingOptions.set(null);
       },
       error: (err) => {
         console.error('Failed to update user processing options', err);
-        alert('Failed to save settings.');
+        this.toast.error('Failed to save settings.');
       }
     });
   }
@@ -465,12 +480,12 @@ export class UserManagementComponent implements OnInit {
         const roleId = newRole.id || newRole;
         if (roleId && this.roleProcessingOptions()) {
           this.adminService.updateRoleProcessingOptions(roleId, this.roleProcessingOptions()).subscribe(() => {
-            alert('Role created successfully!');
+            this.toast.success('Role created successfully.');
             this.loadRolesAndRights();
             this.selectedRole.set(null);
           });
         } else {
-          alert('Role created successfully!');
+          this.toast.success('Role created successfully.');
           this.loadRolesAndRights();
           this.selectedRole.set(null);
         }
@@ -480,12 +495,12 @@ export class UserManagementComponent implements OnInit {
         this.adminService.updateRoleRights(role.id, role.rights).subscribe(() => {
           if (this.roleProcessingOptions()) {
             this.adminService.updateRoleProcessingOptions(role.id, this.roleProcessingOptions()).subscribe(() => {
-              alert('Role updated successfully!');
+              this.toast.success('Role updated successfully.');
               this.loadRolesAndRights();
               this.selectedRole.set(null);
             });
           } else {
-            alert('Role updated successfully!');
+            this.toast.success('Role updated successfully.');
             this.loadRolesAndRights();
             this.selectedRole.set(null);
           }
@@ -504,26 +519,63 @@ export class UserManagementComponent implements OnInit {
   }
 
   addSection() {
-    const name = prompt('Enter new section name:');
-    if (name) {
-      this.activeCategory.set(name);
+    this.newSectionName = '';
+    this.showSectionForm.set(true);
+  }
+
+  saveSection() {
+    const name = this.newSectionName.trim();
+    if (!name) {
+      this.toast.show('Enter a section name first.', 'warning');
+      return;
     }
+
+    this.activeCategory.set(name);
+    this.showSectionForm.set(false);
+    this.toast.show('Section selected. Add a right to save it.', 'info');
+  }
+
+  cancelSectionForm() {
+    this.newSectionName = '';
+    this.showSectionForm.set(false);
   }
 
   addRightToSection(category: string) {
-    const name = prompt('Enter Right Display Name:');
-    if (!name) return;
-    const key = prompt('Enter Right Key (e.g. Category_Action):');
-    if (!key) return;
+    this.activeCategory.set(category);
+    this.newRightName = '';
+    this.newRightKey = '';
+    this.showRightForm.set(true);
+  }
+
+  saveRightToSection(category: string) {
+    const name = this.newRightName.trim();
+    const key = this.newRightKey.trim();
+    if (!name || !key) {
+      this.toast.show('Enter a right name and key first.', 'warning');
+      return;
+    }
 
     this.adminService.createRight({
       name,
       key,
       category,
       description: ''
-    }).subscribe(() => {
-      this.loadRolesAndRights();
+    }).subscribe({
+      next: () => {
+        this.toast.success('Right created successfully.');
+        this.showRightForm.set(false);
+        this.loadRolesAndRights();
+      },
+      error: () => {
+        this.toast.error('Failed to create right.');
+      }
     });
+  }
+
+  cancelRightForm() {
+    this.newRightName = '';
+    this.newRightKey = '';
+    this.showRightForm.set(false);
   }
 }
 

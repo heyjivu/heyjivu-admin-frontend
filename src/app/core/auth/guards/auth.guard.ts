@@ -1,5 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { catchError, map, of } from 'rxjs';
 import { AuthStore } from '../state/auth.store';
 
 export const authGuard: CanActivateFn = (route, state) => {
@@ -16,17 +17,21 @@ export const authGuard: CanActivateFn = (route, state) => {
     return checkAccess();
   }
 
-  // Check if token exists in storage but store is not initialized
-  const token = localStorage.getItem('ai-content-token');
-  if (token) {
-    authStore.initializeFromStorage();
-    if (authStore.isAuthenticated()) {
-      return checkAccess();
-    }
-  }
+  authStore.initializeFromStorage();
 
-  router.navigate(['/login']);
-  return false;
+  return authStore.refreshSession().pipe(
+    map(() => {
+      if (authStore.isAuthenticated()) {
+        return checkAccess();
+      }
+      router.navigate(['/login']);
+      return false;
+    }),
+    catchError(() => {
+      router.navigate(['/login']);
+      return of(false);
+    })
+  );
 };
 
 export const guestGuard: CanActivateFn = (route, state) => {
@@ -34,19 +39,20 @@ export const guestGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
 
   if (authStore.isAuthenticated()) {
-    router.navigate(['/dashboard']);
+    router.navigate(['/admin/dashboard']);
     return false;
   }
 
-  // Check if token exists in storage but store is not initialized
-  const token = localStorage.getItem('ai-content-token');
-  if (token) {
-    authStore.initializeFromStorage();
-    if (authStore.isAuthenticated()) {
-      router.navigate(['/dashboard']);
-      return false;
-    }
-  }
+  authStore.initializeFromStorage();
 
-  return true;
+  return authStore.refreshSession().pipe(
+    map(() => {
+      if (authStore.isAuthenticated()) {
+        router.navigate(['/admin/dashboard']);
+        return false;
+      }
+      return true;
+    }),
+    catchError(() => of(true))
+  );
 };
