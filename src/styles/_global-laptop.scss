@@ -2211,6 +2211,14 @@
 .modal-header {
   padding: 18px 24px;
   border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+
+  h3 {
+    margin: 0;
+  }
 
   .modal-title {
     font-size: 16px;
@@ -2218,6 +2226,31 @@
     margin: 0;
     color: var(--text);
     font-family: var(--font-display);
+  }
+}
+
+.modal-close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text3);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  transition: color var(--transition-fast), background var(--transition-fast);
+
+  &:hover:not(:disabled) {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
   }
 }
 

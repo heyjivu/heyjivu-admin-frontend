@@ -8,6 +8,7 @@ export interface DialogOptions {
   closable?: boolean;
   closeOnEscape?: boolean;
   dismissableMask?: boolean;
+  showHeader?: boolean;
 }
 
 const DEFAULT_OPTIONS: any = {
@@ -18,7 +19,7 @@ const DEFAULT_OPTIONS: any = {
   closeOnEscape: true,
   dismissableMask: true,
   styleClass: 'consistent-dialog',
-  showHeader: true,
+  showHeader: false,
   breakpoints: { '768px': '100vw', '576px': '100vw' }
 };
 
@@ -35,6 +36,7 @@ export class DialogService {
       closable: options?.closable ?? DEFAULT_OPTIONS.closable,
       closeOnEscape: options?.closeOnEscape ?? DEFAULT_OPTIONS.closeOnEscape,
       dismissableMask: options?.dismissableMask ?? DEFAULT_OPTIONS.dismissableMask,
+      showHeader: options?.showHeader ?? DEFAULT_OPTIONS.showHeader,
     }) as DynamicDialogRef<T>;
   }
 }

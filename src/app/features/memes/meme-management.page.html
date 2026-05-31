@@ -109,7 +109,7 @@
             <div class="meme-modal__title">{{ editing() ? 'Edit Meme' : 'Create Meme' }}</div>
             <div class="meme-modal__sub">{{ editing() ? 'Update meme details below' : 'Fill in the details to add a new meme' }}</div>
           </div>
-          <button class="meme-modal__close" (click)="cancelForm()">
+          <button class="meme-modal__close" type="button" (click)="cancelForm()" aria-label="Close dialog">
             <i class="fas fa-times"></i>
           </button>
         </div>

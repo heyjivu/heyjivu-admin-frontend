@@ -47,6 +47,7 @@ export interface RoleDto {
   description: string;
   scope: number;
   rights: string[];
+  quotas?: Record<string, number>;
 }
 
 export interface OrganizationDto {
@@ -137,11 +138,11 @@ export class AdminService {
     return this.http.put<void>(`${this.apiUrl}/${userId}/status`, { isActive });
   }
 
-  createRole(role: { name: string, description: string, scope: number }): Observable<string> {
+  createRole(role: { name: string, description: string, scope: number, quotas?: Record<string, number> }): Observable<string> {
     return this.http.post<string>(`${this.apiUrl}/roles`, role);
   }
 
-  updateRole(roleId: string, role: { name: string, description: string, scope: number }): Observable<void> {
+  updateRole(roleId: string, role: { name: string, description: string, scope: number, quotas?: Record<string, number> }): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/roles/${roleId}`, role);
   }
 
@@ -175,6 +176,11 @@ export class AdminService {
 
   updateUserProcessingOptions(userId: string, data: any): Observable<any> {
     return this.http.put<any>(`${this.apiUrl}/${userId}/processing-options`, data);
+  }
+
+  updateUserQuota(userId: string, quotaType: string, limit: number): Observable<void> {
+    const encodedUser = encodeURIComponent(userId);
+    return this.http.post<void>(`${this.apiUrl}/${encodedUser}/quotas`, { quotaType, limit });
   }
 
   getPlanQuotaOverview(planCode: string): Observable<PlanQuotaOverviewDto> {

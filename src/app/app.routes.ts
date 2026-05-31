@@ -79,6 +79,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/config/processing-config.page').then((m) => m.ProcessingConfigPage),
       },
       {
+        path: 'templates',
+        canActivate: [authGuard, hasRight(Rights.Admin_Config_View)],
+        loadComponent: () => import('./features/templates/template-studio.page').then((m) => m.TemplateStudioPage),
+      },
+      {
         path: 'memes',
         canActivate: [authGuard, hasRight(Rights.Memes_View)],
         loadComponent: () => import('./features/memes/meme-management.page').then((m) => m.MemeManagementPage),

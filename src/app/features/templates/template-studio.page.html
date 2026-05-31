@@ -1,0 +1,520 @@
+<div class="screen template-studio-screen">
+  <div class="screen-header screen-header-compact">
+    <div class="flex justify-content-between align-items-center px-4 py-3 screen-title-row">
+      <div class="flex align-items-center gap-3">
+        <div class="header-icon-wrap">
+          <i class="fas fa-wand-magic-sparkles"></i>
+        </div>
+        <div>
+          <div class="screen-title">Template Studio</div>
+          <div class="screen-sub">Manage admin templates and soundtracks available in user creation flows</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-soft btn-sm" type="button" (click)="loadAll()">
+          <i class="fas fa-sync" [class.fa-spin]="loadingTemplates() || loadingSoundtracks()"></i>
+          Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen-container studio-container">
+    <section class="studio-section">
+      <div class="studio-section__header">
+        <div class="studio-title-block">
+          <div class="studio-icon studio-icon--templates">
+            <i class="fas fa-clone"></i>
+          </div>
+          <div>
+            <div class="studio-section__title">Templates</div>
+            <div class="studio-section__sub">Admin-owned reusable layouts, prompts and workflow presets</div>
+          </div>
+        </div>
+        <div class="studio-section__actions">
+          <div class="studio-stat"><span>{{ templateStats().total }}</span>Total</div>
+          <div class="studio-stat studio-stat--active"><span>{{ templateStats().active }}</span>Active</div>
+          <button class="btn btn-primary btn-sm" type="button" (click)="openCreate('template')">
+            <i class="fas fa-plus"></i>
+            New Template
+          </button>
+        </div>
+      </div>
+
+      <div class="studio-toolbar">
+        <label class="studio-search">
+          <i class="fas fa-search"></i>
+          <input
+            type="search"
+            [ngModel]="templateSearch()"
+            (ngModelChange)="templateSearch.set($event)"
+            placeholder="Search templates" />
+        </label>
+        <div class="studio-chip-group" aria-label="Template status filters">
+          @for (filter of statusFilters; track filter.code) {
+            <button
+              type="button"
+              class="studio-chip"
+              [class.active]="templateStatusFilter() === filter.code"
+              (click)="setStatusFilter('template', filter.code)">
+              <i [class]="filter.icon"></i>
+              {{ filter.label }}
+            </button>
+          }
+        </div>
+        <div class="studio-chip-group studio-chip-group--plans" aria-label="Template plan filters">
+          <button
+            type="button"
+            class="studio-chip"
+            [class.active]="templatePlanFilter() === 'all'"
+            (click)="setPlanFilter('template', 'all')">
+            All plans
+          </button>
+          @for (plan of planOptions; track plan.code) {
+            <button
+              type="button"
+              class="studio-chip"
+              [class.active]="templatePlanFilter() === plan.code"
+              (click)="setPlanFilter('template', plan.code)">
+              <i [class]="plan.icon"></i>
+              {{ plan.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      @if (templateError()) {
+        <div class="studio-callout">
+          <i class="fas fa-plug-circle-xmark"></i>
+          Template endpoint is not available yet.
+        </div>
+      }
+
+      <div class="table-container studio-table-wrap">
+        <table class="admin-table studio-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Format</th>
+              <th>Visibility</th>
+              <th>Status</th>
+              <th class="studio-actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (template of filteredTemplates(); track template.id) {
+              <tr>
+                <td>
+                  <div class="studio-asset-cell">
+                    <div class="studio-thumb">
+                      @if (template.thumbnailUrl) {
+                        <img [src]="template.thumbnailUrl" [alt]="template.name" />
+                      } @else {
+                        <i class="fas fa-clone"></i>
+                      }
+                    </div>
+                    <div class="studio-asset-copy">
+                      <div class="studio-asset-name">{{ template.name }}</div>
+                      @if (template.description) {
+                        <div class="studio-asset-desc">{{ template.description }}</div>
+                      }
+                      @if (template.tags?.length) {
+                        <div class="studio-tag-row">
+                          @for (tag of template.tags; track tag) {
+                            <span class="studio-mini-chip">{{ tag }}</span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="studio-stack">
+                    <span class="studio-format">{{ template.templateType || 'Template' }}</span>
+                    @if (template.category) {
+                      <span class="studio-muted">{{ template.category }}</span>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <div class="studio-stack">
+                    <span>{{ planVisibilityLabel(template) }}</span>
+                    <span class="studio-muted">{{ roleVisibilityLabel(template) }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="studio-status" [class.studio-status--active]="template.isActive">
+                    {{ template.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="studio-row-actions">
+                    <button
+                      class="studio-icon-btn"
+                      type="button"
+                      (click)="toggleItemStatus('template', template)"
+                      [title]="template.isActive ? 'Deactivate template' : 'Activate template'">
+                      <i class="fas" [class.fa-toggle-on]="template.isActive" [class.fa-toggle-off]="!template.isActive"></i>
+                    </button>
+                    <button class="studio-icon-btn" type="button" (click)="openEditTemplate(template)" title="Edit template">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button
+                      class="studio-icon-btn studio-icon-btn--danger"
+                      type="button"
+                      (click)="deleteItem('template', template.id)"
+                      [title]="pendingDeleteMatches('template', template.id) ? 'Click again to delete template' : 'Delete template'">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5">
+                  <div class="studio-empty">
+                    <i class="fas fa-clone"></i>
+                    <span>{{ loadingTemplates() ? 'Loading templates...' : 'No templates found.' }}</span>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="studio-section">
+      <div class="studio-section__header">
+        <div class="studio-title-block">
+          <div class="studio-icon studio-icon--audio">
+            <i class="fas fa-music"></i>
+          </div>
+          <div>
+            <div class="studio-section__title">Soundtracks</div>
+            <div class="studio-section__sub">Admin-level audio beds users can apply to generated content</div>
+          </div>
+        </div>
+        <div class="studio-section__actions">
+          <div class="studio-stat"><span>{{ soundtrackStats().total }}</span>Total</div>
+          <div class="studio-stat studio-stat--active"><span>{{ soundtrackStats().active }}</span>Active</div>
+          <button class="btn btn-primary btn-sm" type="button" (click)="openCreate('soundtrack')">
+            <i class="fas fa-plus"></i>
+            New Soundtrack
+          </button>
+        </div>
+      </div>
+
+      <div class="studio-toolbar">
+        <label class="studio-search">
+          <i class="fas fa-search"></i>
+          <input
+            type="search"
+            [ngModel]="soundtrackSearch()"
+            (ngModelChange)="soundtrackSearch.set($event)"
+            placeholder="Search soundtracks" />
+        </label>
+        <div class="studio-chip-group" aria-label="Soundtrack status filters">
+          @for (filter of statusFilters; track filter.code) {
+            <button
+              type="button"
+              class="studio-chip"
+              [class.active]="soundtrackStatusFilter() === filter.code"
+              (click)="setStatusFilter('soundtrack', filter.code)">
+              <i [class]="filter.icon"></i>
+              {{ filter.label }}
+            </button>
+          }
+        </div>
+        <div class="studio-chip-group studio-chip-group--plans" aria-label="Soundtrack plan filters">
+          <button
+            type="button"
+            class="studio-chip"
+            [class.active]="soundtrackPlanFilter() === 'all'"
+            (click)="setPlanFilter('soundtrack', 'all')">
+            All plans
+          </button>
+          @for (plan of planOptions; track plan.code) {
+            <button
+              type="button"
+              class="studio-chip"
+              [class.active]="soundtrackPlanFilter() === plan.code"
+              (click)="setPlanFilter('soundtrack', plan.code)">
+              <i [class]="plan.icon"></i>
+              {{ plan.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      @if (soundtrackError()) {
+        <div class="studio-callout">
+          <i class="fas fa-plug-circle-xmark"></i>
+          Soundtrack endpoint is not available yet.
+        </div>
+      }
+
+      <div class="table-container studio-table-wrap">
+        <table class="admin-table studio-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Audio</th>
+              <th>Visibility</th>
+              <th>Status</th>
+              <th class="studio-actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (soundtrack of filteredSoundtracks(); track soundtrack.id) {
+              <tr>
+                <td>
+                  <div class="studio-asset-cell">
+                    <div class="studio-thumb studio-thumb--audio">
+                      <i class="fas fa-wave-square"></i>
+                    </div>
+                    <div class="studio-asset-copy">
+                      <div class="studio-asset-name">{{ soundtrack.name }}</div>
+                      @if (soundtrack.description) {
+                        <div class="studio-asset-desc">{{ soundtrack.description }}</div>
+                      }
+                      @if (soundtrack.tags?.length) {
+                        <div class="studio-tag-row">
+                          @for (tag of soundtrack.tags; track tag) {
+                            <span class="studio-mini-chip">{{ tag }}</span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="studio-stack">
+                    <span class="studio-format">{{ soundtrack.mood || 'Soundtrack' }}</span>
+                    <span class="studio-muted">
+                      {{ soundtrack.genre || 'Uncategorized' }} / {{ formatDuration(soundtrack.durationSeconds) }}
+                      @if (soundtrack.bpm) {
+                        / {{ soundtrack.bpm }} BPM
+                      }
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <div class="studio-stack">
+                    <span>{{ planVisibilityLabel(soundtrack) }}</span>
+                    <span class="studio-muted">{{ roleVisibilityLabel(soundtrack) }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="studio-status" [class.studio-status--active]="soundtrack.isActive">
+                    {{ soundtrack.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="studio-row-actions">
+                    @if (soundtrack.audioUrl) {
+                      <a class="studio-icon-btn" [href]="soundtrack.audioUrl" target="_blank" rel="noopener" title="Open audio">
+                        <i class="fas fa-play"></i>
+                      </a>
+                    }
+                    <button
+                      class="studio-icon-btn"
+                      type="button"
+                      (click)="toggleItemStatus('soundtrack', soundtrack)"
+                      [title]="soundtrack.isActive ? 'Deactivate soundtrack' : 'Activate soundtrack'">
+                      <i class="fas" [class.fa-toggle-on]="soundtrack.isActive" [class.fa-toggle-off]="!soundtrack.isActive"></i>
+                    </button>
+                    <button class="studio-icon-btn" type="button" (click)="openEditSoundtrack(soundtrack)" title="Edit soundtrack">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button
+                      class="studio-icon-btn studio-icon-btn--danger"
+                      type="button"
+                      (click)="deleteItem('soundtrack', soundtrack.id)"
+                      [title]="pendingDeleteMatches('soundtrack', soundtrack.id) ? 'Click again to delete soundtrack' : 'Delete soundtrack'">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5">
+                  <div class="studio-empty">
+                    <i class="fas fa-music"></i>
+                    <span>{{ loadingSoundtracks() ? 'Loading soundtracks...' : 'No soundtracks found.' }}</span>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  @if (showForm()) {
+    <div class="studio-modal-backdrop" (click)="cancelForm()">
+      <div class="studio-modal" (click)="$event.stopPropagation()">
+        <div class="studio-modal__header">
+          <div class="studio-modal__icon">
+            <i class="fas" [class.fa-clone]="formKind === 'template'" [class.fa-music]="formKind === 'soundtrack'"></i>
+          </div>
+          <div>
+            <div class="studio-modal__title">{{ dialogTitle() }}</div>
+            <div class="studio-modal__sub">Admin scope item visible to selected plans and roles</div>
+          </div>
+          <button class="studio-modal__close" type="button" (click)="cancelForm()" aria-label="Close dialog">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="studio-modal__body">
+          <div class="studio-form-grid">
+            <div class="studio-field">
+              <label>Name</label>
+              <input class="studio-input" [(ngModel)]="formName" placeholder="Name" />
+            </div>
+            <div class="studio-field">
+              <label>Status</label>
+              <label class="studio-toggle-row">
+                <span>{{ formIsActive ? 'Active' : 'Inactive' }}</span>
+                <span class="studio-switch">
+                  <input type="checkbox" [(ngModel)]="formIsActive" />
+                  <span class="studio-switch__track"></span>
+                </span>
+              </label>
+            </div>
+            <div class="studio-field studio-field--full">
+              <label>Description</label>
+              <textarea class="studio-input studio-input--textarea" [(ngModel)]="formDescription" rows="2" placeholder="Short description"></textarea>
+            </div>
+
+            @if (formKind === 'template') {
+              <div class="studio-field">
+                <label>Format</label>
+                <select class="studio-input" [(ngModel)]="formTemplateType">
+                  @for (option of templateTypeOptions; track option) {
+                    <option [value]="option">{{ option }}</option>
+                  }
+                </select>
+              </div>
+              <div class="studio-field">
+                <label>Category</label>
+                <input class="studio-input" [(ngModel)]="formCategory" placeholder="e.g. Commerce" />
+              </div>
+              <div class="studio-field">
+                <label>Thumbnail URL</label>
+                <input class="studio-input" [(ngModel)]="formThumbnailUrl" placeholder="https://..." />
+              </div>
+              <div class="studio-field">
+                <label>Preview URL</label>
+                <input class="studio-input" [(ngModel)]="formPreviewUrl" placeholder="https://..." />
+              </div>
+              <div class="studio-field studio-field--full">
+                <label>Payload JSON</label>
+                <textarea class="studio-input studio-input--textarea studio-input--code" [(ngModel)]="formTemplatePayload" rows="4" placeholder="{ }"></textarea>
+              </div>
+            } @else {
+              <div class="studio-field">
+                <label>Genre</label>
+                <input class="studio-input" [(ngModel)]="formSoundtrackGenre" placeholder="e.g. Ambient pop" />
+              </div>
+              <div class="studio-field">
+                <label>Mood</label>
+                <select class="studio-input" [(ngModel)]="formSoundtrackMood">
+                  @for (option of soundtrackMoodOptions; track option) {
+                    <option [value]="option">{{ option }}</option>
+                  }
+                </select>
+              </div>
+              <div class="studio-field studio-field--full">
+                <label>Audio URL</label>
+                <input class="studio-input" [(ngModel)]="formSoundtrackUrl" placeholder="https://..." />
+              </div>
+              <div class="studio-field">
+                <label>Duration Seconds</label>
+                <input
+                  class="studio-input"
+                  type="number"
+                  min="0"
+                  [ngModel]="formDurationSeconds"
+                  (ngModelChange)="formDurationSeconds = toNullableNumber($event)"
+                  placeholder="120" />
+              </div>
+              <div class="studio-field">
+                <label>BPM</label>
+                <input
+                  class="studio-input"
+                  type="number"
+                  min="0"
+                  [ngModel]="formBpm"
+                  (ngModelChange)="formBpm = toNullableNumber($event)"
+                  placeholder="96" />
+              </div>
+            }
+
+            <div class="studio-field studio-field--full">
+              <label>Tags</label>
+              <input class="studio-input" [(ngModel)]="formTags" placeholder="commerce, launch, upbeat" />
+            </div>
+
+            <div class="studio-field studio-field--full">
+              <div class="studio-visibility-heading">
+                <label>Plan Visibility</label>
+                <button type="button" class="studio-link-btn" (click)="selectAllPlans()" [class.active]="allPlansSelected()">All plans</button>
+              </div>
+              <div class="studio-chip-row">
+                @for (plan of planOptions; track plan.code) {
+                  <button
+                    type="button"
+                    class="studio-select-chip"
+                    [class.active]="isPlanSelected(plan.code)"
+                    (click)="togglePlan(plan.code)">
+                    <i [class]="plan.icon"></i>
+                    {{ plan.label }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="studio-field studio-field--full">
+              <div class="studio-visibility-heading">
+                <label>Role Visibility</label>
+                <button type="button" class="studio-link-btn" (click)="selectAllRoles()" [class.active]="allRolesSelected()" [disabled]="roles().length === 0">
+                  All roles
+                </button>
+              </div>
+              @if (roles().length > 0) {
+                <div class="studio-chip-row">
+                  @for (role of roles(); track role.id) {
+                    <button
+                      type="button"
+                      class="studio-select-chip"
+                      [class.active]="isRoleSelected(role.id)"
+                      (click)="toggleRole(role.id)">
+                      <i class="fas fa-shield-alt"></i>
+                      {{ role.name }}
+                    </button>
+                  }
+                </div>
+              } @else {
+                <div class="studio-inline-note">
+                  {{ loadingRoles() ? 'Loading roles...' : 'No role restrictions loaded.' }}
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="studio-modal__footer">
+          <button class="btn btn-ghost" type="button" (click)="cancelForm()">Cancel</button>
+          <button class="btn btn-primary" type="button" (click)="saveItem()" [disabled]="saving()">
+            <i class="fas" [class.fa-save]="!saving()" [class.fa-spinner]="saving()" [class.fa-spin]="saving()"></i>
+            {{ saving() ? 'Saving' : 'Save' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

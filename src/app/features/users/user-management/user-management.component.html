@@ -258,6 +258,9 @@
           <button class="tab-btn" [class.active]="editorTab() === 'processing'" (click)="editorTab.set('processing')">
             <i class="fas fa-sliders-h"></i> Creation Defaults
           </button>
+          <button class="tab-btn" [class.active]="editorTab() === 'quotas'" (click)="editorTab.set('quotas')">
+            <i class="fas fa-gauge-high"></i> Quotas
+          </button>
         </div>
 
         <div class="editor-content">
@@ -443,6 +446,29 @@
               </div>
             </div>
           </div>
+
+          <!-- Quotas Tab -->
+          <div *ngIf="editorTab() === 'quotas'" class="tab-pane quota-editor-pane animate-fade-in">
+            <div class="section-title settings-section-title">Daily Limits</div>
+            <div class="quota-setting-card" *ngFor="let quota of roleQuotaDefinitions">
+              <div>
+                <strong>{{ quota.label }}</strong>
+                <span>{{ quota.description }}</span>
+              </div>
+              <div class="quota-input-row">
+                <input
+                  type="number"
+                  class="field-input"
+                  [min]="quota.min"
+                  [max]="quota.max"
+                  [ngModel]="getSelectedRoleQuota(quota.key)"
+                  (ngModelChange)="setSelectedRoleQuota(quota.key, $event)"
+                >
+                <small>per day</small>
+                <small *ngIf="quota.min < 0">Use -1 for unlimited.</small>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -490,11 +516,30 @@
     <div class="modal-container glass-card" style="width: 600px; max-width: 90vw;">
       <div class="modal-header">
         <h3>Edit User Defaults for {{ editingUser()?.displayName }}</h3>
-        <button class="icon-btn" (click)="editingUser.set(null)"><i class="fas fa-times"></i></button>
+        <button class="modal-close" type="button" (click)="editingUser.set(null)" aria-label="Close dialog">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
       
       <div class="modal-content" style="max-height: 70vh; overflow-y: auto; padding: 20px;" *ngIf="userProcessingOptions()">
         <p class="text-sm text-gray-400 mb-4">Leave fields empty to inherit from Role defaults.</p>
+
+        <div class="section-title settings-section-title">Daily Quotas</div>
+        <div class="settings-options-column quota-override-section">
+          <div class="option-subfield" *ngFor="let quota of roleQuotaDefinitions">
+            <span class="option-sublabel">{{ quota.overrideLabel }}</span>
+            <input
+              type="number"
+              class="field-input"
+              [min]="quota.min"
+              [max]="quota.max"
+              placeholder="Inherit role quota"
+              [ngModel]="getUserQuotaOverride(quota.key)"
+              (ngModelChange)="setUserQuotaOverride(quota.key, $event)"
+            >
+            <small>{{ quota.description }}</small>
+          </div>
+        </div>
         
         <div class="section-title settings-section-title">Output Settings</div>
         <div class="settings-options-column">

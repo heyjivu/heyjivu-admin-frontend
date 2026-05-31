@@ -61,6 +61,7 @@ export class Sidebar {
     { label: 'Failed Jobs', icon: 'fas fa-exclamation-triangle', route: '/admin/pipeline', queryParams: { status: 'failed' }, section: 'pipeline' },
     { label: 'Completed Jobs', icon: 'fas fa-check-circle', route: '/admin/pipeline', queryParams: { status: 'done' }, section: 'pipeline' },
     { label: 'Processing Config', icon: 'fas fa-cog', route: '/admin/processing', right: Rights.Admin_Config_View, section: 'config' },
+    { label: 'Template Studio', icon: 'fas fa-wand-magic-sparkles', route: '/admin/templates', right: Rights.Admin_Config_View, section: 'templates' },
     { label: 'Memes', icon: 'fas fa-laugh', route: '/admin/memes', right: Rights.Memes_Manage, section: 'memes' },
     { label: 'Free', icon: 'fas fa-user', route: '/admin/plan-users', queryParams: { plan: 'free' }, section: 'plan-users' },
     { label: 'Student', icon: 'fas fa-graduation-cap', route: '/admin/plan-users', queryParams: { plan: 'student' }, section: 'plan-users' },
@@ -77,6 +78,7 @@ export class Sidebar {
     if (path.startsWith('/admin/brain')) return 'brain';
     if (path.startsWith('/admin/pipeline') || path.startsWith('/admin/run-jobs')) return 'pipeline';
     if (path.startsWith('/admin/processing')) return 'config';
+    if (path.startsWith('/admin/templates')) return 'templates';
     if (path.startsWith('/admin/memes')) return 'memes';
     if (path.startsWith('/admin/plan-users')) return 'plan-users';
     return null;
@@ -131,6 +133,7 @@ export class Sidebar {
     if (section === 'brain') return 'Brain Config';
     if (section === 'pipeline') return 'Pipeline';
     if (section === 'config') return 'Processing Config';
+    if (section === 'templates') return 'Template Studio';
     if (section === 'memes') return 'Meme Management';
     if (section === 'plan-users') return 'Plan Users';
     return 'Admin Portal';

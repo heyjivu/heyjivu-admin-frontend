@@ -4,13 +4,24 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AdminService, UserManagementDto, RoleDto, OrganizationDto, RightDto } from '../services/admin.service';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../../core/services/toast.service';
+import { forkJoin } from 'rxjs';
 
 import { Rights } from '../../../core/constants/rights.constants';
 
 interface UserQuotaCard {
-  label: 'Creation Wallet' | 'Video Creation Minutes' | 'Voice Minutes' | 'AI Video Clips' | 'Storage';
+  label: 'Creation Wallet' | 'Video Creation Minutes' | 'Voice Minutes' | 'AI Video Clips' | 'Storage' | 'Brain Talk' | 'Manual Scan';
   lines: Array<{ label: string; value: string }>;
   stack: Array<{ label: string; value: string }>;
+}
+
+interface DailyQuotaDefinition {
+  key: string;
+  label: string;
+  overrideLabel: string;
+  description: string;
+  defaultValue: number;
+  min: number;
+  max: number;
 }
 
 const PLAN_ROLE_LABELS: Record<string, string> = {
@@ -90,7 +101,7 @@ export class UserManagementComponent implements OnInit {
   loading = signal(false);
   
   selectedRole = signal<RoleDto | null>(null);
-  editorTab = signal<'basic' | 'rights' | 'processing'>('basic');
+  editorTab = signal<'basic' | 'rights' | 'processing' | 'quotas'>('basic');
   roleProcessingOptions = signal<any>(null);
   activeCategory = signal<string | null>(null);
   showSectionForm = signal(false);
@@ -103,6 +114,27 @@ export class UserManagementComponent implements OnInit {
 
   editingUser = signal<UserManagementDto | null>(null);
   userProcessingOptions = signal<any>(null);
+  readonly roleQuotaDefinitions: DailyQuotaDefinition[] = [
+    {
+      key: 'BrainTalkDaily',
+      label: 'Brain Talk Daily',
+      overrideLabel: 'Brain Talk Daily Override',
+      description: 'Daily Jivu Talk messages for this role.',
+      defaultValue: 100,
+      min: 0,
+      max: 10000
+    },
+    {
+      key: 'ManualScanDaily',
+      label: 'Manual Scan Daily',
+      overrideLabel: 'Manual Scan Daily Override',
+      description: 'Daily manual dashboard, review, and social scans. Use -1 for unlimited BYOK roles.',
+      defaultValue: 3,
+      min: -1,
+      max: 10000
+    }
+  ];
+  userQuotaOverrides = signal<Record<string, number | null>>(this.emptyDailyQuotaOverrides());
   setTab(tab: 'users' | 'orgs' | 'roles') {
     this.activeTab.set(tab);
     if (tab === 'roles' && this.availableRights().length === 0) {
@@ -242,6 +274,8 @@ export class UserManagementComponent implements OnInit {
 
   private quotaLabel(value: string | null): UserQuotaCard['label'] {
     const text = this.compactKey(value);
+    if (text.includes('manualscan')) return 'Manual Scan';
+    if (text.includes('braintalk') || text.includes('assistanttalk')) return 'Brain Talk';
     if (text.includes('storage')) return 'Storage';
     if (text.includes('voice') || text.includes('tts') || text.includes('speech')) return 'Voice Minutes';
     if (text.includes('image') && text.includes('motion')) return 'Creation Wallet';
@@ -252,6 +286,8 @@ export class UserManagementComponent implements OnInit {
 
   private quotaDetailLabel(bucket: Record<string, unknown>, fallback: UserQuotaCard['label']): string {
     const text = this.compactKey(this.firstString(bucket, ['label', 'name', 'displayName', 'key', 'bucket', 'type']));
+    if (text.includes('manualscan')) return 'Manual scans';
+    if (text.includes('braintalk') || text.includes('assistanttalk')) return 'Talk messages';
     if (text.includes('stockclipminute')) return 'Stock clip minutes';
     if (text.includes('stockclip')) return 'Stock clips';
     if (text.includes('stockimage')) return 'Stock images';
@@ -288,6 +324,7 @@ export class UserManagementComponent implements OnInit {
 
   private quotaPrimitive(value: unknown, unit: string | null): string {
     if (typeof value === 'number') {
+      if (value < 0 || value === 2147483647) return 'Unlimited';
       const formatted = new Intl.NumberFormat('en-PK', { maximumFractionDigits: 2 }).format(value);
       return unit ? `${formatted} ${unit}` : formatted;
     }
@@ -312,8 +349,28 @@ export class UserManagementComponent implements OnInit {
     return String(value ?? '').toLowerCase().replace(/[^a-z0-9_]/g, '');
   }
 
+  private findQuotaLimit(source: unknown, key: string): number | null {
+    const normalizedKey = this.compactKey(key);
+    const match = this.extractQuotaBuckets(source).find(bucket => {
+      const label = this.firstString(bucket, ['key', 'type', 'name', 'label', 'displayName']);
+      return this.compactKey(label).includes(normalizedKey);
+    });
+
+    if (!match) return null;
+    const value = match['limit'] ?? match['overrideLimit'] ?? match['value'] ?? match['amount'];
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  }
+
+  private emptyDailyQuotaOverrides(): Record<string, number | null> {
+    return this.roleQuotaDefinitions.reduce<Record<string, number | null>>((acc, quota) => {
+      acc[quota.key] = null;
+      return acc;
+    }, {});
+  }
+
   editUserProcessingSettings(user: UserManagementDto) {
     this.editingUser.set(user);
+    this.userQuotaOverrides.set(this.emptyDailyQuotaOverrides());
     this.adminService.getUserProcessingOptions(user.id).subscribe({
       next: (options) => {
         if (options && Object.keys(options).length > 0) {
@@ -360,17 +417,40 @@ export class UserManagementComponent implements OnInit {
         });
       }
     });
+
+    this.adminService.getUserQuotaOverview(user.id).subscribe({
+      next: (overview) => {
+        const overrides = this.emptyDailyQuotaOverrides();
+        this.roleQuotaDefinitions.forEach(quota => {
+          overrides[quota.key] = this.findQuotaLimit(overview?.quotaOverrides, quota.key);
+        });
+        this.userQuotaOverrides.set(overrides);
+      },
+      error: (err) => {
+        console.error('Failed to load user quota overview', err);
+        this.userQuotaOverrides.set(this.emptyDailyQuotaOverrides());
+      }
+    });
   }
 
   saveUserProcessingSettings() {
     const user = this.editingUser();
     if (!user || !this.userProcessingOptions()) return;
 
-    this.adminService.updateUserProcessingOptions(user.id, this.userProcessingOptions()).subscribe({
+    const updates = [this.adminService.updateUserProcessingOptions(user.id, this.userProcessingOptions())];
+    this.roleQuotaDefinitions.forEach(quota => {
+      const overrideLimit = this.userQuotaOverrides()[quota.key];
+      if (overrideLimit !== null && overrideLimit !== undefined) {
+        updates.push(this.adminService.updateUserQuota(user.id, quota.key, overrideLimit));
+      }
+    });
+
+    forkJoin(updates).subscribe({
       next: () => {
-        this.toast.success('User processing options updated successfully.');
+        this.toast.success('User defaults updated successfully.');
         this.editingUser.set(null);
         this.userProcessingOptions.set(null);
+        this.userQuotaOverrides.set(this.emptyDailyQuotaOverrides());
       },
       error: (err) => {
         console.error('Failed to update user processing options', err);
@@ -411,7 +491,8 @@ export class UserManagementComponent implements OnInit {
       name: 'New Plan Role',
       description: '',
       scope: 1,
-      rights: []
+      rights: [],
+      quotas: this.defaultDailyQuotasForRole('New Plan Role')
     });
     this.editorTab.set('basic');
     this.roleProcessingOptions.set({
@@ -434,7 +515,11 @@ export class UserManagementComponent implements OnInit {
   }
 
   selectRole(role: RoleDto) {
-    this.selectedRole.set({ ...role, rights: [...role.rights] });
+    this.selectedRole.set({
+      ...role,
+      rights: [...role.rights],
+      quotas: { ...(role.quotas || {}) }
+    });
     this.editorTab.set('basic');
     if (role.id) {
       this.adminService.getRoleProcessingOptions(role.id).subscribe({
@@ -469,6 +554,69 @@ export class UserManagementComponent implements OnInit {
     }
 
     this.selectedRole.set({ ...role, rights });
+  }
+
+  getSelectedRoleQuota(key: string): number {
+    const role = this.selectedRole();
+    return role?.quotas?.[key] ?? this.defaultDailyQuotaForRole(key, role?.name);
+  }
+
+  setSelectedRoleQuota(key: string, value: string | number | null) {
+    const role = this.selectedRole();
+    if (!role) return;
+
+    const parsed = typeof value === 'number' ? value : Number(value ?? 0);
+    const definition = this.roleQuotaDefinitions.find(quota => quota.key === key);
+    const min = definition?.min ?? 0;
+    const safeValue = Number.isFinite(parsed)
+      ? Math.max(min, Math.floor(parsed))
+      : this.defaultDailyQuotaForRole(key, role.name);
+    this.selectedRole.set({
+      ...role,
+      quotas: {
+        ...(role.quotas || {}),
+        [key]: safeValue
+      }
+    });
+  }
+
+  private defaultDailyQuotasForRole(roleName: string | null | undefined): Record<string, number> {
+    return this.roleQuotaDefinitions.reduce<Record<string, number>>((acc, quota) => {
+      acc[quota.key] = this.defaultDailyQuotaForRole(quota.key, roleName);
+      return acc;
+    }, {});
+  }
+
+  private defaultDailyQuotaForRole(key: string, roleName: string | null | undefined): number {
+    const roleKey = this.compactKey(roleName);
+    if (roleKey.includes('free')) return 0;
+
+    if (key === 'ManualScanDaily') {
+      if (roleKey.includes('byok') || roleKey.includes('expert')) return -1;
+      if (roleKey.includes('premium') || roleKey.includes('agency')) return 5;
+      return 3;
+    }
+
+    const definition = this.roleQuotaDefinitions.find(quota => quota.key === key);
+    return definition?.defaultValue ?? 0;
+  }
+
+  getUserQuotaOverride(key: string): number | null {
+    return this.userQuotaOverrides()[key] ?? null;
+  }
+
+  setUserQuotaOverride(key: string, value: string | number | null) {
+    const parsed = value === '' || value === null || value === undefined
+      ? null
+      : Number(value);
+    const definition = this.roleQuotaDefinitions.find(quota => quota.key === key);
+    const min = definition?.min ?? 0;
+    this.userQuotaOverrides.set({
+      ...this.userQuotaOverrides(),
+      [key]: parsed === null || !Number.isFinite(parsed)
+        ? null
+        : Math.max(min, Math.floor(parsed))
+    });
   }
 
   saveRole() {

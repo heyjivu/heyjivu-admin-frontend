@@ -331,8 +331,53 @@ select.select-input {
   gap: 10px;
 }
 
+.quota-editor-pane {
+  display: grid;
+  gap: 14px;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.quota-setting-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  strong {
+    display: block;
+    color: #fff;
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+
+  span,
+  small {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 12px;
+  }
+}
+
+.quota-input-row {
+  display: grid;
+  gap: 6px;
+}
+
+.quota-override-section {
+  margin-bottom: 18px;
+}
+
 @media (max-width: 760px) {
   .right-create-panel__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quota-setting-card {
     grid-template-columns: 1fr;
   }
 }
