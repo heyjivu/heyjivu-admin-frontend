@@ -1,0 +1,205 @@
+<div class="screen">
+  <div class="screen-header">
+    <div class="header-content">
+      <h1 class="screen-title flex align-items-center gap-2">
+        <i class="fas fa-list-check"></i> {{ pageTitle() }}
+        <span class="mode-badge" [ngClass]="originModeClass()">{{ originModeLabel() }}</span>
+      </h1>
+      <p class="screen-sub">{{ pageSubtitle() }}</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-soft" (click)="loadReport()">
+        <i class="pi pi-refresh" [class.pi-spin]="loading()"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="screen-container">
+    <div *ngIf="error()" class="alert-error glass-card">
+      <div class="flex align-items-center gap-2 text-red-400">
+        <i class="pi pi-exclamation-triangle"></i>
+        <span>{{ error() }}</span>
+      </div>
+      <button class="icon-btn text-red-400" (click)="clearError()"><i class="pi pi-times"></i></button>
+    </div>
+
+    <section class="audit-toolbar glass-card">
+      <div class="filter-control">
+        <span>Role</span>
+        <p-select
+          [options]="roleOptions()"
+          [ngModel]="selectedRole()"
+          (ngModelChange)="selectedRole.set($event); applyFilters()"
+          optionLabel="label"
+          optionValue="value"
+          styleClass="audit-select">
+        </p-select>
+      </div>
+
+      <div class="filter-control">
+        <span>User</span>
+        <p-select
+          [options]="userOptions()"
+          [ngModel]="selectedUser()"
+          (ngModelChange)="selectedUser.set($event); applyFilters()"
+          optionLabel="label"
+          optionValue="value"
+          styleClass="audit-select">
+        </p-select>
+      </div>
+
+      <div class="filter-control">
+        <span>Category</span>
+        <p-select
+          [options]="categoryOptions()"
+          [ngModel]="selectedCategory()"
+          (ngModelChange)="selectedCategory.set($event); applyFilters()"
+          optionLabel="label"
+          optionValue="value"
+          styleClass="audit-select">
+        </p-select>
+      </div>
+
+      <div class="filter-control">
+        <span>Provider</span>
+        <p-select
+          [options]="providerOptions()"
+          [ngModel]="selectedProvider()"
+          (ngModelChange)="selectedProvider.set($event); applyFilters()"
+          optionLabel="label"
+          optionValue="value"
+          styleClass="audit-select">
+        </p-select>
+      </div>
+
+      <div class="filter-control date-control">
+        <span>From</span>
+        <input type="date" class="glass-input" [ngModel]="fromDate()" (ngModelChange)="fromDate.set($event); applyFilters()">
+      </div>
+
+      <div class="filter-control date-control">
+        <span>To</span>
+        <input type="date" class="glass-input" [ngModel]="toDate()" (ngModelChange)="toDate.set($event); applyFilters()">
+      </div>
+
+      <div class="filter-control search-control">
+        <span>Search</span>
+        <div class="search-box">
+          <i class="pi pi-search"></i>
+          <input
+            type="text"
+            class="glass-input"
+            placeholder="Provider, user, role, model, job..."
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            (keyup.enter)="applyFilters()">
+          <button class="mini-btn" type="button" (click)="applyFilters()">Apply</button>
+        </div>
+      </div>
+
+      <button class="clear-btn" type="button" (click)="clearFilters()">
+        <i class="pi pi-filter-slash"></i>
+        Clear
+      </button>
+    </section>
+
+    <section class="audit-grid glass-card">
+      <div class="audit-grid-head">
+        <div>
+          <h2><i class="fas fa-table-list"></i> Raw Record Audit</h2>
+          <p>{{ pageStart() | number }}-{{ pageEnd() | number }} of {{ totalCount() | number }} records, 15 per page</p>
+        </div>
+        <div class="audit-head-cost">
+          <span>Total filtered cost</span>
+          <strong>{{ formatPkr(totals().totalCostUsd) }}</strong>
+          <small>{{ formatUsd(totals().totalCostUsd) }}</small>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>User</th>
+              <th>Role</th>
+              <th>Category</th>
+              <th>Provider (Model)</th>
+              <th>Pipeline</th>
+              <th *ngIf="showOriginColumn()">Origin</th>
+              <th class="text-right">Tokens</th>
+              <th class="text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let record of records()">
+              <td class="date-cell">{{ record.createdAt | date:'shortDate' }}</td>
+              <td class="user-cell">{{ record.userName || 'System' }}</td>
+              <td><span class="badge badge-indigo">{{ record.roleName || 'System' }}</span></td>
+              <td><span class="badge category-badge" [ngClass]="categoryClass(record)">{{ record.categoryLabel || record.category }}</span></td>
+              <td class="provider-cell">
+                <strong>{{ record.provider || 'Unknown' }}</strong>
+                <span>{{ record.model || 'Unknown' }}</span>
+              </td>
+              <td class="muted-cell">{{ record.pipeline || 'Other' }}</td>
+              <td *ngIf="showOriginColumn()"><span class="badge" [ngClass]="originClass(record)">{{ originLabel(record) }}</span></td>
+              <td class="number-cell token-cell">
+                <strong>{{ recordTokens(record) | number }}</strong>
+                <small>{{ (record.inputTokens || 0) | number }} in / {{ (record.outputTokens || 0) | number }} out</small>
+              </td>
+              <td class="cost-cell">
+                <strong>{{ formatPkr(record.estimatedCostUsd) }}</strong>
+                <small>{{ formatUsd(record.estimatedCostUsd) }}</small>
+              </td>
+            </tr>
+            <tr *ngIf="records().length === 0">
+              <td [attr.colspan]="showOriginColumn() ? 9 : 8" class="empty-cell">
+                <i class="fas fa-box-open"></i>
+                {{ emptyMessage() }}
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td [attr.colspan]="showOriginColumn() ? 7 : 6">Filtered totals</td>
+              <td class="number-cell token-cell">
+                <strong>{{ totals().totalTokens | number }}</strong>
+                <small>{{ (totals().inputTokens || 0) | number }} in / {{ (totals().outputTokens || 0) | number }} out</small>
+              </td>
+              <td class="cost-cell">
+                <strong>{{ formatPkr(totals().totalCostUsd) }}</strong>
+                <small>{{ formatUsd(totals().totalCostUsd) }}</small>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="audit-grid-foot">
+        <div class="total-pill">
+          <span>Total calls</span>
+          <strong>{{ totals().calls | number }}</strong>
+        </div>
+        <div class="total-pill">
+          <span>Total tokens</span>
+          <strong>{{ totals().totalTokens | number }}</strong>
+        </div>
+        <div class="total-pill cost-total">
+          <span>Total cost</span>
+          <strong>{{ formatPkr(totals().totalCostUsd) }}</strong>
+          <small>{{ formatUsd(totals().totalCostUsd) }}</small>
+        </div>
+
+        <div class="pager">
+          <button class="pager-btn" type="button" (click)="previousPage()" [disabled]="pageNumber() <= 1 || loading()">
+            <i class="pi pi-chevron-left"></i>
+          </button>
+          <span>Page {{ pageNumber() }} of {{ totalPages() }}</span>
+          <button class="pager-btn" type="button" (click)="nextPage()" [disabled]="pageNumber() >= totalPages() || loading()">
+            <i class="pi pi-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

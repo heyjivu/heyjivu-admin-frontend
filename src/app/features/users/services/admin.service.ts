@@ -85,6 +85,63 @@ export interface UserQuotaOverviewDto {
   quotaSummary?: unknown;
 }
 
+export interface AdminAiUsageTotalsDto {
+  totalCalls: number;
+  platformCalls: number;
+  byokCalls: number;
+  successfulCalls: number;
+  failedCalls: number;
+  totalCostUsd: number;
+  platformCostUsd: number;
+  byokCostUsd: number;
+  totalDurationMs: number;
+  averageDurationMs: number;
+}
+
+export interface AdminAiUsageUserBreakdownDto {
+  userId?: string | null;
+  userName: string;
+  userEmail?: string | null;
+  roleName: string;
+  totalCalls: number;
+  platformCalls: number;
+  byokCalls: number;
+  totalCostUsd: number;
+  platformCostUsd: number;
+  byokCostUsd: number;
+  totalDurationMs: number;
+  averageDurationMs: number;
+}
+
+export interface AdminAiUsageRoleBreakdownDto {
+  roleName: string;
+  totalUsers: number;
+  totalCalls: number;
+  platformCalls: number;
+  byokCalls: number;
+  totalCostUsd: number;
+  platformCostUsd: number;
+  byokCostUsd: number;
+  totalDurationMs: number;
+  averageDurationMs: number;
+}
+
+export interface AdminAiUsageDashboardDto {
+  totals: AdminAiUsageTotalsDto;
+  topUsers: AdminAiUsageUserBreakdownDto[];
+  topRoles: AdminAiUsageRoleBreakdownDto[];
+  generatedAtUtc: string;
+}
+
+export interface AdminDashboardStatsDto {
+  totalUsers: number;
+  activeUsers: number;
+  totalRevenue: number;
+  pendingPayments: number;
+  pendingReviews: number;
+  aiUsage: AdminAiUsageDashboardDto;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -154,8 +211,8 @@ export class AdminService {
     return this.http.post<void>(`${this.apiUrl}/${userId}/byok`, byok);
   }
 
-  getStats(): Observable<{ totalUsers: number; activeUsers: number; totalRevenue: number; pendingPayments: number; pendingReviews: number }> {
-    return this.http.get<{ totalUsers: number; activeUsers: number; totalRevenue: number; pendingPayments: number; pendingReviews: number }>(`${environment.apiUrl}/admin/dashboard/stats`);
+  getStats(): Observable<AdminDashboardStatsDto> {
+    return this.http.get<AdminDashboardStatsDto>(`${environment.apiUrl}/admin/dashboard/stats`);
   }
 
   getRecentUsers(limit: number): Observable<any[]> {

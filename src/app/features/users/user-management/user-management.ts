@@ -19,6 +19,7 @@ interface DailyQuotaDefinition {
   label: string;
   overrideLabel: string;
   description: string;
+  unitLabel: string;
   defaultValue: number;
   min: number;
   max: number;
@@ -120,6 +121,7 @@ export class UserManagementComponent implements OnInit {
       label: 'Brain Talk Daily',
       overrideLabel: 'Brain Talk Daily Override',
       description: 'Daily Jivu Talk messages for this role.',
+      unitLabel: 'per day',
       defaultValue: 100,
       min: 0,
       max: 10000
@@ -129,9 +131,20 @@ export class UserManagementComponent implements OnInit {
       label: 'Manual Scan Daily',
       overrideLabel: 'Manual Scan Daily Override',
       description: 'Daily manual dashboard, review, and social scans. Use -1 for unlimited BYOK roles.',
+      unitLabel: 'per day',
       defaultValue: 3,
       min: -1,
       max: 10000
+    },
+    {
+      key: 'SocialPostMaxVideoSeconds',
+      label: 'Social Post Video Max Seconds',
+      overrideLabel: 'Social Post Video Max Override',
+      description: 'Maximum uploaded or generated social-post video length. Current product max is 60 seconds.',
+      unitLabel: 'seconds max',
+      defaultValue: 60,
+      min: 1,
+      max: 60
     }
   ];
   userQuotaOverrides = signal<Record<string, number | null>>(this.emptyDailyQuotaOverrides());
@@ -589,6 +602,7 @@ export class UserManagementComponent implements OnInit {
 
   private defaultDailyQuotaForRole(key: string, roleName: string | null | undefined): number {
     const roleKey = this.compactKey(roleName);
+    if (key === 'SocialPostMaxVideoSeconds') return 60;
     if (roleKey.includes('free')) return 0;
 
     if (key === 'ManualScanDaily') {

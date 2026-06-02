@@ -449,7 +449,7 @@
 
           <!-- Quotas Tab -->
           <div *ngIf="editorTab() === 'quotas'" class="tab-pane quota-editor-pane animate-fade-in">
-            <div class="section-title settings-section-title">Daily Limits</div>
+            <div class="section-title settings-section-title">Role Limits</div>
             <div class="quota-setting-card" *ngFor="let quota of roleQuotaDefinitions">
               <div>
                 <strong>{{ quota.label }}</strong>
@@ -464,7 +464,7 @@
                   [ngModel]="getSelectedRoleQuota(quota.key)"
                   (ngModelChange)="setSelectedRoleQuota(quota.key, $event)"
                 >
-                <small>per day</small>
+                <small>{{ quota.unitLabel }}</small>
                 <small *ngIf="quota.min < 0">Use -1 for unlimited.</small>
               </div>
             </div>

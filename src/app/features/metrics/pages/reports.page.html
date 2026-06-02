@@ -59,22 +59,22 @@
                 <div class="col-12 sm:col-4 p-2">
                    <div class="stat-card glass-card h-full">
                       <span class="label">Total Provider Usage</span>
-                      <span class="value text-primary font-syne">${{ (combinedReport()?.totalCombinedCost || 0) | number:'1.2-2' }}</span>
-                      <span class="desc">Combined USD</span>
+                      <span class="value text-primary font-syne">{{ formatPkr(displayTotalCostUsd()) }}</span>
+                      <span class="desc">{{ formatUsd(displayTotalCostUsd()) }} combined</span>
                    </div>
                 </div>
                 <div class="col-12 sm:col-4 p-2">
                    <div class="stat-card glass-card h-full">
                       <span class="label">BYOK Provider Usage</span>
-                      <span class="value text-accent2 font-syne">${{ (combinedReport()?.byokCost || 0) | number:'1.2-2' }}</span>
-                      <span class="desc">API keys supplied by user</span>
+                      <span class="value text-accent2 font-syne">{{ formatPkr(displayByokCostUsd()) }}</span>
+                      <span class="desc">{{ formatUsd(displayByokCostUsd()) }} from user keys</span>
                    </div>
                 </div>
                 <div class="col-12 sm:col-4 p-2">
                    <div class="stat-card glass-card h-full">
                       <span class="label">Included Provider Usage</span>
-                      <span class="value text-purple-400 font-syne">${{ (combinedReport()?.companyCost || 0) | number:'1.2-2' }}</span>
-                      <span class="desc">Plan included and internal</span>
+                      <span class="value text-purple-400 font-syne">{{ formatPkr(displayCompanyCostUsd()) }}</span>
+                      <span class="desc">{{ formatUsd(displayCompanyCostUsd()) }} plan included</span>
                    </div>
                 </div>
              </div>
@@ -106,48 +106,51 @@
                 </div>
              </div>
 
-             <!-- Record Data Grid -->
-             <div class="glass-card p-4">
-                <div class="text-md font-bold font-syne text-color-primary mb-3 flex align-items-center justify-content-between">
-                   <span><i class="fas fa-list text-teal-400 mr-2"></i> Raw Record Audit</span>
-                   <div class="search-box p-input-icon-left w-16rem">
-                      <i class="pi pi-search ml-2"></i>
-                      <input type="text" placeholder="Search provider, role, job..." class="glass-input pl-5 py-2 w-full text-sm" [(ngModel)]="searchQuery">
+             <div class="category-cost-grid mb-4">
+                <article
+                  class="category-cost-card"
+                  *ngFor="let item of categoryCostCards()"
+                  [ngClass]="categoryToneClass(item.category)">
+                   <div class="category-cost-icon">
+                      <i [class]="item.icon"></i>
+                   </div>
+                   <div class="category-cost-main">
+                      <span>{{ item.label }}</span>
+                      <strong>{{ formatPkr(item.totalCostUsd) }}</strong>
+                      <small>{{ formatUsd(item.totalCostUsd) }}</small>
+                   </div>
+                   <div class="category-cost-meta">
+                      <span>{{ item.calls | number }} calls</span>
+                      <span>{{ item.tokens | number }} tokens</span>
+                   </div>
+                </article>
+             </div>
+
+             <div class="grid g-4 mb-4">
+                <div class="col-12 lg:col-8 p-2">
+                   <div class="glass-card p-4 h-full">
+                      <div class="text-md font-bold font-syne text-color-primary mb-3 flex align-items-center justify-content-between">
+                         <div><i class="fas fa-layer-group text-yellow-400 mr-2"></i> Cost by AI Category</div>
+                         <span class="chart-currency-note">PKR primary / USD reference</span>
+                      </div>
+                      <div class="chart-container">
+                         <apx-chart [series]="adminCategoryStackChartOptions.series" [chart]="adminCategoryStackChartOptions.chart" [colors]="adminCategoryStackChartOptions.colors" [plotOptions]="adminCategoryStackChartOptions.plotOptions" [dataLabels]="adminCategoryStackChartOptions.dataLabels" [xaxis]="adminCategoryStackChartOptions.xaxis" [yaxis]="adminCategoryStackChartOptions.yaxis" [tooltip]="adminCategoryStackChartOptions.tooltip" [legend]="adminCategoryStackChartOptions.legend" [grid]="adminCategoryStackChartOptions.grid"></apx-chart>
+                      </div>
                    </div>
                 </div>
-                
-                <div class="overflow-x-auto">
-                   <table class="w-full text-left text-sm" style="border-collapse: collapse;">
-                      <thead>
-                         <tr class="border-bottom-1 border-color-muted font-mono text-xs text-color-secondary">
-                            <th class="py-2.5 px-3">Date</th>
-                            <th class="py-2.5 px-3">Role</th>
-                            <th class="py-2.5 px-3">Provider (Model)</th>
-                            <th class="py-2.5 px-3">Pipeline Stage</th>
-                            <th class="py-2.5 px-3 text-right">Tokens</th>
-                            <th class="py-2.5 px-3 text-right">Amount (USD)</th>
-                         </tr>
-                      </thead>
-                      <tbody>
-                         <tr *ngFor="let r of filteredRecords()" class="border-bottom-1 border-color-muted hover:bg-white-opacity-02">
-                            <td class="py-3 px-3 font-mono text-xs">{{ r.createdAt | date:'shortDate' }}</td>
-                            <td class="py-3 px-3"><span class="badge badge-indigo">{{ r.roleName }}</span></td>
-                            <td class="py-3 px-3 font-semibold">{{ r.aiProvider }} <span class="text-xs font-mono text-muted">({{ r.modelName }})</span></td>
-                            <td class="py-3 px-3 text-color-secondary">
-                               {{ r.pipelineStage === 0 ? 'VideoProcessing' : (r.pipelineStage === 1 ? 'PostGen' : (r.pipelineStage === 2 ? 'Trend' : 'SmartVideo')) }}
-                            </td>
-                            <td class="py-3 px-3 text-right font-mono">{{ r.tokensUsed | number }}</td>
-                            <td class="py-3 px-3 text-right font-mono text-blue-300">${{ r.calculatedCostUsd | number:'1.4-4' }}</td>
-                         </tr>
-                         <tr *ngIf="filteredRecords().length === 0">
-                            <td colspan="6" class="text-center py-5 text-color-secondary font-mono text-xs">
-                               <i class="fas fa-box-open text-xl mb-2 block"></i> No records match the selected criteria.
-                            </td>
-                         </tr>
-                      </tbody>
-                   </table>
+
+                <div class="col-12 lg:col-4 p-2">
+                   <div class="glass-card p-4 h-full flex flex-column justify-content-between">
+                      <div class="text-md font-bold font-syne text-color-primary mb-3 flex align-items-center justify-content-between">
+                         <div><i class="fas fa-chart-pie text-teal-400 mr-2"></i> Category Mix</div>
+                      </div>
+                      <div class="chart-container flex align-items-center justify-content-center py-4">
+                         <apx-chart [series]="adminCategoryMixChartOptions.series" [labels]="adminCategoryMixChartOptions.labels" [chart]="adminCategoryMixChartOptions.chart" [colors]="adminCategoryMixChartOptions.colors" [dataLabels]="adminCategoryMixChartOptions.dataLabels" [legend]="adminCategoryMixChartOptions.legend" [tooltip]="adminCategoryMixChartOptions.tooltip" [stroke]="adminCategoryMixChartOptions.stroke"></apx-chart>
+                      </div>
+                   </div>
                 </div>
              </div>
+
           </div>
 
         </ng-container>

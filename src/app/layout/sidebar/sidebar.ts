@@ -53,6 +53,8 @@ export class Sidebar {
     { label: 'Roles & Rights', icon: 'fas fa-shield-alt', route: '/admin/users', queryParams: { tab: 'roles' }, section: 'users' },
     { label: 'Organizations', icon: 'fas fa-building', route: '/admin/users', queryParams: { tab: 'orgs' }, section: 'users' },
     { label: 'Global Combined', icon: 'fas fa-globe', route: '/admin/metrics', queryParams: { view: 'combined' }, section: 'metrics' },
+    { label: 'Audit Report', icon: 'fas fa-list-check', route: '/admin/metrics/audit', section: 'metrics' },
+    { label: 'BYOK Usage', icon: 'fas fa-key', route: '/admin/metrics/byok', section: 'metrics' },
     { label: 'Payment Settings', icon: 'fas fa-credit-card', route: '/admin/payments', section: 'payments' },
     { label: 'Brain Config', icon: 'fas fa-brain', route: '/admin/brain', right: Rights.Admin_Brain_View, section: 'brain' },
     { label: 'Run Jobs', icon: 'fas fa-play-circle', route: '/admin/run-jobs', section: 'pipeline' },

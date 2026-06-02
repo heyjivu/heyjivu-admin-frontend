@@ -1,7 +1,6 @@
 import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpParams } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 
 import { ButtonModule } from 'primeng/button';
@@ -11,7 +10,27 @@ import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { AppIcons } from '../../../core/constants/icons.constants';
 import { DashboardService } from '../../dashboard/services/dashboard.service';
-import { AiCostRecord, CombinedAdminReport } from '../../dashboard/models/dashboard.model';
+import {
+  AIUsageReportRecord,
+  AiCostRecord,
+  CombinedAdminReport
+} from '../../dashboard/models/dashboard.model';
+
+const USD_TO_PKR_RATE = 278;
+
+type CostCategoryKey = 'Text' | 'Image' | 'Video' | 'TTS' | 'Other';
+
+interface CostCategoryCard {
+  category: CostCategoryKey;
+  label: string;
+  icon: string;
+  tone: string;
+  totalCostUsd: number;
+  byokCostUsd: number;
+  companyCostUsd: number;
+  calls: number;
+  tokens: number;
+}
 
 @Component({
   selector: 'app-reports-page',
@@ -21,12 +40,12 @@ import { AiCostRecord, CombinedAdminReport } from '../../dashboard/models/dashbo
   styleUrl: './reports.page.scss'
 })
 export class ReportsPage implements OnInit {
-  private readonly http = inject(HttpClient);
   private readonly route = inject(ActivatedRoute);
   
   private readonly dashboardService = inject(DashboardService);
   readonly Icons = AppIcons;
   readonly isSuperAdmin = signal(true);
+  private readonly usdToPkrRate = USD_TO_PKR_RATE;
 
   
 
@@ -34,7 +53,6 @@ export class ReportsPage implements OnInit {
   
   loading = signal(false);
   error = signal<string | null>(null);
-  searchQuery = '';
 
   // Admin Filtering
   fromDate = signal<string>('');
@@ -57,6 +75,18 @@ export class ReportsPage implements OnInit {
 
   adminTimelineChartOptions: any;
   adminBreakdownChartOptions: any;
+  adminCategoryStackChartOptions: any;
+  adminCategoryMixChartOptions: any;
+
+  private readonly categoryDefinitions: Array<{ category: CostCategoryKey; label: string; icon: string; tone: string; color: string }> = [
+    { category: 'Text', label: 'Text', icon: 'fas fa-font', tone: 'amber', color: '#f5b84b' },
+    { category: 'Image', label: 'Image', icon: 'fas fa-image', tone: 'blue', color: '#54a6ff' },
+    { category: 'Video', label: 'Video', icon: 'fas fa-film', tone: 'rose', color: '#ff6673' },
+    { category: 'TTS', label: 'TTS', icon: 'fas fa-microphone-lines', tone: 'violet', color: '#a78bfa' },
+    { category: 'Other', label: 'Other', icon: 'fas fa-layer-group', tone: 'teal', color: '#27d6b6' }
+  ];
+
+  readonly categoryCostCards = computed<CostCategoryCard[]>(() => this.buildCategoryCards(this.combinedReport()));
 
   constructor() {
     this.initChartOptions();
@@ -121,8 +151,6 @@ export class ReportsPage implements OnInit {
   }
 
   initChartOptions() {
-    const themeColors = ['#a78bfa', '#ff6673', '#27d6b6', '#54a6ff'];
-
     this.adminTimelineChartOptions = {
       series: [
         { name: 'Included Usage', data: [] },
@@ -134,8 +162,14 @@ export class ReportsPage implements OnInit {
       stroke: { curve: 'smooth', width: 2 },
       fill: { opacity: 0.8 },
       xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false } },
-      yaxis: { title: { text: 'USD', style: { color: '#8d9caf' } } },
-      tooltip: { theme: 'dark' },
+      yaxis: {
+        title: { text: 'PKR', style: { color: '#8d9caf' } },
+        labels: { formatter: (value: number) => this.formatPkrCompactFromPkr(value) }
+      },
+      tooltip: {
+        theme: 'dark',
+        y: { formatter: (value: number) => this.formatPkrUsdFromPkr(value) }
+      },
       grid: { borderColor: 'rgba(148, 163, 184, 0.1)', strokeDashArray: 4 }
     };
 
@@ -146,15 +180,66 @@ export class ReportsPage implements OnInit {
       colors: ['#a78bfa', '#ff6673'],
       dataLabels: { enabled: true, formatter: (val: any) => `${val?.toFixed(0) || 0}%` },
       legend: { position: 'bottom', labels: { colors: '#8d9caf' } },
-      tooltip: { theme: 'dark' },
+      tooltip: {
+        theme: 'dark',
+        y: { formatter: (value: number) => this.formatPkrUsdFromPkr(value) }
+      },
+      stroke: { colors: ['#0f141c'] }
+    };
+
+    this.adminCategoryStackChartOptions = {
+      series: [
+        { name: 'Included', data: [] },
+        { name: 'BYOK', data: [] }
+      ],
+      chart: {
+        type: 'bar',
+        height: 320,
+        stacked: true,
+        toolbar: { show: false },
+        background: 'transparent',
+        foreColor: '#8d9caf'
+      },
+      colors: ['#a78bfa', '#ff6673'],
+      plotOptions: {
+        bar: {
+          borderRadius: 7,
+          columnWidth: '48%'
+        }
+      },
+      dataLabels: { enabled: false },
+      xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false } },
+      yaxis: {
+        title: { text: 'PKR', style: { color: '#8d9caf' } },
+        labels: { formatter: (value: number) => this.formatPkrCompactFromPkr(value) }
+      },
+      tooltip: {
+        theme: 'dark',
+        y: { formatter: (value: number) => this.formatPkrUsdFromPkr(value) }
+      },
+      legend: { position: 'top', labels: { colors: '#8d9caf' } },
+      grid: { borderColor: 'rgba(148, 163, 184, 0.1)', strokeDashArray: 4 }
+    };
+
+    this.adminCategoryMixChartOptions = {
+      series: [1],
+      labels: ['No cost yet'],
+      chart: { type: 'donut', height: 320, background: 'transparent', foreColor: '#8d9caf' },
+      colors: ['rgba(148, 163, 184, 0.24)'],
+      dataLabels: { enabled: true, formatter: (val: any) => `${val?.toFixed(0) || 0}%` },
+      legend: { position: 'bottom', labels: { colors: '#8d9caf' } },
+      tooltip: {
+        theme: 'dark',
+        y: { formatter: (value: number) => this.formatPkrUsdFromPkr(value) }
+      },
       stroke: { colors: ['#0f141c'] }
     };
     
   }
 
   updateCharts(report: CombinedAdminReport) {
-    let companyCost = report.companyCost || 0;
-    let byokCost = report.byokCost || 0;
+    let companyCost = this.displayCompanyCostUsd(report);
+    let byokCost = this.displayByokCostUsd(report);
 
     const dailyData: Record<string, { company: number; byok: number }> = {};
     const days: string[] = [];
@@ -167,18 +252,27 @@ export class ReportsPage implements OnInit {
       dailyData[key] = { company: 0, byok: 0 };
     }
 
-    if (report.records) {
+    const usageRecords = report.usageRecords || [];
+    if (usageRecords.length > 0) {
+       usageRecords.forEach((r: AIUsageReportRecord) => {
+          const dateKey = new Date(r.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+          if (dailyData[dateKey]) {
+             if (r.isAdminKey) dailyData[dateKey].company += r.estimatedCostUsd;
+             else dailyData[dateKey].byok += r.estimatedCostUsd;
+          }
+       });
+    } else if (report.records) {
        report.records.forEach((r: AiCostRecord) => {
           const dateKey = new Date(r.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
           if (dailyData[dateKey]) {
-             if (r.reportType === 0) dailyData[dateKey].company += r.calculatedCostUsd;
-             else dailyData[dateKey].byok += r.calculatedCostUsd;
+             if (this.isByokReportType(r.reportType)) dailyData[dateKey].byok += r.calculatedCostUsd;
+             else dailyData[dateKey].company += r.calculatedCostUsd;
           }
        });
     }
 
-    const companySeries = days.map(d => Number(dailyData[d].company.toFixed(2)));
-    const byokSeries = days.map(d => Number(dailyData[d].byok.toFixed(2)));
+    const companySeries = days.map(d => Number(this.usdToPkr(dailyData[d].company).toFixed(2)));
+    const byokSeries = days.map(d => Number(this.usdToPkr(dailyData[d].byok).toFixed(2)));
 
     this.adminTimelineChartOptions = {
        ...this.adminTimelineChartOptions,
@@ -189,31 +283,130 @@ export class ReportsPage implements OnInit {
        xaxis: { ...this.adminTimelineChartOptions.xaxis, categories: days }
     };
 
-    if (companyCost === 0 && byokCost === 0) { companyCost = 1; byokCost = 1; }
+    const hasOriginCost = companyCost > 0 || byokCost > 0;
     
     this.adminBreakdownChartOptions = {
        ...this.adminBreakdownChartOptions,
-       series: [companyCost, byokCost]
+       series: hasOriginCost ? [this.usdToPkr(companyCost), this.usdToPkr(byokCost)] : [1],
+       labels: hasOriginCost ? ['Included', 'BYOK'] : ['No cost yet'],
+       colors: hasOriginCost ? ['#a78bfa', '#ff6673'] : ['rgba(148, 163, 184, 0.24)']
+    };
+
+    const categoryRows = this.categoryCostCards();
+    const categoryLabels = categoryRows.map(row => row.label);
+    const includedCategorySeries = categoryRows.map(row => Number(this.usdToPkr(row.companyCostUsd).toFixed(2)));
+    const byokCategorySeries = categoryRows.map(row => Number(this.usdToPkr(row.byokCostUsd).toFixed(2)));
+    const categoryTotals = categoryRows.map(row => Number(this.usdToPkr(row.totalCostUsd).toFixed(2)));
+    const hasCategoryCost = categoryTotals.some(value => value > 0);
+
+    this.adminCategoryStackChartOptions = {
+       ...this.adminCategoryStackChartOptions,
+       series: [
+          { name: 'Included', data: includedCategorySeries },
+          { name: 'BYOK', data: byokCategorySeries }
+       ],
+       xaxis: { ...this.adminCategoryStackChartOptions.xaxis, categories: categoryLabels }
+    };
+
+    this.adminCategoryMixChartOptions = {
+       ...this.adminCategoryMixChartOptions,
+       series: hasCategoryCost ? categoryTotals : [1],
+       labels: hasCategoryCost ? categoryLabels : ['No cost yet'],
+       colors: hasCategoryCost
+          ? this.categoryDefinitions.map(category => category.color)
+          : ['rgba(148, 163, 184, 0.24)']
     };
   }
 
-  filteredRecords = computed(() => {
-    const report = this.combinedReport();
-    if (!report || !report.records) return [];
-    let records = [...report.records];
-    
-    const query = this.searchQuery.toLowerCase().trim();
-    if (query) {
-       records = records.filter(r => 
-          (r.jobId && r.jobId.toLowerCase().includes(query)) ||
-          (r.aiProvider && r.aiProvider.toLowerCase().includes(query)) ||
-          (r.roleName && r.roleName.toLowerCase().includes(query))
-       );
-    }
-    return records;
-  });
+  displayTotalCostUsd(report: CombinedAdminReport | null = this.combinedReport()): number {
+    if (!report) return 0;
+    return this.hasUsageAccounting(report)
+      ? Number(report.usageTotalCostUsd || 0)
+      : Number(report.totalCombinedCost || 0);
+  }
+
+  displayByokCostUsd(report: CombinedAdminReport | null = this.combinedReport()): number {
+    if (!report) return 0;
+    return this.hasUsageAccounting(report)
+      ? Number(report.usageByokCostUsd || 0)
+      : Number(report.byokCost || 0);
+  }
+
+  displayCompanyCostUsd(report: CombinedAdminReport | null = this.combinedReport()): number {
+    if (!report) return 0;
+    return this.hasUsageAccounting(report)
+      ? Number(report.usageCompanyCostUsd || 0)
+      : Number(report.companyCost || 0);
+  }
+
+  formatNumber(value: number | null | undefined, digits = 0): string {
+    return Number(value || 0).toLocaleString(undefined, {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    });
+  }
+
+  formatPkr(valueUsd: number | null | undefined): string {
+    return `Rs ${this.formatNumber(this.usdToPkr(valueUsd), 2)}`;
+  }
+
+  formatUsd(valueUsd: number | null | undefined): string {
+    return `$${this.formatNumber(Number(valueUsd || 0), 4)} USD`;
+  }
+
+  formatCostPair(valueUsd: number | null | undefined): string {
+    return `${this.formatPkr(valueUsd)} / ${this.formatUsd(valueUsd)}`;
+  }
+
+  formatPkrUsdFromPkr(valuePkr: number | null | undefined): string {
+    const pkr = Number(valuePkr || 0);
+    const usd = pkr / this.usdToPkrRate;
+    return `Rs ${this.formatNumber(pkr, 2)} / ${this.formatUsd(usd)}`;
+  }
+
+  categoryToneClass(category: string): string {
+    const match = this.categoryDefinitions.find(item => item.category === category);
+    return match ? `tone-${match.tone}` : 'tone-teal';
+  }
 
   clearError() { this.error.set(null); }
+
+  private buildCategoryCards(report: CombinedAdminReport | null): CostCategoryCard[] {
+    const rows = report?.categoryBreakdown || [];
+    return this.categoryDefinitions.map(definition => {
+      const match = rows.find(row => row.category === definition.category);
+      return {
+        category: definition.category,
+        label: definition.label,
+        icon: definition.icon,
+        tone: definition.tone,
+        totalCostUsd: Number(match?.totalCostUsd || 0),
+        byokCostUsd: Number(match?.byokCostUsd || 0),
+        companyCostUsd: Number(match?.companyCostUsd || 0),
+        calls: Number(match?.calls || 0),
+        tokens: Number((match?.inputTokens || 0) + (match?.outputTokens || 0))
+      };
+    });
+  }
+
+  private hasUsageAccounting(report: CombinedAdminReport): boolean {
+    return Boolean((report.usageRecords?.length || 0) > 0 || (report.categoryBreakdown?.length || 0) > 0);
+  }
+
+  private isByokReportType(reportType: number): boolean {
+    return Number(reportType) === 0;
+  }
+
+  private usdToPkr(valueUsd: number | null | undefined): number {
+    return Number(valueUsd || 0) * this.usdToPkrRate;
+  }
+
+  private formatPkrCompactFromPkr(valuePkr: number | null | undefined): string {
+    const value = Number(valuePkr || 0);
+    if (Math.abs(value) >= 1_000_000) return `Rs ${this.formatNumber(value / 1_000_000, 1)}M`;
+    if (Math.abs(value) >= 1_000) return `Rs ${this.formatNumber(value / 1_000, 1)}K`;
+    return `Rs ${this.formatNumber(value, 0)}`;
+  }
 }
 
 

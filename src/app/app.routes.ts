@@ -55,8 +55,29 @@ export const routes: Routes = [
       },
       {
         path: 'metrics',
+        pathMatch: 'full',
         canActivate: [authGuard, hasRight(Rights.Admin_Metrics_View)],
         loadComponent: () => import('./features/metrics/pages/reports.page').then((m) => m.ReportsPage),
+      },
+      {
+        path: 'metrics/audit',
+        canActivate: [authGuard, hasRight(Rights.Admin_Metrics_View)],
+        data: {
+          title: 'Audit Report',
+          subtitle: 'Admin-key AI usage records with cost, token, provider, role, and category filters.',
+          origin: 'Included'
+        },
+        loadComponent: () => import('./features/metrics/pages/audit-report.page').then((m) => m.AuditReportPage),
+      },
+      {
+        path: 'metrics/byok',
+        canActivate: [authGuard, hasRight(Rights.Admin_Metrics_View)],
+        data: {
+          title: 'BYOK Usage',
+          subtitle: 'All user-supplied key usage records across users, providers, roles, and categories.',
+          origin: 'BYOK'
+        },
+        loadComponent: () => import('./features/metrics/pages/audit-report.page').then((m) => m.AuditReportPage),
       },
       {
         path: 'users',
