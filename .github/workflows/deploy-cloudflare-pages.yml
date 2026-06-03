@@ -1,0 +1,54 @@
+name: Deploy Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - staging
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 24
+  BUILD_OUTPUT_DIR: dist/ai-content-generation-admin-fe/browser
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    steps:
+      - name: Validate branch
+        if: github.ref_name != 'main' && github.ref_name != 'staging'
+        run: |
+          echo "Unsupported deployment branch: ${{ github.ref_name }}"
+          exit 1
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build staging
+        if: github.ref_name == 'staging'
+        run: npm run build -- --configuration staging
+
+      - name: Build production
+        if: github.ref_name == 'main'
+        run: npm run build -- --configuration production
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy ${{ env.BUILD_OUTPUT_DIR }} --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }} --branch=${{ github.ref_name }}

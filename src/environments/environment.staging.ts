@@ -1,7 +1,7 @@
 ﻿// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  STAGING ENVIRONMENT
 //  Build:  ng build --configuration=staging
-//  Deploy: Cloudflare Pages (staging.hyejivu.com)
+//  Deploy: Cloudflare Pages (staging-admin.heyjivu.com)
 //
 //  TODO: Fill in values marked â† FILL THIS before deploying
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -11,9 +11,9 @@ export const environment = {
 
   // â”€â”€ API & SignalR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // â† FILL THIS: your staging Azure Function / App Service URL
-  apiUrl: 'https://staging-admin-api.hyejivu.com/api',
-  authApiUrl: 'https://staging-api.hyejivu.com/api',
-  hubUrl: 'https://staging-admin-api.hyejivu.com/hubs/dashboard',
+  apiUrl: 'https://staging-admin-api.heyjivu.com/api',
+  authApiUrl: 'https://staging-api.heyjivu.com/api',
+  hubUrl: 'https://staging-admin-api.heyjivu.com/hubs/dashboard',
 
   // â”€â”€ Storage â€” R2 direct playback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // â† FILL THIS (optional): your staging R2 public domain
