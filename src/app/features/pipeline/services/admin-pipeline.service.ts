@@ -4,6 +4,32 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { AdminPipelineResponse, AdminPipelineJob, PipelineStats } from '../models/pipeline.model';
 
+export interface OpenRouterPricingModelDto {
+  modelName: string;
+  inputPricePerMillion: number;
+  outputPricePerMillion: number;
+  imagePricePerUnit: number;
+  updatedAtUtc: string;
+}
+
+export interface OpenRouterPricingStatusDto {
+  totalModels: number;
+  lastSyncedAtUtc: string | null;
+  adminOpenRouterKeys: number;
+  byokOpenRouterKeys: number;
+  recentModels: OpenRouterPricingModelDto[];
+}
+
+export interface OpenRouterPricingSyncResultDto {
+  added: number;
+  updated: number;
+  unchanged: number;
+  refreshed?: number;
+  snapshotRowsAdded?: number;
+  totalModels: number;
+  syncedAtUtc: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminPipelineService {
   private http = inject(HttpClient);
@@ -44,6 +70,19 @@ export class AdminPipelineService {
     return this.http.post<{ triggeredUserIds: string[]; jobsCount: number }>(
       `${environment.apiUrl}/admin/run-jobs/trigger`,
       payload
+    );
+  }
+
+  getOpenRouterPricingStatus(): Observable<OpenRouterPricingStatusDto> {
+    return this.http.get<OpenRouterPricingStatusDto>(
+      `${environment.apiUrl}/admin/run-jobs/pricing-sync/status`
+    );
+  }
+
+  runOpenRouterPricingSync(): Observable<OpenRouterPricingSyncResultDto> {
+    return this.http.post<OpenRouterPricingSyncResultDto>(
+      `${environment.apiUrl}/admin/run-jobs/pricing-sync/run`,
+      {}
     );
   }
 }

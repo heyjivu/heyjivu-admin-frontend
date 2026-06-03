@@ -328,7 +328,7 @@
 .progress-text {
   font-size: 11px;
   font-weight: 600;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   color: var(--text2);
   min-width: 32px;
   text-align: right;
@@ -389,7 +389,7 @@
 .created-text {
   font-size: 11px;
   color: var(--text3);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   white-space: nowrap;
 }
 
@@ -424,7 +424,7 @@
   code {
     font-size: 11px;
     color: var(--red);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     word-break: break-all;
     line-height: 1.4;
     max-height: 80px;
@@ -626,7 +626,7 @@
   line-height: 1.4;
 
   &.mono {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 11px;
     color: var(--text2);
     word-break: break-all;
@@ -640,7 +640,7 @@
 .error-text {
   font-size: 11px;
   color: var(--red);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   word-break: break-all;
   line-height: 1.5;
   display: block;

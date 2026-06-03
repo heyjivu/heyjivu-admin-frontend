@@ -26,7 +26,7 @@ export class SignalRService {
     };
 
     options.accessTokenFactory = () => {
-      const token = this.authStore.token() || localStorage.getItem('ai-content-token');
+      const token = this.authStore.token();
       return Promise.resolve(token || '');
     };
 

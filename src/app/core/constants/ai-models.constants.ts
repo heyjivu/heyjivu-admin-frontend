@@ -108,6 +108,10 @@ export const AI_MODELS: Record<string, Record<string, AIModelOption[]>> = {
     ]
   },
   tts: {
+    together: [
+      { id: 'hexgrad/Kokoro-82M', label: 'hexgrad/Kokoro-82M | TogetherAI Kokoro' },
+      { id: 'canopylabs/orpheus-3b-0.1-ft', label: 'canopylabs/orpheus-3b-0.1-ft | TogetherAI Orpheus' }
+    ],
     openai: [
       { id: 'tts-2', label: 'tts-2 | $0.02/1K chars' },
       { id: 'tts-2-hd', label: 'tts-2-hd | $0.04/1K chars' },

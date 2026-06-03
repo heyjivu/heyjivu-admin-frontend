@@ -1,5 +1,6 @@
-<div class="topbar" [class.collapsed]="isMobile()">
+﻿<div class="topbar" [class.collapsed]="isMobile()">
   <button 
+    *ngIf="showSidebarToggle()"
     class="sidebar-toggle-btn" 
     (click)="uiStore.toggleCollapsed()" 
     [attr.aria-label]="uiStore.isCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
@@ -8,9 +9,20 @@
     <i class="fas fa-bars"></i>
   </button>
 
-  <a class="topbar-logo" routerLink="/admin/dashboard" aria-label="AuraDesk Admin Console">
-    <span class="logo-mark bg-purple-600">A</span>
-    <span class="logo-text">AuraDesk Admin Console</span>
+  <a class="topbar-logo" routerLink="/admin/dashboard" aria-label="heyjivu Admin Console">
+    <span class="hj-brand-mark hj-brand-mark--topbar" aria-hidden="true">
+  <span class="hj-brand-face">
+    <span class="hj-brand-eye hj-brand-eye--left"></span>
+    <span class="hj-brand-eye hj-brand-eye--right"></span>
+    <span class="hj-brand-smile"></span>
+    <span class="hj-brand-spark hj-brand-spark--one"></span>
+    <span class="hj-brand-spark hj-brand-spark--two"></span>
+  </span>
+</span>
+<span class="hj-brand-stack">
+  <span class="hj-brand-word hj-brand-word--topbar"><span class="hj-brand-hey">hey</span><span class="hj-brand-jivu">jivu</span></span>
+  <span class="hj-brand-subtitle">Admin Console</span>
+</span>
   </a>
 
   <div class="topbar-tabs" *ngIf="!isMobile()">
@@ -18,7 +30,7 @@
       <i class="fas fa-chart-line"></i>
       <span class="tab-label">Dashboard</span>
     </button>
-    <button class="tab-btn" routerLink="/admin/metrics" routerLinkActive="active" title="Metrics & Cost Analytics">
+    <button class="tab-btn" routerLink="/admin/metrics" routerLinkActive="active" title="Metrics & Analytics">
       <i class="fas fa-chart-pie"></i>
       <span class="tab-label">Metrics</span>
     </button>
@@ -45,6 +57,10 @@
     <button class="tab-btn" routerLink="/admin/processing" routerLinkActive="active" title="Processing Configuration">
       <i class="fas fa-cog"></i>
       <span class="tab-label">Config</span>
+    </button>
+    <button class="tab-btn" routerLink="/admin/templates" routerLinkActive="active" title="Template Studio">
+      <i class="fas fa-wand-magic-sparkles"></i>
+      <span class="tab-label">Templates</span>
     </button>
     <button class="tab-btn" routerLink="/admin/memes" routerLinkActive="active" title="Meme Management">
       <i class="fas fa-laugh"></i>
@@ -144,3 +160,4 @@
     </div>
   </div>
 </div>
+

@@ -14,13 +14,19 @@ export interface UserManagementDto {
   onboardingStep: number;
   roleName: string;
   roleId: string | null;
+  planCode?: string | null;
+  planName?: string | null;
   organizationName: string;
   organizationId: string | null;
-  usage: {
+  usage?: {
     processingJobs: number;
     trendJobs: number;
     smartVideoJobs: number;
-  };
+  } | null;
+  quotas?: unknown;
+  quotaBuckets?: unknown;
+  quotaOverrides?: unknown;
+  quotaSummary?: unknown;
   isByokProcessing: boolean;
   isByokTrend: boolean;
   isByokVideoGeneration: boolean;
@@ -41,6 +47,7 @@ export interface RoleDto {
   description: string;
   scope: number;
   rights: string[];
+  quotas?: Record<string, number>;
 }
 
 export interface OrganizationDto {
@@ -54,6 +61,85 @@ export interface PagedResult<T> {
   totalCount: number;
   pageNumber: number;
   pageSize: number;
+}
+
+export interface PlanQuotaOverviewDto {
+  planCode?: string | null;
+  planName?: string | null;
+  totalUsers?: number | null;
+  usersWithOverrides?: number | null;
+  activeQuotaBuckets?: number | null;
+  storageAllocatedGb?: number | null;
+  quotas?: unknown;
+  quotaBuckets?: unknown;
+  quotaSummary?: unknown;
+}
+
+export interface UserQuotaOverviewDto {
+  userId?: string;
+  planCode?: string | null;
+  planName?: string | null;
+  quotas?: unknown;
+  quotaBuckets?: unknown;
+  quotaOverrides?: unknown;
+  quotaSummary?: unknown;
+}
+
+export interface AdminAiUsageTotalsDto {
+  totalCalls: number;
+  platformCalls: number;
+  byokCalls: number;
+  successfulCalls: number;
+  failedCalls: number;
+  totalCostUsd: number;
+  platformCostUsd: number;
+  byokCostUsd: number;
+  totalDurationMs: number;
+  averageDurationMs: number;
+}
+
+export interface AdminAiUsageUserBreakdownDto {
+  userId?: string | null;
+  userName: string;
+  userEmail?: string | null;
+  roleName: string;
+  totalCalls: number;
+  platformCalls: number;
+  byokCalls: number;
+  totalCostUsd: number;
+  platformCostUsd: number;
+  byokCostUsd: number;
+  totalDurationMs: number;
+  averageDurationMs: number;
+}
+
+export interface AdminAiUsageRoleBreakdownDto {
+  roleName: string;
+  totalUsers: number;
+  totalCalls: number;
+  platformCalls: number;
+  byokCalls: number;
+  totalCostUsd: number;
+  platformCostUsd: number;
+  byokCostUsd: number;
+  totalDurationMs: number;
+  averageDurationMs: number;
+}
+
+export interface AdminAiUsageDashboardDto {
+  totals: AdminAiUsageTotalsDto;
+  topUsers: AdminAiUsageUserBreakdownDto[];
+  topRoles: AdminAiUsageRoleBreakdownDto[];
+  generatedAtUtc: string;
+}
+
+export interface AdminDashboardStatsDto {
+  totalUsers: number;
+  activeUsers: number;
+  totalRevenue: number;
+  pendingPayments: number;
+  pendingReviews: number;
+  aiUsage: AdminAiUsageDashboardDto;
 }
 
 @Injectable({
@@ -109,11 +195,11 @@ export class AdminService {
     return this.http.put<void>(`${this.apiUrl}/${userId}/status`, { isActive });
   }
 
-  createRole(role: { name: string, description: string, scope: number }): Observable<string> {
+  createRole(role: { name: string, description: string, scope: number, quotas?: Record<string, number> }): Observable<string> {
     return this.http.post<string>(`${this.apiUrl}/roles`, role);
   }
 
-  updateRole(roleId: string, role: { name: string, description: string, scope: number }): Observable<void> {
+  updateRole(roleId: string, role: { name: string, description: string, scope: number, quotas?: Record<string, number> }): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/roles/${roleId}`, role);
   }
 
@@ -125,8 +211,8 @@ export class AdminService {
     return this.http.post<void>(`${this.apiUrl}/${userId}/byok`, byok);
   }
 
-  getStats(): Observable<{ totalUsers: number; activeUsers: number; totalRevenue: number; pendingPayments: number; pendingReviews: number }> {
-    return this.http.get<{ totalUsers: number; activeUsers: number; totalRevenue: number; pendingPayments: number; pendingReviews: number }>(`${environment.apiUrl}/admin/dashboard/stats`);
+  getStats(): Observable<AdminDashboardStatsDto> {
+    return this.http.get<AdminDashboardStatsDto>(`${environment.apiUrl}/admin/dashboard/stats`);
   }
 
   getRecentUsers(limit: number): Observable<any[]> {
@@ -148,5 +234,19 @@ export class AdminService {
   updateUserProcessingOptions(userId: string, data: any): Observable<any> {
     return this.http.put<any>(`${this.apiUrl}/${userId}/processing-options`, data);
   }
-}
 
+  updateUserQuota(userId: string, quotaType: string, limit: number): Observable<void> {
+    const encodedUser = encodeURIComponent(userId);
+    return this.http.post<void>(`${this.apiUrl}/${encodedUser}/quotas`, { quotaType, limit });
+  }
+
+  getPlanQuotaOverview(planCode: string): Observable<PlanQuotaOverviewDto> {
+    const encodedPlan = encodeURIComponent(planCode);
+    return this.http.get<PlanQuotaOverviewDto>(`${environment.apiUrl}/admin/plans/${encodedPlan}/quota-overview`);
+  }
+
+  getUserQuotaOverview(userId: string): Observable<UserQuotaOverviewDto> {
+    const encodedUser = encodeURIComponent(userId);
+    return this.http.get<UserQuotaOverviewDto>(`${this.apiUrl}/${encodedUser}/quota-overview`);
+  }
+}

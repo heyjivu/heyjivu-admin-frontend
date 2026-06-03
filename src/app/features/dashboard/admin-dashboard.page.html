@@ -1,16 +1,13 @@
 <div class="screen">
-  <!-- Top Bar: Main Header & Actions -->
-  <div class="p-4 md:px-5 md:pt-4 border-bottom-1 surface-border">
-    <div class="d-flex items-start justify-between flex-wrap gap-16">
-      <div class="page-title-block">
-        <h2 class="page-heading"><i class="fas fa-chart-line text-accent" aria-hidden="true"></i> Admin Dashboard</h2>
-        <p class="text-text3 m-0 fs-14">Platform overview & real-time statistics</p>
-      </div>
-      <div class="header-actions page-actions">
-        <button class="btn btn-soft" (click)="loadDashboard()" id="dashboard-refresh-btn">
-          <i class="fas fa-sync" [class.fa-spin]="loading()"></i> Refresh
-        </button>
-      </div>
+  <div class="screen-header">
+    <div class="header-content page-title-block">
+      <h2 class="page-heading"><i class="fas fa-chart-line text-accent" aria-hidden="true"></i> Admin Dashboard</h2>
+      <p>Platform overview and real-time statistics.</p>
+    </div>
+    <div class="header-actions page-actions">
+      <button class="btn btn-soft" (click)="loadDashboard()" id="dashboard-refresh-btn">
+        <i class="fas fa-sync" [class.fa-spin]="loading()"></i> Refresh
+      </button>
     </div>
   </div>
 
@@ -28,11 +25,91 @@
             </div>
           </div>
           <div class="dash-stat-value">{{ stat.value }}</div>
+          @if (stat.hint) {
+            <div class="dash-stat-hint">{{ stat.hint }}</div>
+          }
           <div class="dash-stat-bar">
             <div class="dash-stat-bar-fill" [class]="'dash-stat-bar-fill--' + stat.color"></div>
           </div>
         </div>
       }
+    </div>
+
+    <div class="dash-section-title">AI Spend &amp; Timing</div>
+    <div class="dash-ai-grid">
+      <div class="dash-ai-panel">
+        <div class="dash-ai-header">
+          <div>
+            <div class="dash-ai-title">Platform Cost by User</div>
+            <div class="dash-ai-subtitle">Non-BYOK spend with total observed usage</div>
+          </div>
+          <span class="dash-ai-badge">{{ aiUsage().totals.platformCalls || 0 }} calls</span>
+        </div>
+
+        @if (topAiUsers().length > 0) {
+          <div class="dash-ai-list">
+            @for (user of topAiUsers(); track userTrackBy($index, user)) {
+              <div class="dash-ai-row">
+                <div class="dash-ai-identity">
+                  <div class="dash-ai-name">{{ user.userName || user.userEmail || 'System' }}</div>
+                  <div class="dash-ai-meta">
+                    {{ user.roleName || 'Unassigned' }} · {{ user.platformCalls || 0 }} platform / {{ user.byokCalls || 0 }} BYOK
+                  </div>
+                </div>
+                <div class="dash-ai-measures">
+                  <div class="dash-ai-cost">{{ formatPkr(user.platformCostUsd) }}</div>
+                  <div class="dash-ai-subcost">{{ formatUsd(user.platformCostUsd) }}</div>
+                  <div class="dash-ai-time">
+                    {{ formatDuration(user.averageDurationMs) }} avg · {{ formatDuration(user.totalDurationMs) }} total
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="dash-empty dash-empty--compact">
+            <i class="fas fa-server"></i>
+            <span>No AI usage recorded</span>
+          </div>
+        }
+      </div>
+
+      <div class="dash-ai-panel">
+        <div class="dash-ai-header">
+          <div>
+            <div class="dash-ai-title">Platform Cost by Role</div>
+            <div class="dash-ai-subtitle">Grouped by base role or plan role</div>
+          </div>
+          <span class="dash-ai-badge">{{ formatDuration(aiUsage().totals.totalDurationMs) }}</span>
+        </div>
+
+        @if (topAiRoles().length > 0) {
+          <div class="dash-ai-list">
+            @for (role of topAiRoles(); track roleTrackBy($index, role)) {
+              <div class="dash-ai-row">
+                <div class="dash-ai-identity">
+                  <div class="dash-ai-name">{{ role.roleName || 'Unassigned' }}</div>
+                  <div class="dash-ai-meta">
+                    {{ role.totalUsers || 0 }} users · {{ role.platformCalls || 0 }} platform / {{ role.byokCalls || 0 }} BYOK
+                  </div>
+                </div>
+                <div class="dash-ai-measures">
+                  <div class="dash-ai-cost">{{ formatPkr(role.platformCostUsd) }}</div>
+                  <div class="dash-ai-subcost">{{ formatUsd(role.platformCostUsd) }}</div>
+                  <div class="dash-ai-time">
+                    {{ formatDuration(role.averageDurationMs) }} avg · {{ formatDuration(role.totalDurationMs) }} total
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="dash-empty dash-empty--compact">
+            <i class="fas fa-shield-halved"></i>
+            <span>No role usage recorded</span>
+          </div>
+        }
+      </div>
     </div>
 
     <!-- Quick Navigation -->

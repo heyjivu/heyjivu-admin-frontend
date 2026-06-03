@@ -1,7 +1,7 @@
 // ════════════════════════════════════════════════════════════════
 //  PRODUCTION ENVIRONMENT
 //  Build:  ng build --configuration=production
-//  Deploy: Cloudflare Pages (auradesk.com / www.auradesk.com)
+//  Deploy: Cloudflare Pages (heyjivu.com / www.heyjivu.com)
 //
 //  ⚠ NEVER use staging credentials here.
 //  TODO: Fill in values marked ← FILL THIS before deploying
@@ -12,9 +12,9 @@ export const environment = {
 
   // ── API & SignalR ──────────────────────────────────────────────
   // ← FILL THIS: your production Azure Function / App Service URL
-  apiUrl: 'https://admin-api.auradesk.com/api',
-  authApiUrl: 'https://api.auradesk.com/api',
-  hubUrl: 'https://admin-api.auradesk.com/hubs/dashboard',
+  apiUrl: 'https://admin-api.heyjivu.com/api',
+  authApiUrl: 'https://api.heyjivu.com/api',
+  hubUrl: 'https://admin-api.heyjivu.com/hubs/dashboard',
 
   // ── Storage — R2 direct playback ──────────────────────────────
   // ← FILL THIS (optional): your production R2 public domain
@@ -24,7 +24,7 @@ export const environment = {
   presignedUrlExpiryMinutes: 60,
 
   // ── Auth ───────────────────────────────────────────────────────
-  // Add auradesk.com to Google OAuth authorized redirect URIs
+  // Add heyjivu.com to Google OAuth authorized redirect URIs
   googleClientId: '579233474156-9dpbpojf1k3nop0884sniru752e6s4q6.apps.googleusercontent.com',
 
   // ── Encryption ─────────────────────────────────────────────────

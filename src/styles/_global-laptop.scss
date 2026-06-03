@@ -14,7 +14,7 @@
   color: var(--text);
   overflow-x: hidden;
   position: relative;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-ui);
 
   // Global Section Reveal Animations
   .section-reveal {
@@ -49,7 +49,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-weight: 800;
     font-size: 1.15rem;
     color: var(--text);
@@ -273,7 +273,7 @@
     }
 
     h1 {
-      font-family: 'Syne', sans-serif;
+      font-family: var(--font-display);
       font-size: 3.5rem;
       font-weight: 800;
       line-height: 1.15;
@@ -365,7 +365,7 @@
       strong {
         margin-left: 20px;
         font-size: 11px;
-        font-family: 'JetBrains Mono', monospace;
+        font-family: var(--font-mono);
         color: var(--muted);
         text-transform: uppercase;
         letter-spacing: 0.1em;
@@ -383,7 +383,7 @@
 
       small {
         font-size: 9px;
-        font-family: 'JetBrains Mono', monospace;
+        font-family: var(--font-mono);
         color: var(--accent);
         text-transform: uppercase;
         letter-spacing: 0.1em;
@@ -475,7 +475,7 @@
 
         b {
           font-size: 14px;
-          font-family: 'Syne', sans-serif;
+          font-family: var(--font-display);
           color: var(--text3);
         }
 
@@ -528,7 +528,7 @@
 
     .gradient-text {
       font-size: 2.25rem;
-      font-family: 'Syne', sans-serif;
+      font-family: var(--font-display);
       font-weight: 800;
       display: block;
       margin-bottom: 6px;
@@ -567,7 +567,7 @@
     }
 
     h2 {
-      font-family: 'Syne', sans-serif;
+      font-family: var(--font-display);
       font-size: 2.5rem;
       font-weight: 800;
       line-height: 1.2;
@@ -607,7 +607,7 @@
     }
 
     .step-number {
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--font-mono);
       font-size: 11px;
       font-weight: 700;
       color: var(--accent);
@@ -661,7 +661,7 @@
 
     .plan-label {
       font-size: 11px;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--font-mono);
       font-weight: 700;
       color: var(--accent2);
       text-transform: uppercase;
@@ -671,7 +671,7 @@
     }
 
     h3 {
-      font-family: 'Syne', sans-serif;
+      font-family: var(--font-display);
       font-size: 22px;
       font-weight: 700;
       margin: 0 0 14px;
@@ -758,7 +758,7 @@
 .pricing-section {
   .rate-note {
     font-size: 12px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     color: var(--accent2);
     margin-top: 10px;
   }
@@ -789,7 +789,7 @@
 
     .plan-label {
       font-size: 11px;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--font-mono);
       color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.1em;
@@ -797,7 +797,7 @@
     }
 
     h3 {
-      font-family: 'Syne', sans-serif;
+      font-family: var(--font-display);
       font-size: 2.25rem;
       font-weight: 800;
       margin: 0 0 16px;
@@ -806,7 +806,7 @@
       small {
         font-size: 13px;
         color: var(--muted);
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-ui);
         font-weight: 500;
       }
     }
@@ -902,7 +902,7 @@
     }
 
     span {
-      font-family: 'Syne', sans-serif;
+      font-family: var(--font-display);
       font-weight: 800;
       color: var(--text);
       font-size: 1rem;
@@ -954,7 +954,7 @@
     font-size: 1.75rem;
     font-weight: 700;
     margin: 0;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     color: var(--text);
     display: flex;
     align-items: center;
@@ -1118,7 +1118,7 @@
     font-weight: 600;
     color: var(--text2);
     margin-bottom: 8px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
@@ -1218,7 +1218,7 @@
     font-weight: 750;
     color: var(--text2);
     margin: 0 0 12px 0;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
   }
 }
@@ -1253,7 +1253,7 @@
 
   .usage {
     font-size: 11px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     color: var(--text3);
     background: rgba(var(--bg-rgb), 0.4);
     padding: 4px 8px;
@@ -1348,14 +1348,14 @@
     color: var(--text3);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
   }
 
   .value {
     font-size: 1.8rem;
     font-weight: 800;
     color: var(--accent);
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
   }
 }
 
@@ -1428,7 +1428,7 @@
     background: rgba(0, 0, 0, 0.25);
     color: var(--text2);
     font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
     font-size: 11px;
     letter-spacing: 0.05em;
@@ -1487,7 +1487,7 @@
     .email {
       font-size: 11px;
       color: var(--text3);
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--font-mono);
     }
   }
 }
@@ -1540,7 +1540,7 @@
     gap: 6px;
     font-size: 10px;
     font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
     padding: 4px 8px;
     border-radius: 4px;
@@ -1588,7 +1588,7 @@
     margin: 0;
     font-size: 11px;
     font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
     color: var(--text2);
   }
@@ -1617,7 +1617,7 @@
   border-radius: 4px;
   background: rgba(var(--accent2-rgb), 0.15);
   color: var(--accent2);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   text-transform: uppercase;
 
   &.global {
@@ -1710,7 +1710,7 @@
     color: var(--text3);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     margin-bottom: 8px;
     display: flex;
     justify-content: space-between;
@@ -1741,7 +1741,7 @@
 
     .count {
       font-size: 10px;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--font-mono);
       background: rgba(0, 0, 0, 0.3);
       padding: 2px 6px;
       border-radius: 4px;
@@ -1859,7 +1859,7 @@
 
     .key {
       font-size: 10px;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--font-mono);
       color: var(--text3);
     }
   }
@@ -1884,7 +1884,7 @@
     font-weight: 700;
     margin: 0 0 8px 0;
     color: var(--text2);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
   }
 
@@ -1994,7 +1994,7 @@
     font-size: 14px;
     display: grid;
     place-items: center;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
   }
 
   .sc-name {
@@ -2014,7 +2014,7 @@
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     padding: 3px 8px;
     border-radius: 4px;
     background: rgba(var(--text3-rgb), 0.15);
@@ -2062,7 +2062,7 @@
       font-size: 11px;
       font-weight: 700;
       color: var(--text2);
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--font-mono);
       text-transform: uppercase;
     }
   }
@@ -2172,7 +2172,7 @@
 
   .error-detail {
     font-size: 11px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     color: var(--text2);
     white-space: pre-wrap;
     background: rgba(0, 0, 0, 0.2);
@@ -2211,13 +2211,46 @@
 .modal-header {
   padding: 18px 24px;
   border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+
+  h3 {
+    margin: 0;
+  }
 
   .modal-title {
     font-size: 16px;
     font-weight: 700;
     margin: 0;
     color: var(--text);
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
+  }
+}
+
+.modal-close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text3);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  transition: color var(--transition-fast), background var(--transition-fast);
+
+  &:hover:not(:disabled) {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
   }
 }
 
@@ -2291,7 +2324,7 @@
     font-size: 11px;
     font-weight: 700;
     color: var(--text);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.3px;
   }
@@ -2322,7 +2355,7 @@
     font-size: 10px;
     font-weight: 700;
     color: var(--text3);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -2517,7 +2550,7 @@
 
   .input-label {
     font-size: 11px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     color: var(--text3);
     text-transform: uppercase;
   }
@@ -2543,7 +2576,7 @@
   .mem-title {
     font-size: 11px;
     font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 4px;
@@ -2558,7 +2591,7 @@
     font-size: 12px;
 
     .mem-key {
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--font-mono);
       color: var(--text3);
     }
 
@@ -2584,7 +2617,7 @@
   border-radius: 8px;
   padding: 14px;
   color: var(--text2);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.5;
   resize: vertical;
@@ -2692,7 +2725,7 @@
   .job-state {
     font-size: 10px;
     font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     padding: 3px 8px;
     border-radius: 4px;
     text-transform: uppercase;
@@ -2856,7 +2889,7 @@
     background: transparent;
     cursor: pointer;
     transition: all var(--transition-fast);
-    font-family: 'Syne', 'Inter', sans-serif;
+    font-family: var(--font-display);
 
     i {
       font-size: 14px;
@@ -2895,7 +2928,7 @@
   color: var(--text) !important;
   font-size: 13px !important;
   font-weight: 500 !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: var(--font-ui) !important;
   transition: all var(--transition-fast) !important;
   box-sizing: border-box !important;
   outline: none !important;

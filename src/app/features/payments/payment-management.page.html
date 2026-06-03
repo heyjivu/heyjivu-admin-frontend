@@ -89,7 +89,14 @@
             <label class="pm-label">API Key / Public Key</label>
             <div class="pm-input-wrap">
               <i class="fas fa-key pm-field-icon"></i>
-              <input type="password" [(ngModel)]="form().apiKey" class="pm-input" id="api-key-input" placeholder="sec_...">
+              <input type="text"
+                     [(ngModel)]="form().apiKey"
+                     class="pm-input pm-input-secret"
+                     id="api-key-input"
+                     placeholder="sec_..."
+                     autocomplete="off"
+                     autocapitalize="none"
+                     spellcheck="false">
             </div>
           </div>
 
@@ -98,7 +105,14 @@
             <label class="pm-label">Webhook Secret</label>
             <div class="pm-input-wrap">
               <i class="fas fa-shield-alt pm-field-icon"></i>
-              <input type="password" [(ngModel)]="form().webhookSecret" class="pm-input" id="webhook-secret-input" placeholder="whsec_...">
+              <input type="text"
+                     [(ngModel)]="form().webhookSecret"
+                     class="pm-input pm-input-secret"
+                     id="webhook-secret-input"
+                     placeholder="whsec_..."
+                     autocomplete="off"
+                     autocapitalize="none"
+                     spellcheck="false">
             </div>
           </div>
 

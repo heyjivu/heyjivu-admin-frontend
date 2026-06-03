@@ -1,11 +1,22 @@
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { ToastService } from '../services/toast.service';
+import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { retry, throwError, timer } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+
+const isAuthSessionEndpoint = (url: string) =>
+  url.includes('/api/auth/login') ||
+  url.includes('/api/auth/google') ||
+  url.includes('/api/auth/register') ||
+  url.includes('/api/auth/confirm-email') ||
+  url.includes('/api/auth/verify-otp') ||
+  url.includes('/api/auth/forgot-password') ||
+  url.includes('/api/auth/reset-password') ||
+  url.includes('/api/auth/resend-confirmation') ||
+  url.includes('/api/auth/refresh') ||
+  url.includes('/api/auth/logout');
 
 export const retryInterceptor: HttpInterceptorFn = (req, next) => {
-  const toastService = inject(ToastService);
+  if (isAuthSessionEndpoint(req.url)) {
+    return next(req);
+  }
 
   return next(req).pipe(
     retry({

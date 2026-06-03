@@ -3,8 +3,43 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AdminService, UserManagementDto, RoleDto, OrganizationDto, RightDto } from '../services/admin.service';
 import { FormsModule } from '@angular/forms';
+import { ToastService } from '../../../core/services/toast.service';
+import { forkJoin } from 'rxjs';
 
 import { Rights } from '../../../core/constants/rights.constants';
+
+interface UserQuotaCard {
+  label: 'Creation Wallet' | 'Video Creation Minutes' | 'Voice Minutes' | 'AI Video Clips' | 'Storage' | 'Brain Talk' | 'Manual Scan';
+  lines: Array<{ label: string; value: string }>;
+  stack: Array<{ label: string; value: string }>;
+}
+
+interface DailyQuotaDefinition {
+  key: string;
+  label: string;
+  overrideLabel: string;
+  description: string;
+  unitLabel: string;
+  defaultValue: number;
+  min: number;
+  max: number;
+}
+
+const PLAN_ROLE_LABELS: Record<string, string> = {
+  freeguest: 'Free',
+  free_guest: 'Free',
+  socialmerchant: 'Student',
+  social_merchant: 'Student',
+  procreator: 'Merchant',
+  pro_creator: 'Merchant',
+  agencyadmin: 'Premium',
+  agency_admin: 'Premium',
+  agencypro: 'Premium',
+  agency_pro: 'Premium',
+  expertbyok: 'BYOK',
+  expert_byok: 'BYOK',
+  company: 'Premium'
+};
 
 @Component({
   selector: 'app-user-management',
@@ -17,6 +52,7 @@ export class UserManagementComponent implements OnInit {
   private adminService = inject(AdminService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private toast = inject(ToastService);
   public readonly Rights = Rights;
   
   activeTab = signal<'users' | 'orgs' | 'roles'>('users');
@@ -66,14 +102,52 @@ export class UserManagementComponent implements OnInit {
   loading = signal(false);
   
   selectedRole = signal<RoleDto | null>(null);
-  editorTab = signal<'basic' | 'rights' | 'processing'>('basic');
+  editorTab = signal<'basic' | 'rights' | 'processing' | 'quotas'>('basic');
   roleProcessingOptions = signal<any>(null);
   activeCategory = signal<string | null>(null);
+  showSectionForm = signal(false);
+  showRightForm = signal(false);
+  newSectionName = '';
+  newRightName = '';
+  newRightKey = '';
 
   totalJobs = signal(0);
 
   editingUser = signal<UserManagementDto | null>(null);
   userProcessingOptions = signal<any>(null);
+  readonly roleQuotaDefinitions: DailyQuotaDefinition[] = [
+    {
+      key: 'BrainTalkDaily',
+      label: 'Brain Talk Daily',
+      overrideLabel: 'Brain Talk Daily Override',
+      description: 'Daily Jivu Talk messages for this role.',
+      unitLabel: 'per day',
+      defaultValue: 100,
+      min: 0,
+      max: 10000
+    },
+    {
+      key: 'ManualScanDaily',
+      label: 'Manual Scan Daily',
+      overrideLabel: 'Manual Scan Daily Override',
+      description: 'Daily manual dashboard, review, and social scans. Use -1 for unlimited BYOK roles.',
+      unitLabel: 'per day',
+      defaultValue: 3,
+      min: -1,
+      max: 10000
+    },
+    {
+      key: 'SocialPostMaxVideoSeconds',
+      label: 'Social Post Video Max Seconds',
+      overrideLabel: 'Social Post Video Max Override',
+      description: 'Maximum uploaded or generated social-post video length. Current product max is 60 seconds.',
+      unitLabel: 'seconds max',
+      defaultValue: 60,
+      min: 1,
+      max: 60
+    }
+  ];
+  userQuotaOverrides = signal<Record<string, number | null>>(this.emptyDailyQuotaOverrides());
   setTab(tab: 'users' | 'orgs' | 'roles') {
     this.activeTab.set(tab);
     if (tab === 'roles' && this.availableRights().length === 0) {
@@ -148,8 +222,168 @@ export class UserManagementComponent implements OnInit {
     this.totalJobs.set(total);
   }
 
+  displayRoleName(roleName: string | null | undefined): string {
+    if (!roleName) return 'Unassigned';
+    return PLAN_ROLE_LABELS[this.compactKey(roleName)] ?? roleName;
+  }
+
+  getUserPlanLabel(user: UserManagementDto): string {
+    const explicitPlan = user.planName || user.planCode;
+    if (explicitPlan) return this.displayRoleName(explicitPlan);
+
+    const roleLabel = this.displayRoleName(user.roleName);
+    return ['Free', 'Student', 'Merchant', 'Premium', 'BYOK'].includes(roleLabel)
+      ? roleLabel
+      : 'Plan not exposed';
+  }
+
+  getUserQuotaCards(user: UserManagementDto): UserQuotaCard[] {
+    const buckets = this.extractQuotaBuckets(user.quotaBuckets ?? user.quotaSummary ?? user.quotas ?? user.quotaOverrides);
+    return buckets.map(bucket => {
+      const label = this.quotaLabel(this.firstString(bucket, ['label', 'name', 'displayName', 'key', 'bucket', 'type']));
+      return {
+        label,
+        lines: [{ label: this.quotaDetailLabel(bucket, label), value: this.quotaValue(bucket) }],
+        stack: this.quotaStack(bucket)
+      };
+    });
+  }
+
+  getQuotaPreview(quota: UserQuotaCard): string {
+    return quota.lines.slice(0, 2).map(line => `${line.label}: ${line.value}`).join(' | ');
+  }
+
+  getQuotaDisplayLabel(quota: UserQuotaCard): string {
+    return quota.lines[0]?.label || quota.label;
+  }
+
+  getQuotaPreviewValue(quota: UserQuotaCard): string {
+    return quota.lines[0]?.value || this.getQuotaPreview(quota);
+  }
+
+  private extractQuotaBuckets(source: unknown): Array<Record<string, unknown>> {
+    if (Array.isArray(source)) return source.filter(this.isRecord);
+    if (!this.isRecord(source)) return [];
+
+    for (const key of ['quotaBuckets', 'quotas', 'buckets', 'limits', 'wallets']) {
+      const nestedBuckets = this.extractQuotaBuckets(source[key]);
+      if (nestedBuckets.length > 0) return nestedBuckets;
+    }
+
+    return Object.entries(source).map(([key, value]) => this.isRecord(value) ? { ...value, key: value['key'] ?? key } : { key, value });
+  }
+
+  private quotaStack(bucket: Record<string, unknown>): Array<{ label: string; value: string }> {
+    const stack = ['stack', 'sources', 'components', 'segments', 'breakdown']
+      .map(key => bucket[key])
+      .find(Array.isArray);
+
+    return stack
+      ? stack.map(item => this.isRecord(item)
+        ? { label: this.stackLabel(this.firstString(item, ['label', 'name', 'source', 'sourceType', 'type'])), value: this.quotaValue(item) }
+        : { label: 'Stacked bucket', value: String(item ?? 'Available') })
+      : [];
+  }
+
+  private quotaLabel(value: string | null): UserQuotaCard['label'] {
+    const text = this.compactKey(value);
+    if (text.includes('manualscan')) return 'Manual Scan';
+    if (text.includes('braintalk') || text.includes('assistanttalk')) return 'Brain Talk';
+    if (text.includes('storage')) return 'Storage';
+    if (text.includes('voice') || text.includes('tts') || text.includes('speech')) return 'Voice Minutes';
+    if (text.includes('image') && text.includes('motion')) return 'Creation Wallet';
+    if ((text.includes('ai') && text.includes('video')) || text.includes('providerclip')) return 'AI Video Clips';
+    if (text.includes('video') || text.includes('smart') || text.includes('pipeline')) return 'Video Creation Minutes';
+    return 'Creation Wallet';
+  }
+
+  private quotaDetailLabel(bucket: Record<string, unknown>, fallback: UserQuotaCard['label']): string {
+    const text = this.compactKey(this.firstString(bucket, ['label', 'name', 'displayName', 'key', 'bucket', 'type']));
+    if (text.includes('manualscan')) return 'Manual scans';
+    if (text.includes('braintalk') || text.includes('assistanttalk')) return 'Talk messages';
+    if (text.includes('stockclipminute')) return 'Stock clip minutes';
+    if (text.includes('stockclip')) return 'Stock clips';
+    if (text.includes('stockimage')) return 'Stock images';
+    if (text.includes('aiimage')) return 'AI images';
+    if (fallback === 'AI Video Clips') return 'Provider clips';
+    return 'Allowance';
+  }
+
+  private stackLabel(value: string | null): string {
+    const text = this.compactKey(value);
+    if (text.includes('base') || text.includes('plan')) return 'Base plan';
+    if (text.includes('override') || text.includes('admin') || text.includes('user')) return 'Override';
+    if (text.includes('addon') || text.includes('topup')) return 'Add-on';
+    return 'Stacked bucket';
+  }
+
+  private quotaValue(bucket: Record<string, unknown>): string {
+    const unit = this.firstString(bucket, ['unit', 'units']);
+    const display = this.firstString(bucket, ['displayValue', 'summary', 'text']);
+    if (display) return display;
+
+    const parts = [
+      this.quotaValuePart('Limit', bucket['limit'] ?? bucket['total'] ?? bucket['allowed'] ?? bucket['allowance'], unit),
+      this.quotaValuePart('Used', bucket['used'] ?? bucket['consumed'], unit),
+      this.quotaValuePart('Remaining', bucket['remaining'] ?? bucket['available'], unit)
+    ].filter(Boolean);
+
+    return parts.length > 0 ? parts.join(' / ') : this.quotaPrimitive(bucket['value'] ?? bucket['amount'], unit);
+  }
+
+  private quotaValuePart(label: string, value: unknown, unit: string | null): string | null {
+    return value === undefined ? null : `${label} ${this.quotaPrimitive(value, unit)}`;
+  }
+
+  private quotaPrimitive(value: unknown, unit: string | null): string {
+    if (typeof value === 'number') {
+      if (value < 0 || value === 2147483647) return 'Unlimited';
+      const formatted = new Intl.NumberFormat('en-PK', { maximumFractionDigits: 2 }).format(value);
+      return unit ? `${formatted} ${unit}` : formatted;
+    }
+    if (typeof value === 'string') return unit ? `${value} ${unit}` : value;
+    if (value === null) return 'Inherited';
+    return 'Available';
+  }
+
+  private firstString(record: Record<string, unknown>, keys: string[]): string | null {
+    for (const key of keys) {
+      const value = record[key];
+      if (typeof value === 'string' && value.trim()) return value;
+    }
+    return null;
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private compactKey(value: unknown): string {
+    return String(value ?? '').toLowerCase().replace(/[^a-z0-9_]/g, '');
+  }
+
+  private findQuotaLimit(source: unknown, key: string): number | null {
+    const normalizedKey = this.compactKey(key);
+    const match = this.extractQuotaBuckets(source).find(bucket => {
+      const label = this.firstString(bucket, ['key', 'type', 'name', 'label', 'displayName']);
+      return this.compactKey(label).includes(normalizedKey);
+    });
+
+    if (!match) return null;
+    const value = match['limit'] ?? match['overrideLimit'] ?? match['value'] ?? match['amount'];
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  }
+
+  private emptyDailyQuotaOverrides(): Record<string, number | null> {
+    return this.roleQuotaDefinitions.reduce<Record<string, number | null>>((acc, quota) => {
+      acc[quota.key] = null;
+      return acc;
+    }, {});
+  }
+
   editUserProcessingSettings(user: UserManagementDto) {
     this.editingUser.set(user);
+    this.userQuotaOverrides.set(this.emptyDailyQuotaOverrides());
     this.adminService.getUserProcessingOptions(user.id).subscribe({
       next: (options) => {
         if (options && Object.keys(options).length > 0) {
@@ -196,21 +430,44 @@ export class UserManagementComponent implements OnInit {
         });
       }
     });
+
+    this.adminService.getUserQuotaOverview(user.id).subscribe({
+      next: (overview) => {
+        const overrides = this.emptyDailyQuotaOverrides();
+        this.roleQuotaDefinitions.forEach(quota => {
+          overrides[quota.key] = this.findQuotaLimit(overview?.quotaOverrides, quota.key);
+        });
+        this.userQuotaOverrides.set(overrides);
+      },
+      error: (err) => {
+        console.error('Failed to load user quota overview', err);
+        this.userQuotaOverrides.set(this.emptyDailyQuotaOverrides());
+      }
+    });
   }
 
   saveUserProcessingSettings() {
     const user = this.editingUser();
     if (!user || !this.userProcessingOptions()) return;
 
-    this.adminService.updateUserProcessingOptions(user.id, this.userProcessingOptions()).subscribe({
+    const updates = [this.adminService.updateUserProcessingOptions(user.id, this.userProcessingOptions())];
+    this.roleQuotaDefinitions.forEach(quota => {
+      const overrideLimit = this.userQuotaOverrides()[quota.key];
+      if (overrideLimit !== null && overrideLimit !== undefined) {
+        updates.push(this.adminService.updateUserQuota(user.id, quota.key, overrideLimit));
+      }
+    });
+
+    forkJoin(updates).subscribe({
       next: () => {
-        alert('User processing options updated successfully!');
+        this.toast.success('User defaults updated successfully.');
         this.editingUser.set(null);
         this.userProcessingOptions.set(null);
+        this.userQuotaOverrides.set(this.emptyDailyQuotaOverrides());
       },
       error: (err) => {
         console.error('Failed to update user processing options', err);
-        alert('Failed to save settings.');
+        this.toast.error('Failed to save settings.');
       }
     });
   }
@@ -244,10 +501,11 @@ export class UserManagementComponent implements OnInit {
   createNewRole() {
     this.selectedRole.set({
       id: '',
-      name: 'New Role',
+      name: 'New Plan Role',
       description: '',
       scope: 1,
-      rights: []
+      rights: [],
+      quotas: this.defaultDailyQuotasForRole('New Plan Role')
     });
     this.editorTab.set('basic');
     this.roleProcessingOptions.set({
@@ -270,7 +528,11 @@ export class UserManagementComponent implements OnInit {
   }
 
   selectRole(role: RoleDto) {
-    this.selectedRole.set({ ...role, rights: [...role.rights] });
+    this.selectedRole.set({
+      ...role,
+      rights: [...role.rights],
+      quotas: { ...(role.quotas || {}) }
+    });
     this.editorTab.set('basic');
     if (role.id) {
       this.adminService.getRoleProcessingOptions(role.id).subscribe({
@@ -307,6 +569,70 @@ export class UserManagementComponent implements OnInit {
     this.selectedRole.set({ ...role, rights });
   }
 
+  getSelectedRoleQuota(key: string): number {
+    const role = this.selectedRole();
+    return role?.quotas?.[key] ?? this.defaultDailyQuotaForRole(key, role?.name);
+  }
+
+  setSelectedRoleQuota(key: string, value: string | number | null) {
+    const role = this.selectedRole();
+    if (!role) return;
+
+    const parsed = typeof value === 'number' ? value : Number(value ?? 0);
+    const definition = this.roleQuotaDefinitions.find(quota => quota.key === key);
+    const min = definition?.min ?? 0;
+    const safeValue = Number.isFinite(parsed)
+      ? Math.max(min, Math.floor(parsed))
+      : this.defaultDailyQuotaForRole(key, role.name);
+    this.selectedRole.set({
+      ...role,
+      quotas: {
+        ...(role.quotas || {}),
+        [key]: safeValue
+      }
+    });
+  }
+
+  private defaultDailyQuotasForRole(roleName: string | null | undefined): Record<string, number> {
+    return this.roleQuotaDefinitions.reduce<Record<string, number>>((acc, quota) => {
+      acc[quota.key] = this.defaultDailyQuotaForRole(quota.key, roleName);
+      return acc;
+    }, {});
+  }
+
+  private defaultDailyQuotaForRole(key: string, roleName: string | null | undefined): number {
+    const roleKey = this.compactKey(roleName);
+    if (key === 'SocialPostMaxVideoSeconds') return 60;
+    if (roleKey.includes('free')) return 0;
+
+    if (key === 'ManualScanDaily') {
+      if (roleKey.includes('byok') || roleKey.includes('expert')) return -1;
+      if (roleKey.includes('premium') || roleKey.includes('agency')) return 5;
+      return 3;
+    }
+
+    const definition = this.roleQuotaDefinitions.find(quota => quota.key === key);
+    return definition?.defaultValue ?? 0;
+  }
+
+  getUserQuotaOverride(key: string): number | null {
+    return this.userQuotaOverrides()[key] ?? null;
+  }
+
+  setUserQuotaOverride(key: string, value: string | number | null) {
+    const parsed = value === '' || value === null || value === undefined
+      ? null
+      : Number(value);
+    const definition = this.roleQuotaDefinitions.find(quota => quota.key === key);
+    const min = definition?.min ?? 0;
+    this.userQuotaOverrides.set({
+      ...this.userQuotaOverrides(),
+      [key]: parsed === null || !Number.isFinite(parsed)
+        ? null
+        : Math.max(min, Math.floor(parsed))
+    });
+  }
+
   saveRole() {
     const role = this.selectedRole();
     if (!role) return;
@@ -316,12 +642,12 @@ export class UserManagementComponent implements OnInit {
         const roleId = newRole.id || newRole;
         if (roleId && this.roleProcessingOptions()) {
           this.adminService.updateRoleProcessingOptions(roleId, this.roleProcessingOptions()).subscribe(() => {
-            alert('Role created successfully!');
+            this.toast.success('Role created successfully.');
             this.loadRolesAndRights();
             this.selectedRole.set(null);
           });
         } else {
-          alert('Role created successfully!');
+          this.toast.success('Role created successfully.');
           this.loadRolesAndRights();
           this.selectedRole.set(null);
         }
@@ -331,12 +657,12 @@ export class UserManagementComponent implements OnInit {
         this.adminService.updateRoleRights(role.id, role.rights).subscribe(() => {
           if (this.roleProcessingOptions()) {
             this.adminService.updateRoleProcessingOptions(role.id, this.roleProcessingOptions()).subscribe(() => {
-              alert('Role updated successfully!');
+              this.toast.success('Role updated successfully.');
               this.loadRolesAndRights();
               this.selectedRole.set(null);
             });
           } else {
-            alert('Role updated successfully!');
+            this.toast.success('Role updated successfully.');
             this.loadRolesAndRights();
             this.selectedRole.set(null);
           }
@@ -355,26 +681,63 @@ export class UserManagementComponent implements OnInit {
   }
 
   addSection() {
-    const name = prompt('Enter new section name:');
-    if (name) {
-      this.activeCategory.set(name);
+    this.newSectionName = '';
+    this.showSectionForm.set(true);
+  }
+
+  saveSection() {
+    const name = this.newSectionName.trim();
+    if (!name) {
+      this.toast.show('Enter a section name first.', 'warning');
+      return;
     }
+
+    this.activeCategory.set(name);
+    this.showSectionForm.set(false);
+    this.toast.show('Section selected. Add a right to save it.', 'info');
+  }
+
+  cancelSectionForm() {
+    this.newSectionName = '';
+    this.showSectionForm.set(false);
   }
 
   addRightToSection(category: string) {
-    const name = prompt('Enter Right Display Name:');
-    if (!name) return;
-    const key = prompt('Enter Right Key (e.g. Category_Action):');
-    if (!key) return;
+    this.activeCategory.set(category);
+    this.newRightName = '';
+    this.newRightKey = '';
+    this.showRightForm.set(true);
+  }
+
+  saveRightToSection(category: string) {
+    const name = this.newRightName.trim();
+    const key = this.newRightKey.trim();
+    if (!name || !key) {
+      this.toast.show('Enter a right name and key first.', 'warning');
+      return;
+    }
 
     this.adminService.createRight({
       name,
       key,
       category,
       description: ''
-    }).subscribe(() => {
-      this.loadRolesAndRights();
+    }).subscribe({
+      next: () => {
+        this.toast.success('Right created successfully.');
+        this.showRightForm.set(false);
+        this.loadRolesAndRights();
+      },
+      error: () => {
+        this.toast.error('Failed to create right.');
+      }
     });
+  }
+
+  cancelRightForm() {
+    this.newRightName = '';
+    this.newRightKey = '';
+    this.showRightForm.set(false);
   }
 }
 

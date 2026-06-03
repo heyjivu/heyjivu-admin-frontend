@@ -14,6 +14,21 @@ export const routes: Routes = [
     loadComponent: () => import('./layout/shell/auth-layout/auth-layout').then(m => m.AuthLayout),
     children: [
       {
+        path: 'privacy',
+        loadComponent: () => import('./core/legal/pages/legal-page').then((m) => m.LegalPageComponent),
+        data: { page: 'privacy' },
+      },
+      {
+        path: 'terms',
+        loadComponent: () => import('./core/legal/pages/legal-page').then((m) => m.LegalPageComponent),
+        data: { page: 'terms' },
+      },
+      {
+        path: 'google-oauth-disclosure',
+        loadComponent: () => import('./core/legal/pages/legal-page').then((m) => m.LegalPageComponent),
+        data: { page: 'oauth' },
+      },
+      {
         path: 'login',
         canActivate: [guestGuard],
         loadComponent: () => import('./core/auth/pages/login/login.page').then((m) => m.LoginPage),
@@ -40,8 +55,29 @@ export const routes: Routes = [
       },
       {
         path: 'metrics',
+        pathMatch: 'full',
         canActivate: [authGuard, hasRight(Rights.Admin_Metrics_View)],
         loadComponent: () => import('./features/metrics/pages/reports.page').then((m) => m.ReportsPage),
+      },
+      {
+        path: 'metrics/audit',
+        canActivate: [authGuard, hasRight(Rights.Admin_Metrics_View)],
+        data: {
+          title: 'Audit Report',
+          subtitle: 'Admin-key AI usage records with cost, token, provider, role, and category filters.',
+          origin: 'Included'
+        },
+        loadComponent: () => import('./features/metrics/pages/audit-report.page').then((m) => m.AuditReportPage),
+      },
+      {
+        path: 'metrics/byok',
+        canActivate: [authGuard, hasRight(Rights.Admin_Metrics_View)],
+        data: {
+          title: 'BYOK Usage',
+          subtitle: 'All user-supplied key usage records across users, providers, roles, and categories.',
+          origin: 'BYOK'
+        },
+        loadComponent: () => import('./features/metrics/pages/audit-report.page').then((m) => m.AuditReportPage),
       },
       {
         path: 'users',
@@ -62,6 +98,11 @@ export const routes: Routes = [
         path: 'processing',
         canActivate: [authGuard, hasRight(Rights.Admin_Config_View)],
         loadComponent: () => import('./features/config/processing-config.page').then((m) => m.ProcessingConfigPage),
+      },
+      {
+        path: 'templates',
+        canActivate: [authGuard, hasRight(Rights.Admin_Config_View)],
+        loadComponent: () => import('./features/templates/template-studio.page').then((m) => m.TemplateStudioPage),
       },
       {
         path: 'memes',

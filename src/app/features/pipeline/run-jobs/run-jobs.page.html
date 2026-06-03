@@ -34,9 +34,16 @@
       >
         <i class="fas fa-sync mr-1.5"></i> Trend Run
       </button>
+      <button
+        class="pipeline-tab"
+        [class.active]="activeTab() === 'PricingSync'"
+        (click)="switchTab('PricingSync')"
+      >
+        <i class="fas fa-tags mr-1.5"></i> Pricing Sync
+      </button>
     </div>
 
-    <div class="glass-card m-4 p-5 flex flex-column gap-4">
+    <div class="glass-card run-config-card flex flex-column gap-4">
       <div class="flex flex-column gap-2" [ngSwitch]="activeTab()">
         
         <!-- Dashboard Trend Run -->
@@ -107,15 +114,80 @@
           </div>
         </div>
 
+        <!-- Pricing Sync -->
+        <div *ngSwitchCase="'PricingSync'" class="flex flex-column gap-3">
+          <div class="text-xl font-semibold text-color-primary flex align-items-center gap-2">
+            <i class="fas fa-tags text-amber-300"></i> OpenRouter Pricing Sync
+          </div>
+          <p class="text-sm text-color-secondary leading-relaxed">
+            Syncs OpenRouter model pricing into the local pricing cache. BYOK and platform calls use this current
+            catalog when writing AI usage logs, while actual spend reporting comes from saved usage rows by user, role, and key ownership.
+          </p>
+          <div class="job-meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">Automatic Cadence:</span>
+              <span class="meta-value">Every 6 hours</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Runtime Pricing Source:</span>
+              <span class="meta-value font-mono text-amber-200">Local model price table</span>
+            </div>
+          </div>
+
+          <div class="pricing-status-grid" *ngIf="pricingStatus() as status">
+            <div class="pricing-status-item">
+              <span class="meta-label">Latest sync</span>
+              <strong>{{ formatDate(status.lastSyncedAtUtc) }}</strong>
+            </div>
+            <div class="pricing-status-item">
+              <span class="meta-label">Current models</span>
+              <strong>{{ status.totalModels || 0 }}</strong>
+            </div>
+            <div class="pricing-status-item">
+              <span class="meta-label">Accounting source</span>
+              <strong>AI usage logs</strong>
+            </div>
+            <div class="pricing-status-item">
+              <span class="meta-label">OpenRouter keys</span>
+              <strong>{{ status.adminOpenRouterKeys || 0 }} admin / {{ status.byokOpenRouterKeys || 0 }} BYOK</strong>
+            </div>
+          </div>
+
+          <div class="pricing-sync-result" *ngIf="lastSyncResult() as result">
+            Synced {{ result.totalModels }} models at {{ formatDate(result.syncedAtUtc) }}.
+            {{ result.added }} added, {{ result.updated }} price changes, {{ result.unchanged }} unchanged,
+            {{ refreshedRows(result) }} cache rows refreshed.
+          </div>
+
+          <div class="pricing-model-list" *ngIf="pricingStatus()?.recentModels?.length">
+            <div class="pricing-model-row pricing-model-head">
+              <span>Model</span>
+              <span>Input</span>
+              <span>Output</span>
+              <span>Image</span>
+            </div>
+            <div class="pricing-model-row" *ngFor="let model of pricingStatus()?.recentModels">
+              <span>{{ model.modelName }}</span>
+              <span>{{ perTokenPrice(model.inputPricePerMillion) }}/tok</span>
+              <span>{{ perTokenPrice(model.outputPricePerMillion) }}/tok</span>
+              <span>{{ formatUsd(model.imagePricePerUnit, 6) }}</span>
+            </div>
+          </div>
+
+          <div class="pricing-sync-loading" *ngIf="isPricingLoading()">
+            <i class="fas fa-circle-notch fa-spin"></i>
+            <span>Loading pricing status...</span>
+          </div>
+        </div>
+
       </div>
 
       <div class="flex justify-content-start align-items-center mt-3 pt-3 border-top-1 border-color-muted">
-        <button class="btn btn-primary px-5 py-3" (click)="openRunDialog()" [disabled]="isLoading()">
-          <i class="fas fa-play mr-2"></i> Trigger Manual Run
+        <button class="btn btn-primary px-5 py-3" (click)="openRunDialog()" [disabled]="isLoading() || isPricingSyncing()">
+          <i class="fas mr-2" [class.fa-play]="!isPricingTab()" [class.fa-sync]="isPricingTab()" [class.fa-spin]="isPricingSyncing()"></i>
+          {{ isPricingTab() ? (isPricingSyncing() ? 'Syncing Prices...' : 'Sync Prices Now') : 'Trigger Manual Run' }}
         </button>
       </div>
     </div>
   </div>
 </div>
-
-

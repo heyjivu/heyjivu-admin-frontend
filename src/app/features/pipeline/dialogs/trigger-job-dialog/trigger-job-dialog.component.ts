@@ -25,6 +25,7 @@ export class TriggerJobDialogComponent implements OnInit {
   private toastService = inject(ToastService);
 
   data = this.config.data!;
+  title = this.config.header ?? 'Trigger Run';
 
   roles = signal<{ id: string; name: string }[]>([]);
   users = signal<{ id: string; username: string; email: string }[]>([]);

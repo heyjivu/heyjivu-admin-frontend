@@ -22,6 +22,6 @@
   border-radius: 999px;
   background: rgba(var(--accent-rgb), 0.15);
   color: var(--accent);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   line-height: 1.4;
 }

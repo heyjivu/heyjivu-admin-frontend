@@ -118,7 +118,7 @@
   align-items: center;
   gap: 10px;
   min-width: max-content;
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-display);
   font-weight: 800;
   transition: transform var(--transition-fast);
 
@@ -189,7 +189,7 @@
 
 .topbar-meta {
   color: var(--text3);
-  font: 700 11px/1 'JetBrains Mono', monospace;
+  font: 700 11px/1 var(--font-mono);
 }
 
 // Icon nav (collapsed sidebar)
@@ -339,7 +339,7 @@
     opacity: 0.9;
     font-size: 13px;
     font-weight: 600;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-ui);
   }
 
   &:hover {

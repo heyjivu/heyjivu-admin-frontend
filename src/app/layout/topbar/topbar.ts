@@ -40,6 +40,11 @@ export class Topbar implements OnInit {
     return window.innerWidth < this.mobileWidth;
   }
 
+  showSidebarToggle(): boolean {
+    const path = this.router.url.split(/[?#]/)[0];
+    return path.startsWith('/admin') && path !== '/admin/dashboard' && path !== '/admin';
+  }
+
   private checkMobile() {}
 
   toggleUserMenu() {

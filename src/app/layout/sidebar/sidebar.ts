@@ -53,7 +53,8 @@ export class Sidebar {
     { label: 'Roles & Rights', icon: 'fas fa-shield-alt', route: '/admin/users', queryParams: { tab: 'roles' }, section: 'users' },
     { label: 'Organizations', icon: 'fas fa-building', route: '/admin/users', queryParams: { tab: 'orgs' }, section: 'users' },
     { label: 'Global Combined', icon: 'fas fa-globe', route: '/admin/metrics', queryParams: { view: 'combined' }, section: 'metrics' },
-    { label: 'Egress Analysis', icon: 'fas fa-network-wired', route: '/admin/metrics', queryParams: { view: 'egress' }, section: 'metrics' },
+    { label: 'Audit Report', icon: 'fas fa-list-check', route: '/admin/metrics/audit', section: 'metrics' },
+    { label: 'BYOK Usage', icon: 'fas fa-key', route: '/admin/metrics/byok', section: 'metrics' },
     { label: 'Payment Settings', icon: 'fas fa-credit-card', route: '/admin/payments', section: 'payments' },
     { label: 'Brain Config', icon: 'fas fa-brain', route: '/admin/brain', right: Rights.Admin_Brain_View, section: 'brain' },
     { label: 'Run Jobs', icon: 'fas fa-play-circle', route: '/admin/run-jobs', section: 'pipeline' },
@@ -62,12 +63,13 @@ export class Sidebar {
     { label: 'Failed Jobs', icon: 'fas fa-exclamation-triangle', route: '/admin/pipeline', queryParams: { status: 'failed' }, section: 'pipeline' },
     { label: 'Completed Jobs', icon: 'fas fa-check-circle', route: '/admin/pipeline', queryParams: { status: 'done' }, section: 'pipeline' },
     { label: 'Processing Config', icon: 'fas fa-cog', route: '/admin/processing', right: Rights.Admin_Config_View, section: 'config' },
+    { label: 'Template Studio', icon: 'fas fa-wand-magic-sparkles', route: '/admin/templates', right: Rights.Admin_Config_View, section: 'templates' },
     { label: 'Memes', icon: 'fas fa-laugh', route: '/admin/memes', right: Rights.Memes_Manage, section: 'memes' },
-    { label: 'Free Guest', icon: 'fas fa-user', route: '/admin/plan-users', queryParams: { plan: 'free_guest' }, section: 'plan-users' },
-    { label: 'Social Merchant', icon: 'fas fa-store', route: '/admin/plan-users', queryParams: { plan: 'social_merchant' }, section: 'plan-users' },
-    { label: 'Pro Creator', icon: 'fas fa-star', route: '/admin/plan-users', queryParams: { plan: 'pro_creator' }, section: 'plan-users' },
-    { label: 'Agency Admin', icon: 'fas fa-building', route: '/admin/plan-users', queryParams: { plan: 'agency_pro' }, section: 'plan-users' },
-    { label: 'Expert BYOK', icon: 'fas fa-key', route: '/admin/plan-users', queryParams: { plan: 'expert_byok' }, section: 'plan-users' },
+    { label: 'Free', icon: 'fas fa-user', route: '/admin/plan-users', queryParams: { plan: 'free' }, section: 'plan-users' },
+    { label: 'Student', icon: 'fas fa-graduation-cap', route: '/admin/plan-users', queryParams: { plan: 'student' }, section: 'plan-users' },
+    { label: 'Merchant', icon: 'fas fa-store', route: '/admin/plan-users', queryParams: { plan: 'merchant' }, section: 'plan-users' },
+    { label: 'Premium', icon: 'fas fa-crown', route: '/admin/plan-users', queryParams: { plan: 'premium' }, section: 'plan-users' },
+    { label: 'BYOK', icon: 'fas fa-key', route: '/admin/plan-users', queryParams: { plan: 'byok' }, section: 'plan-users' },
   ];
 
   readonly currentSection = computed(() => {
@@ -78,6 +80,7 @@ export class Sidebar {
     if (path.startsWith('/admin/brain')) return 'brain';
     if (path.startsWith('/admin/pipeline') || path.startsWith('/admin/run-jobs')) return 'pipeline';
     if (path.startsWith('/admin/processing')) return 'config';
+    if (path.startsWith('/admin/templates')) return 'templates';
     if (path.startsWith('/admin/memes')) return 'memes';
     if (path.startsWith('/admin/plan-users')) return 'plan-users';
     return null;
@@ -132,6 +135,7 @@ export class Sidebar {
     if (section === 'brain') return 'Brain Config';
     if (section === 'pipeline') return 'Pipeline';
     if (section === 'config') return 'Processing Config';
+    if (section === 'templates') return 'Template Studio';
     if (section === 'memes') return 'Meme Management';
     if (section === 'plan-users') return 'Plan Users';
     return 'Admin Portal';

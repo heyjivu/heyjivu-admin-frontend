@@ -26,7 +26,7 @@ export const environment = {
 
   // ── Encryption ─────────────────────────────────────────────────
   // Must match EncryptionKey in appsettings.Development.json (exactly 32 chars)
-  masterEncryptionKey: 'dev_super_secret_encryption_key_32',
+  masterEncryptionKey: '',
 
   // ── Feature Flags ─────────────────────────────────────────────
   enableMockData: false,

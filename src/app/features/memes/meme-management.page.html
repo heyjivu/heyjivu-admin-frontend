@@ -74,7 +74,9 @@
                   <button class="meme-icon-btn" (click)="openEdit(meme)" title="Edit meme">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button class="meme-icon-btn meme-icon-btn--danger" (click)="deleteMeme(meme.id)" title="Delete meme">
+                  <button class="meme-icon-btn meme-icon-btn--danger"
+                          (click)="deleteMeme(meme.id)"
+                          [title]="pendingDeleteMemeId() === meme.id ? 'Click again to delete meme' : 'Delete meme'">
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>
@@ -107,7 +109,7 @@
             <div class="meme-modal__title">{{ editing() ? 'Edit Meme' : 'Create Meme' }}</div>
             <div class="meme-modal__sub">{{ editing() ? 'Update meme details below' : 'Fill in the details to add a new meme' }}</div>
           </div>
-          <button class="meme-modal__close" (click)="cancelForm()">
+          <button class="meme-modal__close" type="button" (click)="cancelForm()" aria-label="Close dialog">
             <i class="fas fa-times"></i>
           </button>
         </div>

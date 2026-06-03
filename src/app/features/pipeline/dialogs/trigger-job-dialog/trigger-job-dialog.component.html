@@ -1,3 +1,14 @@
+<div class="dialog-header">
+  <div>
+    <h2 class="dialog-title">{{ title }}</h2>
+    <p class="dialog-subtitle">Choose the admin-managed audience for this pipeline run.</p>
+  </div>
+
+  <button class="dialog-close" type="button" (click)="close()" [disabled]="isSubmitting()" aria-label="Close dialog">
+    <i class="pi pi-times"></i>
+  </button>
+</div>
+
 <div class="dialog-content">
   <div class="flex flex-column gap-4">
     <div class="flex flex-column gap-2">

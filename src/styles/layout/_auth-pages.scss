@@ -64,19 +64,19 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    border-radius: var(--radius-lg);
-    padding: 10px;
-    box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.25);
+    width: 74px;
+    height: 74px;
     transition: transform var(--transition-bounce);
     box-sizing: border-box;
+    position: relative;
 
     img {
       width: 100%;
       height: 100%;
       object-fit: contain;
+      border-radius: 50%;
+      position: relative;
+      z-index: 1;
     }
 
     &:hover {
@@ -85,12 +85,21 @@
   }
 
   h1 {
-    font-size: 24px;
-    font-weight: 800;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    font-size: 32px;
+    font-weight: 900;
     color: var(--text);
     margin: 18px 0 8px 0;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.045em;
     line-height: 1.15;
+    &.hj-brand-word--auth {
+      justify-content: center;
+      gap: 0.05em;
+      font-size: clamp(34px, 8vw, 42px);
+      letter-spacing: -0.065em;
+    }
   }
 
   p {
@@ -123,7 +132,7 @@
     font-weight: 700;
     color: var(--text2);
     margin-bottom: 8px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     transition: color var(--transition-fast);
@@ -407,6 +416,27 @@
   }
 }
 
+.auth-legal-links {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  color: var(--text3);
+  font-size: 12px;
+  line-height: 1.55;
+  text-align: center;
+
+  a {
+    color: var(--accent);
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
 // ── DIVIDER ─────────────────────────────────────────────────
 .divider {
   display: flex;
@@ -415,7 +445,7 @@
   margin: 24px 0;
   color: var(--text3);
   font-size: 11px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-weight: 600;
   letter-spacing: 0.05em;
 
