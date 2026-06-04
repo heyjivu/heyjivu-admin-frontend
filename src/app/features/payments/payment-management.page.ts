@@ -33,6 +33,18 @@ export class PaymentManagementPage implements OnInit {
     this.loadSettings();
   }
 
+  setEnvironment(environment: 'sandbox' | 'production') {
+    const checkoutUrl = environment === 'production'
+      ? 'https://getsafepay.com/checkout/pay'
+      : 'https://sandbox.api.getsafepay.com/checkout/pay';
+
+    this.form.set({
+      ...this.form(),
+      environment,
+      checkoutUrl
+    });
+  }
+
   loadSettings() {
     this.loading.set(true);
     this.paymentService.getSettings().subscribe({

@@ -63,12 +63,12 @@
             <label class="pm-label">Environment</label>
             <div class="pm-radio-group">
               <label class="pm-radio" [class.pm-radio--active]="form().environment === 'sandbox'">
-                <input type="radio" value="sandbox" [(ngModel)]="form().environment">
+                <input type="radio" value="sandbox" [ngModel]="form().environment" (ngModelChange)="setEnvironment('sandbox')">
                 <i class="fas fa-flask"></i>
                 <span>Sandbox</span>
               </label>
               <label class="pm-radio" [class.pm-radio--active]="form().environment === 'production'">
-                <input type="radio" value="production" [(ngModel)]="form().environment">
+                <input type="radio" value="production" [ngModel]="form().environment" (ngModelChange)="setEnvironment('production')">
                 <i class="fas fa-globe"></i>
                 <span>Production</span>
               </label>
@@ -168,7 +168,7 @@
               <div>
                 <div class="pm-info-title">Webhook Endpoint</div>
                 <div class="pm-info-desc">Set your Safepay webhook to:</div>
-                <code class="pm-code">https://yourapi.com/api/onboarding/webhooks/safepay</code>
+                <code class="pm-code">https://api.heyjivu.com/api/onboarding/webhooks/safepay</code>
               </div>
             </div>
 
