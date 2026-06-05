@@ -11,9 +11,9 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1rem;
-  border: 1px solid rgba(239, 68, 68, 0.22);
+  border: 1px solid var(--danger-alpha-22);
   border-radius: 8px;
-  background: rgba(239, 68, 68, 0.08);
+  background: var(--danger-alpha-08);
 }
 
 .audit-toolbar {
@@ -71,16 +71,16 @@
 .mini-btn,
 .clear-btn,
 .pager-btn {
-  border: 1px solid rgba(var(--accent-rgb), 0.24);
+  border: 1px solid var(--accent-alpha-24);
   border-radius: 8px;
   color: var(--accent);
-  background: rgba(var(--accent-rgb), 0.1);
+  background: var(--accent-alpha-10);
   font-weight: 800;
   transition: all 0.18s ease;
 
   &:hover:not(:disabled) {
-    border-color: rgba(var(--accent-rgb), 0.45);
-    background: rgba(var(--accent-rgb), 0.16);
+    border-color: var(--accent-alpha-45);
+    background: var(--accent-alpha-16);
     color: var(--text);
   }
 
@@ -112,17 +112,17 @@
   width: 100%;
   min-width: 0;
   height: 42px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   color: var(--text);
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--scrim-soft);
   outline: none;
   padding: 0 0.8rem;
   transition: all 0.18s ease;
 
   &:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.15);
+    box-shadow: 0 0 0 2px var(--accent-alpha-15);
   }
 }
 
@@ -131,8 +131,8 @@
   min-width: 0;
   height: 42px;
   border-radius: 8px;
-  border-color: rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.25);
+  border-color: var(--border-subtle);
+  background: var(--scrim-soft);
 
   .p-select-label {
     color: var(--text);
@@ -160,7 +160,7 @@
 
 .audit-grid-head {
   padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border-subtle);
 
   h2 {
     display: flex;
@@ -192,15 +192,15 @@
 }
 
 .mode-included {
-  color: #c6a3ff;
-  background: rgba(167, 139, 250, 0.14);
-  border: 1px solid rgba(167, 139, 250, 0.24);
+  color: var(--purple);
+  background: var(--purple-alpha-14);
+  border: 1px solid var(--purple-alpha-24);
 }
 
 .mode-byok {
   color: var(--accent2);
-  background: rgba(var(--accent2-rgb), 0.14);
-  border: 1px solid rgba(var(--accent2-rgb), 0.24);
+  background: var(--accent2-alpha-14);
+  border: 1px solid var(--accent2-alpha-24);
 }
 
 .audit-head-cost {
@@ -242,7 +242,7 @@
   flex: 1 1 auto;
   min-height: 180px;
   overflow: auto;
-  scrollbar-color: rgba(var(--accent-rgb), 0.55) rgba(255, 255, 255, 0.04);
+  scrollbar-color: var(--accent-alpha-55) var(--border-subtle);
   scrollbar-width: thin;
 
   &::-webkit-scrollbar {
@@ -251,14 +251,14 @@
   }
 
   &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.035);
+    background: var(--text-alpha-035);
     border-radius: 999px;
   }
 
   &::-webkit-scrollbar-thumb {
-    border: 2px solid rgba(10, 12, 16, 0.9);
+    border: 2px solid var(--bg-alpha-90);
     border-radius: 999px;
-    background: linear-gradient(180deg, var(--accent), var(--accent2));
+    background: var(--accent);
   }
 }
 
@@ -272,7 +272,7 @@
   th,
   td {
     padding: 0.85rem 0.75rem;
-    border-bottom: 1px solid rgba(var(--accent-rgb), 0.12);
+    border-bottom: 1px solid var(--accent-alpha-12);
     vertical-align: middle;
   }
 
@@ -280,7 +280,7 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    background: color-mix(in srgb, var(--bg2) 92%, #000 8%);
+    background: color-mix(in srgb, var(--bg2) 92%, var(--bg) 8%);
     color: var(--text3);
     font-family: var(--font-mono);
     font-size: 0.68rem;
@@ -295,14 +295,14 @@
     transition: background 0.16s ease;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.025);
+      background: var(--text-alpha-025);
     }
   }
 
   tfoot td {
     border-bottom: 0;
     color: var(--accent);
-    background: rgba(var(--accent-rgb), 0.055);
+    background: var(--accent-alpha-055);
     font-family: var(--font-mono);
     font-weight: 900;
   }
@@ -407,37 +407,37 @@
 
 .badge-indigo {
   color: var(--accent);
-  background: rgba(var(--accent-rgb), 0.12);
+  background: var(--accent-alpha-12);
 }
 
 .badge-accent2 {
   color: var(--accent2);
-  background: rgba(var(--accent2-rgb), 0.12);
+  background: var(--accent2-alpha-12);
 }
 
 .category-badge {
-  color: #27d6b6;
-  background: rgba(39, 214, 182, 0.12);
+  color: var(--accent2);
+  background: var(--accent2-alpha-12);
 }
 
 .category-text {
-  color: #f5b84b;
-  background: rgba(245, 184, 75, 0.13);
+  color: var(--warning);
+  background: var(--warning-alpha-13);
 }
 
 .category-image {
-  color: #54a6ff;
-  background: rgba(84, 166, 255, 0.13);
+  color: var(--accent);
+  background: var(--accent-alpha-13);
 }
 
 .category-video {
-  color: #ff6673;
-  background: rgba(255, 102, 115, 0.13);
+  color: var(--danger);
+  background: var(--danger-alpha-13);
 }
 
 .category-tts {
-  color: #a78bfa;
-  background: rgba(167, 139, 250, 0.13);
+  color: var(--purple);
+  background: var(--purple-alpha-13);
 }
 
 .empty-cell {
@@ -465,9 +465,9 @@
 .total-pill {
   min-width: 150px;
   padding: 0.85rem 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.028);
+  background: var(--text-alpha-028);
 
   span,
   strong,

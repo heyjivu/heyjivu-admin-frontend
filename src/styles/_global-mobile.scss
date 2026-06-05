@@ -7,7 +7,7 @@
 @media (max-width: 1024px) {
   .navbar {
     padding: 16px 24px;
-    
+
     .navbar-nav {
       gap: 16px;
     }
@@ -87,7 +87,7 @@
       top: 70px;
       left: 0;
       right: 0;
-      background: rgba(var(--bg-rgb), 0.95);
+      background: var(--bg-alpha-95);
       backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border);
       padding: 24px;
@@ -137,12 +137,12 @@
       h1 {
         font-size: 2.25rem;
       }
-      
+
       .hero-actions {
         flex-direction: column;
         gap: 12px;
         align-items: center;
-        
+
         .btn {
           width: 100%;
           max-width: 280px;

@@ -30,7 +30,7 @@
     border-color: var(--accent);
     background: var(--bg4);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
+    box-shadow: 0 0 0 3px var(--accent-alpha-20);
   }
 
   &::placeholder {
@@ -77,7 +77,7 @@ select.form-input {
 
   &.active {
     background: var(--accent);
-    color: #fff;
+    color: var(--text);
   }
 
   &:hover:not(.active) {
@@ -103,7 +103,7 @@ select.form-input {
   &:hover,
   &.drag-over {
     border-color: var(--accent);
-    background: rgba(var(--accent-rgb), 0.04);
+    background: var(--accent-alpha-04);
   }
 
   .upload-icon {
@@ -149,12 +149,13 @@ select.form-input {
 }
 
 .btn-primary {
-  background: var(--accent);
-  color: #fff;
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
+  border: 1px solid var(--button-primary-border);
 
   &:hover:not(:disabled) {
-    filter: brightness(1.1);
-    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.3);
+    background: var(--button-primary-hover-bg, var(--accent-hover));
+    box-shadow: none;
   }
 }
 
@@ -171,19 +172,19 @@ select.form-input {
 }
 
 .btn-soft {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--border-subtle);
   border: 1px solid var(--border);
   color: var(--text2);
 
   &:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--border-subtle);
     color: var(--text);
   }
 }
 
 .btn-danger {
   background: var(--red);
-  color: #fff;
+  color: var(--text);
 
   &:hover:not(:disabled) {
     filter: brightness(1.1);
@@ -207,7 +208,7 @@ select.form-input {
 
   &:hover:not(:disabled) {
     color: var(--text);
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--border-subtle);
   }
 }
 
@@ -258,15 +259,15 @@ select.form-input {
 }
 
 .info-box-accent {
-  background: rgba(var(--accent-rgb), 0.1);
-  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  background: var(--accent-alpha-10);
+  border: 1px solid var(--accent-alpha-20);
   color: var(--accent);
 }
 
 .info-box-warning {
-  background: rgba(245, 158, 11, 0.1);
-  border-left: 3px solid #f59e0b;
-  color: #fcd34d;
+  background: var(--warning-alpha-10);
+  border-left: 3px solid var(--warning);
+  color: var(--warning);
 }
 
 // ── Dialog Content Spacing ───────────────────────────────────
@@ -335,8 +336,8 @@ select.form-input {
   &:hover {
     transform: translateY(-4px);
     background: var(--bg3);
-    border-color: rgba(var(--accent-rgb), 0.4);
-    box-shadow: 0 10px 25px rgba(var(--accent-rgb), 0.15);
+    border-color: var(--accent-alpha-40);
+    box-shadow: 0 10px 25px var(--accent-alpha-15);
 
     .source-card-icon i {
       transform: scale(1.1);
@@ -348,7 +349,7 @@ select.form-input {
     width: 64px;
     height: 64px;
     border-radius: 14px;
-    background: rgba(var(--accent-rgb), 0.1);
+    background: var(--accent-alpha-10);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -386,15 +387,15 @@ select.form-input {
     gap: 8px;
 
     &.badge-accent {
-      background: rgba(var(--accent-rgb), 0.1);
+      background: var(--accent-alpha-10);
       color: var(--accent);
-      border: 1px solid rgba(var(--accent-rgb), 0.2);
+      border: 1px solid var(--accent-alpha-20);
     }
 
     &.badge-green {
-      background: rgba(var(--accent2-rgb), 0.1);
+      background: var(--accent2-alpha-10);
       color: var(--accent2);
-      border: 1px solid rgba(var(--accent2-rgb), 0.2);
+      border: 1px solid var(--accent2-alpha-20);
     }
   }
 }
@@ -414,7 +415,7 @@ select.form-input {
   margin-top: 0;
   font-weight: 600;
   color: var(--text);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-subtle);
   padding-bottom: 8px;
   margin-bottom: 12px;
   font-size: 13px;
@@ -432,7 +433,7 @@ select.form-input {
 }
 
 .settings-subcard {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--border-subtle);
   padding: 10px;
   border-radius: 6px;
 }
@@ -495,16 +496,16 @@ select.form-input {
   gap: 8px;
   padding: 10px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #a855f7, #6366f1);
+  background: linear-gradient(135deg, var(--purple), var(--accent));
   border: none;
   font-weight: 600;
-  color: #fff;
+  color: var(--text);
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover:not(:disabled) {
     filter: brightness(1.1);
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 0 12px var(--accent-alpha-30);
   }
 
   &:disabled {
@@ -522,15 +523,15 @@ select.form-input {
 }
 
 .badge-free-keys {
-  background: rgba(52, 211, 153, 0.15);
-  color: #34d399;
-  border-color: rgba(52, 211, 153, 0.2);
+  background: var(--success-alpha-15);
+  color: var(--success);
+  border-color: var(--success-alpha-20);
 }
 
 .badge-paid-keys {
-  background: rgba(96, 165, 250, 0.15);
-  color: #60a5fa;
-  border-color: rgba(96, 165, 250, 0.2);
+  background: var(--accent-alpha-15);
+  color: var(--accent);
+  border-color: var(--accent-alpha-20);
 }
 
 .btn-add-free-key {
@@ -553,7 +554,7 @@ select.form-input {
 
 .paid-keys-section {
   margin-top: 20px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  border-top: 1px dashed var(--border-subtle);
   padding-top: 20px;
 }
 

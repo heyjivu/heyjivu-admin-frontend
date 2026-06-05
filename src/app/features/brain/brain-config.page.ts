@@ -82,7 +82,8 @@ export class BrainConfigPage implements OnInit {
       description: 'Speech-to-text transcription models for audio processing',
       providers: [
         { name: 'Groq' },
-        { name: 'OpenAI' }
+        { name: 'OpenAI' },
+        { name: 'OpenRouter' }
       ]
     },
     {
@@ -94,6 +95,7 @@ export class BrainConfigPage implements OnInit {
         { name: 'Gemini' },
         { name: 'OpenAI' },
         { name: 'TogetherAI' },
+        { name: 'OpenRouter' },
         { name: 'StabilityAI' },
         { name: 'Pollinations', isFree: true }
       ]
@@ -116,6 +118,7 @@ export class BrainConfigPage implements OnInit {
       providers: [
         { name: 'Alibaba' },
         { name: 'TogetherAI' },
+        { name: 'OpenRouter' },
         { name: 'Generic' },
         { name: 'Luma' },
         { name: 'Kling' },
@@ -129,6 +132,7 @@ export class BrainConfigPage implements OnInit {
       description: 'AI voiceovers and speech synthesis engines',
       providers: [
         { name: 'TogetherAI' },
+        { name: 'OpenRouter' },
         { name: 'Gemini' },
         { name: 'OpenAI' },
         { name: 'Azure' },
@@ -208,7 +212,7 @@ export class BrainConfigPage implements OnInit {
 
   getCategoryKeysForDisplay(setting: BrainSettingsDto): BrainApiKeyDto[] {
     const keysList: BrainApiKeyDto[] = [];
-    
+
     // 1. Add all configured keys
     setting.apiKeys.forEach(k => {
       keysList.push(k);

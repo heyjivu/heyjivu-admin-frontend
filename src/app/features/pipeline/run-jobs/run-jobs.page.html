@@ -45,7 +45,7 @@
 
     <div class="glass-card run-config-card flex flex-column gap-4">
       <div class="flex flex-column gap-2" [ngSwitch]="activeTab()">
-        
+
         <!-- Dashboard Trend Run -->
         <div *ngSwitchCase="'DashboardTrend'" class="flex flex-column gap-3">
           <div class="text-xl font-semibold text-color-primary flex align-items-center gap-2">
@@ -156,7 +156,7 @@
           <div class="pricing-sync-result" *ngIf="lastSyncResult() as result">
             Synced {{ result.totalModels }} models at {{ formatDate(result.syncedAtUtc) }}.
             {{ result.added }} added, {{ result.updated }} price changes, {{ result.unchanged }} unchanged,
-            {{ refreshedRows(result) }} cache rows refreshed.
+            {{ result.removed || 0 }} stale removed, {{ refreshedRows(result) }} cache rows refreshed.
           </div>
 
           <div class="pricing-model-list" *ngIf="pricingStatus()?.recentModels?.length">

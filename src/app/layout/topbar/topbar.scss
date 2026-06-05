@@ -6,8 +6,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--border-subtle);
+  border: 1px solid var(--border);
   padding: 6px 12px;
   border-radius: 20px;
   color: var(--text);
@@ -19,8 +19,8 @@
   outline: none;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--border);
+    border-color: var(--border2);
   }
 
   .avatar {
@@ -59,11 +59,11 @@
   top: calc(100% + 8px);
   right: 0;
   width: 240px;
-  background: rgba(15, 23, 42, 0.85); /* Sleek dark fallback */
+  background: var(--scrim-soft); /* Sleek dark fallback */
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 30px var(--scrim-strong);
   padding: 8px;
   z-index: 300;
   display: flex;
@@ -71,14 +71,14 @@
   gap: 4px;
 
   &.glass {
-    background: rgba(18, 18, 29, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: var(--surface-overlay);
+    border: 1px solid var(--border);
   }
 
   .dropdown-header {
     padding: 8px 12px;
     text-align: left;
-    
+
     .signed-in {
       font-size: 10px;
       color: var(--text3);
@@ -98,7 +98,7 @@
 
   .dropdown-divider {
     height: 1px;
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--border-subtle);
     margin: 4px 0;
   }
 
@@ -124,7 +124,7 @@
     }
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--border);
       color: var(--text);
 
       i {
@@ -136,11 +136,11 @@
       justify-content: space-between;
       align-items: center;
       cursor: default;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      background: var(--border-subtle);
+      border: 1px solid var(--border-subtle);
 
       &:hover {
-        background: rgba(255, 255, 255, 0.02);
+        background: var(--border-subtle);
         color: var(--text2);
         i { color: var(--text3); }
       }
@@ -150,11 +150,11 @@
       justify-content: space-between;
       align-items: center;
       cursor: default;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      background: var(--border-subtle);
+      border: 1px solid var(--border-subtle);
 
       &:hover {
-        background: rgba(255, 255, 255, 0.02);
+        background: var(--border-subtle);
         color: var(--text2);
       }
     }
@@ -183,8 +183,8 @@
 }
 
 .lang-select-input {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--border-subtle);
+  border: 1px solid var(--border);
   color: var(--text);
   border-radius: 6px;
   font-family: inherit;
@@ -200,7 +200,7 @@
   }
 
   option {
-    background: #1e1e2d;
+    background: var(--bg2);
     color: var(--text);
   }
 }
@@ -225,7 +225,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--border2);
     transition: .3s;
     border-radius: 34px;
 
@@ -236,18 +236,18 @@
       width: 14px;
       left: 3px;
       bottom: 3px;
-      background-color: white;
+      background-color: var(--surface-inverse);
       transition: .3s;
       border-radius: 50%;
     }
   }
 
   input:checked + .slider {
-    background-color: var(--accent, #6366f1);
+    background-color: var(--accent);
   }
 
   input:focus + .slider {
-    box-shadow: 0 0 1px var(--accent, #6366f1);
+    box-shadow: 0 0 1px var(--accent);
   }
 
   input:checked + .slider:before {
@@ -269,10 +269,10 @@
   right: 6px;
   width: 7px;
   height: 7px;
-  background-color: var(--accent, #6366f1);
+  background-color: var(--accent);
   border-radius: 50%;
-  border: 1.5px solid rgba(15, 23, 42, 1);
-  box-shadow: 0 0 6px var(--accent, #6366f1);
+  border: 1.5px solid var(--bg);
+  box-shadow: 0 0 6px var(--accent);
 }
 
 .pipeline-dropdown {
@@ -280,11 +280,11 @@
   top: calc(100% + 8px);
   right: 0;
   width: 280px;
-  background: rgba(15, 23, 42, 0.85); /* Sleek dark fallback */
+  background: var(--scrim-soft); /* Sleek dark fallback */
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 30px var(--scrim-strong);
   padding: 8px;
   z-index: 300;
   display: flex;
@@ -292,8 +292,8 @@
   gap: 4px;
 
   &.glass {
-    background: rgba(18, 18, 29, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: var(--surface-overlay);
+    border: 1px solid var(--border);
   }
 
   .dropdown-header {
@@ -301,7 +301,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 12px;
-    
+
     .signed-in {
       font-size: 10px;
       color: var(--text3);
@@ -328,14 +328,14 @@
     transition: all 0.2s;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--border);
       color: var(--text);
     }
   }
 
   .dropdown-divider {
     height: 1px;
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--border-subtle);
     margin: 4px 0;
   }
 
@@ -355,7 +355,7 @@
       background: transparent;
     }
     &::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.15);
+      background: var(--border);
       border-radius: 2px;
     }
   }
@@ -403,12 +403,12 @@
     .job-percentage {
       font-size: 11px;
       font-weight: 700;
-      color: var(--accent, #6366f1);
+      color: var(--accent);
     }
 
     .job-progress-bg {
       height: 4px;
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--border);
       border-radius: 2px;
       overflow: hidden;
       margin: 4px 0;
@@ -416,7 +416,7 @@
 
     .job-progress-bar {
       height: 100%;
-      background: linear-gradient(90deg, var(--accent, #6366f1) 0%, #a855f7 100%);
+      background: linear-gradient(90deg, var(--accent) 0%, var(--purple) 100%);
       border-radius: 2px;
       transition: width 0.3s ease;
     }
@@ -445,7 +445,7 @@
     }
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--border);
       color: var(--text);
 
       i {

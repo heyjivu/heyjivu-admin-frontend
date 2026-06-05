@@ -1,8 +1,8 @@
-﻿<div class="topbar" [class.collapsed]="isMobile()">
-  <button 
+<div class="topbar" [class.collapsed]="isMobile()">
+  <button
     *ngIf="showSidebarToggle()"
-    class="sidebar-toggle-btn" 
-    (click)="uiStore.toggleCollapsed()" 
+    class="sidebar-toggle-btn"
+    (click)="uiStore.toggleCollapsed()"
     [attr.aria-label]="uiStore.isCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
     title="Toggle Sidebar"
   >
@@ -82,9 +82,9 @@
 
     <!-- Pipeline Tracker Widget -->
     <div class="pipeline-widget" (click)="$event.stopPropagation()">
-      <button 
-        class="icon-btn theme-btn relative" 
-        (click)="togglePipelineMenu($event)" 
+      <button
+        class="icon-btn theme-btn relative"
+        (click)="togglePipelineMenu($event)"
         [title]="hasActiveJobs() ? 'Active Pipelines Running' : 'Pipelines Status'"
       >
         <i class="fas" [class.fa-sync-alt]="!hasActiveJobs()" [class.fa-spin]="hasActiveJobs()" [class.fa-spinner]="hasActiveJobs()"></i>
@@ -116,7 +116,7 @@
               <span class="job-title">{{ job.title }}</span>
               <span class="job-percentage font-mono text-indigo-400">{{ job.progress }}%</span>
             </div>
-            
+
             <div class="job-progress-bg">
               <div class="job-progress-bar" [style.width.%]="job.progress"></div>
             </div>
@@ -160,4 +160,3 @@
     </div>
   </div>
 </div>
-

@@ -35,7 +35,7 @@
   justify-content: center;
   border-radius: 10px;
   background: var(--accent-gradient);
-  color: #080b10;
+  color: var(--bg);
   font-size: 12px;
   font-family: var(--font-mono);
   text-transform: uppercase;
@@ -57,7 +57,7 @@
     &:hover,
     &.active {
       color: var(--text);
-      background: rgba(var(--accent-rgb), 0.1);
+      background: var(--accent-alpha-10);
     }
   }
 }
@@ -170,7 +170,7 @@
 }
 
 .scope-row-head {
-  background: rgba(var(--accent-rgb), 0.08);
+  background: var(--accent-alpha-08);
 
   span {
     color: var(--text);

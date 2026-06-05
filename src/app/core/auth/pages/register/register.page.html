@@ -1,4 +1,4 @@
-﻿<div class="login-container">
+<div class="login-container">
   <div class="login-card glass" role="main" aria-label="Create Your heyjivu Account">
     <div class="register-header">
       <div class="hj-brand-mark hj-brand-mark--auth" aria-hidden="true">
@@ -14,9 +14,9 @@
       <p>Join heyjivu and build your personal content memory.</p>
     </div>
 
-    <form 
-      [formGroup]="registerForm" 
-      (ngSubmit)="onSubmit()" 
+    <form
+      [formGroup]="registerForm"
+      (ngSubmit)="onSubmit()"
       class="register-form"
       novalidate
       aria-label="Registration form"
@@ -25,10 +25,10 @@
         <label for="displayName">Full Name</label>
         <div class="input-wrapper" [class.has-error]="isFieldInvalid('displayName')">
           <i class="fas fa-user" aria-hidden="true"></i>
-          <input 
-            type="text" 
-            id="displayName" 
-            formControlName="displayName" 
+          <input
+            type="text"
+            id="displayName"
+            formControlName="displayName"
             placeholder="Enter your full name"
             autocomplete="name"
             [attr.aria-invalid]="isFieldInvalid('displayName')"
@@ -37,9 +37,9 @@
           >
           <span class="focus-ring" aria-hidden="true"></span>
         </div>
-        <div 
-          class="field-error" 
-          id="displayName-error" 
+        <div
+          class="field-error"
+          id="displayName-error"
           role="alert"
           *ngIf="isFieldInvalid('displayName') && showValidation('displayName')"
         >
@@ -52,10 +52,10 @@
         <label for="email">Email Address</label>
         <div class="input-wrapper" [class.has-error]="isFieldInvalid('email')">
           <i class="fas fa-envelope" aria-hidden="true"></i>
-          <input 
-            type="email" 
-            id="email" 
-            formControlName="email" 
+          <input
+            type="email"
+            id="email"
+            formControlName="email"
             placeholder="Enter your email"
             autocomplete="email"
             autocapitalize="none"
@@ -65,9 +65,9 @@
           >
           <span class="focus-ring" aria-hidden="true"></span>
         </div>
-        <div 
-          class="field-error" 
-          id="email-error" 
+        <div
+          class="field-error"
+          id="email-error"
           role="alert"
           *ngIf="isFieldInvalid('email') && showValidation('email')"
         >
@@ -81,19 +81,19 @@
         <label for="password">Password</label>
         <div class="input-wrapper password-field" [class.has-error]="isFieldInvalid('password')">
           <i class="fas fa-lock" aria-hidden="true"></i>
-          <input 
-            [type]="showPassword ? 'text' : 'password'" 
-            id="password" 
-            formControlName="password" 
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            id="password"
+            formControlName="password"
             placeholder="Create a password"
             autocomplete="new-password"
             [attr.aria-invalid]="isFieldInvalid('password')"
             [attr.aria-describedby]="isFieldInvalid('password') ? 'password-error' : null"
             (blur)="onFieldBlur('password')"
           >
-          <button 
-            type="button" 
-            class="password-toggle" 
+          <button
+            type="button"
+            class="password-toggle"
             (click)="togglePasswordVisibility()"
             [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
             [attr.aria-pressed]="showPassword"
@@ -102,9 +102,9 @@
           </button>
           <span class="focus-ring" aria-hidden="true"></span>
         </div>
-        <div 
-          class="field-error" 
-          id="password-error" 
+        <div
+          class="field-error"
+          id="password-error"
           role="alert"
           *ngIf="isFieldInvalid('password') && showValidation('password')"
         >
@@ -145,19 +145,19 @@
         <label for="confirmPassword">Confirm Password</label>
         <div class="input-wrapper password-field" [class.has-error]="isFieldInvalid('confirmPassword')">
           <i class="fas fa-check-circle" aria-hidden="true"></i>
-          <input 
-            [type]="showConfirmPassword ? 'text' : 'password'" 
-            id="confirmPassword" 
-            formControlName="confirmPassword" 
+          <input
+            [type]="showConfirmPassword ? 'text' : 'password'"
+            id="confirmPassword"
+            formControlName="confirmPassword"
             placeholder="Confirm your password"
             autocomplete="new-password"
             [attr.aria-invalid]="isFieldInvalid('confirmPassword')"
             [attr.aria-describedby]="isFieldInvalid('confirmPassword') ? 'confirmPassword-error' : null"
             (blur)="onFieldBlur('confirmPassword')"
           >
-          <button 
-            type="button" 
-            class="password-toggle" 
+          <button
+            type="button"
+            class="password-toggle"
             (click)="toggleConfirmPasswordVisibility()"
             [attr.aria-label]="showConfirmPassword ? 'Hide password' : 'Show password'"
             [attr.aria-pressed]="showConfirmPassword"
@@ -166,9 +166,9 @@
           </button>
           <span class="focus-ring" aria-hidden="true"></span>
         </div>
-        <div 
-          class="field-error" 
-          id="confirmPassword-error" 
+        <div
+          class="field-error"
+          id="confirmPassword-error"
           role="alert"
           *ngIf="isFieldInvalid('confirmPassword') && showValidation('confirmPassword')"
         >
@@ -183,8 +183,8 @@
         {{ store.error() }}
       </div>
 
-      <button 
-        type="submit" 
+      <button
+        type="submit"
         class="btn-register"
         [disabled]="registerForm.invalid || store.loading()"
         [attr.aria-disabled]="registerForm.invalid || store.loading()"
@@ -213,4 +213,3 @@
     </form>
   </div>
 </div>
-

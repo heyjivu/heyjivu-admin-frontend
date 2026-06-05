@@ -16,8 +16,8 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: rgba(var(--accent-rgb), 0.15);
-  border: 1px solid rgba(var(--accent-rgb), 0.25);
+  background: var(--accent-alpha-15);
+  border: 1px solid var(--accent-alpha-25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -28,7 +28,7 @@
 .pipeline-tabs {
   display: flex;
   gap: 4px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--border-subtle);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 4px;
@@ -57,25 +57,25 @@
 
   &:hover {
     color: var(--text2);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--border-subtle);
   }
 
   &.active {
-    background: rgba(var(--accent-rgb), 0.12);
+    background: var(--accent-alpha-12);
     color: var(--accent);
   }
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--border-subtle);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   backdrop-filter: blur(12px);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 32px 0 var(--scrim-soft);
   transition: transform 0.2s, box-shadow 0.2s;
 
   &:hover {
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 32px 0 var(--scrim-soft);
   }
 }
 
@@ -83,8 +83,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--border-subtle);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 16px;
   margin-top: 12px;
@@ -115,29 +115,29 @@
 }
 
 .border-color-muted {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-subtle);
 }
 
 // Dialog & input overrides for glass aesthetics
 ::ng-deep {
   .glass-dialog {
     .p-dialog-content {
-      background: #111116 !important;
+      background: var(--bg2) !important;
       color: var(--text) !important;
     }
     .p-dialog-footer {
-      background: #111116 !important;
+      background: var(--bg2) !important;
       border-top: 1px solid var(--border) !important;
     }
     .p-dialog-header {
-      background: #111116 !important;
+      background: var(--bg2) !important;
       color: var(--text) !important;
       border-bottom: 1px solid var(--border) !important;
     }
   }
 
   .glass-multiselect {
-    background: rgba(255, 255, 255, 0.05) !important;
+    background: var(--border-subtle) !important;
     border: 1px solid var(--border) !important;
     color: var(--text) !important;
 
@@ -147,9 +147,9 @@
     }
 
     .p-multiselect-panel {
-      background: #18181f !important;
+      background: var(--bg2) !important;
       border: 1px solid var(--border2) !important;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+      box-shadow: 0 10px 30px var(--scrim-strong) !important;
 
       .p-multiselect-item {
         color: var(--text2) !important;
@@ -157,12 +157,12 @@
         transition: background 0.2s;
 
         &:hover {
-          background: rgba(255, 255, 255, 0.05) !important;
+          background: var(--border-subtle) !important;
           color: var(--text) !important;
         }
 
         &.p-highlight {
-          background: rgba(var(--accent-rgb), 0.15) !important;
+          background: var(--accent-alpha-15) !important;
           color: var(--accent) !important;
         }
       }
@@ -171,9 +171,9 @@
 }
 
 .glass-alert {
-  background: rgba(245, 158, 11, 0.08);
-  border-left: 3px solid #f59e0b;
-  color: #fef3c7;
+  background: var(--warning-alpha-08);
+  border-left: 3px solid var(--warning);
+  color: var(--warning);
   padding: 12px;
   border-radius: var(--radius);
   font-size: 12px;
@@ -190,9 +190,9 @@
   flex-direction: column;
   gap: 6px;
   padding: 14px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--text-alpha-035);
 
   strong {
     color: var(--text);
@@ -207,9 +207,9 @@
   gap: 8px;
   padding: 12px 14px;
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(250, 204, 21, 0.24);
-  background: rgba(250, 204, 21, 0.08);
-  color: #f7d36b;
+  border: 1px solid var(--warning-alpha-24);
+  background: var(--warning-alpha-08);
+  color: var(--warning);
   font-size: 13px;
 }
 
@@ -226,7 +226,7 @@
   align-items: center;
   padding: 10px 12px;
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--text-alpha-035);
   color: var(--text2);
   font-size: 12px;
 

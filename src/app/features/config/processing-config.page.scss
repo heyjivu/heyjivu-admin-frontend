@@ -20,9 +20,9 @@
   border-radius: 10px;
   font-size: 13px;
   font-weight: 500;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  color: #34d399;
+  background: var(--success-alpha-12);
+  border: 1px solid var(--success-alpha-25);
+  color: var(--success);
   animation: fadeIn .3s ease;
   margin-bottom: 6px;
 
@@ -31,15 +31,15 @@
 
 // ── Section Card ──────────────────────────────────────────────────────
 .proc-section {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--border-subtle);
+  border: 1px solid var(--border-subtle);
   border-radius: 14px;
   overflow: hidden;
   transition: border-color 0.2s, box-shadow 0.2s;
 
   &:hover {
-    border-color: rgba(255, 255, 255, 0.12);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    border-color: var(--border);
+    box-shadow: 0 8px 32px var(--scrim-soft);
   }
 }
 
@@ -48,8 +48,8 @@
   align-items: center;
   gap: 14px;
   padding: 18px 22px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--border-subtle);
 }
 
 .proc-section__icon {
@@ -62,10 +62,10 @@
   font-size: 15px;
   flex-shrink: 0;
 
-  &--indigo { background: rgba(99,102,241,0.16); color: #818cf8; border: 1px solid rgba(99,102,241,0.2); }
-  &--emerald { background: rgba(16,185,129,0.16); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
-  &--violet { background: rgba(139,92,246,0.16); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); }
-  &--amber { background: rgba(245,158,11,0.16); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+  &--indigo { background: var(--accent-alpha-16); color: var(--accent); border: 1px solid var(--accent-alpha-20); }
+  &--emerald { background: var(--success-alpha-16); color: var(--success); border: 1px solid var(--success-alpha-20); }
+  &--violet { background: var(--purple-alpha-16); color: var(--purple); border: 1px solid var(--purple-alpha-20); }
+  &--amber { background: var(--warning-alpha-16); color: var(--warning); border: 1px solid var(--warning-alpha-20); }
 }
 
 .proc-section__title-group {
@@ -98,7 +98,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border-subtle);
 
   &:first-child { border-top: none; }
 
@@ -142,7 +142,7 @@
   width: 44px;
   height: 24px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--border);
   transition: background 0.2s;
   position: relative;
 
@@ -154,17 +154,17 @@
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.5);
+    background: var(--surface-glass-light);
     transition: transform 0.2s, background 0.2s;
   }
 }
 
 .proc-switch input:checked + .proc-switch__track {
-  background: rgba(99, 102, 241, 0.7);
+  background: var(--accent-alpha-70);
 
   &::after {
     transform: translateX(20px);
-    background: #fff;
+    background: var(--text);
   }
 }
 
@@ -208,8 +208,8 @@
 .proc-input {
   width: 100%;
   padding: 9px 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: var(--border-subtle);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   color: var(--text);
   font-size: 13px;
@@ -219,7 +219,7 @@
   &::placeholder { color: var(--text3); opacity: 0.6; }
   &:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    box-shadow: 0 0 0 3px var(--accent-alpha-12);
   }
 
   &--sm {
@@ -235,7 +235,7 @@
     padding-right: 30px;
     cursor: pointer;
 
-    option { background: #14141a; color: var(--text); }
+    option { background: var(--bg2); color: var(--text); }
   }
 }
 
@@ -255,8 +255,8 @@
   align-items: center;
   padding: 0 12px;
   height: 38px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: var(--border-subtle);
+  border: 1px solid var(--border-subtle);
   border-left: none;
   border-radius: 0 8px 8px 0;
   font-size: 12px;
@@ -267,7 +267,7 @@
 // ── Divider ───────────────────────────────────────────────────────────
 .proc-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--border-subtle);
   margin: 4px 0;
 }
 
@@ -281,7 +281,7 @@
   color: var(--text2);
   padding: 12px 0 4px;
   margin-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border-subtle);
 
   i { font-size: 12px; color: var(--text3); }
 }
@@ -307,10 +307,10 @@
   padding: 8px 0 0;
 
   .btn-primary {
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    background: var(--button-primary-bg);
     color: var(--bg);
     font-weight: 700;
-    box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.25);
+    box-shadow: 0 4px 16px var(--accent-alpha-25);
     padding: 13px 28px;
     border-radius: 11px;
     border: none;
@@ -321,7 +321,7 @@
     &:hover:not(:disabled) {
       opacity: 0.92;
       transform: translateY(-1px);
-      box-shadow: 0 6px 24px rgba(var(--accent-rgb), 0.35);
+      box-shadow: 0 6px 24px var(--accent-alpha-35);
     }
   }
 }

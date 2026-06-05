@@ -24,6 +24,7 @@ export interface OpenRouterPricingSyncResultDto {
   added: number;
   updated: number;
   unchanged: number;
+  removed?: number;
   refreshed?: number;
   snapshotRowsAdded?: number;
   totalModels: number;
@@ -86,8 +87,3 @@ export class AdminPipelineService {
     );
   }
 }
-
-
-
-
-

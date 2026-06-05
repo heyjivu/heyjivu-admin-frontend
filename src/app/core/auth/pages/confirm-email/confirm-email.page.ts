@@ -1,4 +1,4 @@
-﻿import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthStore } from '../../state/auth.store';
@@ -20,7 +20,7 @@ import { AuthStore } from '../../state/auth.store';
           </span>
         </div>
         <h1 style="margin-bottom: 10px; font-size: 1.5rem;">Confirming Your Email</h1>
-        
+
         <div *ngIf="store.loading()" style="color: var(--text2); margin: 20px 0;">
           <i class="fas fa-spinner fa-spin fa-2x"></i>
           <p style="margin-top: 15px;">Please wait while we verify your account...</p>
@@ -59,5 +59,3 @@ export class ConfirmEmailPage implements OnInit {
     });
   }
 }
-
-

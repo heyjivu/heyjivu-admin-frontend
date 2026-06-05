@@ -2,10 +2,17 @@
 // Applied via styleClass="consistent-dialog" on DialogService.open()
 
 .consistent-dialog {
+  &.p-dialog,
+  .p-dialog {
+    background: var(--workspace-surface-strong) !important;
+    color: var(--text) !important;
+  }
+
   .p-dialog-header {
     padding: 18px 24px;
     border-bottom: 1px solid var(--border);
-    background: rgba(var(--bg-rgb), 0.4);
+    background: var(--workspace-surface-strong) !important;
+    color: var(--text);
 
     .p-dialog-title {
       font-family: var(--font-display);
@@ -15,28 +22,41 @@
     }
 
     .p-dialog-header-actions {
-      .p-dialog-header-icon {
-        color: var(--text3);
+      .p-dialog-header-icon,
+      .p-button {
+        color: var(--text2) !important;
+        background: var(--button-secondary-bg) !important;
         transition: color var(--transition-fast);
 
         &:hover {
           color: var(--text);
+          background: var(--button-hover-bg) !important;
         }
       }
     }
   }
 
+  .p-dialog-header .p-button {
+    color: var(--text2) !important;
+    background: var(--button-secondary-bg) !important;
+
+    &:hover {
+      color: var(--text) !important;
+      background: var(--button-hover-bg) !important;
+    }
+  }
+
   .p-dialog-content {
     padding: 0;
-    background: color-mix(in srgb, var(--bg2) 95%, transparent);
-    color: var(--text);
+    background: var(--workspace-surface-strong) !important;
+    color: var(--text) !important;
     overflow-y: auto;
   }
 
   .dialog-header {
     padding: 18px 24px;
     border-bottom: 1px solid var(--border);
-    background: rgba(var(--bg-rgb), 0.4);
+    background: var(--workspace-surface-strong) !important;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -75,7 +95,7 @@
 
     &:hover:not(:disabled) {
       color: var(--text);
-      background: rgba(255, 255, 255, 0.06);
+      background: var(--border-subtle);
     }
 
     &:disabled {
@@ -97,7 +117,7 @@
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    background: rgba(0, 0, 0, 0.15);
+    background: var(--workspace-surface-strong) !important;
   }
 
   .p-dialog-footer {
@@ -106,12 +126,12 @@
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    background: rgba(0, 0, 0, 0.15);
+    background: var(--workspace-surface-strong) !important;
     margin: 0;
   }
 
   .p-dialog-mask {
-    background: rgba(var(--bg-rgb), 0.75);
+    background: var(--bg-alpha-75);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }

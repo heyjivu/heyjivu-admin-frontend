@@ -153,7 +153,7 @@ function quotaCard(label: QuotaCard['label'], icon: string, lines: Array<[string
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-subtle);
     }
 
     .plan-tab.active {
@@ -220,7 +220,7 @@ function quotaCard(label: QuotaCard['label'], icon: string, lines: Array<[string
     .stack-list {
       margin-top: 0.75rem;
       padding-top: 0.75rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid var(--border-subtle);
     }
 
     .stack-heading {

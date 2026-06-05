@@ -15,9 +15,9 @@
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
-  border: 1px solid rgba(var(--text-rgb, 247, 249, 252), 0.07);
+  border: 1px solid var(--text-alpha-07);
   border-radius: 10px;
-  background: rgba(var(--bg2-rgb), 0.54);
+  background: var(--bg2-alpha-54);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow: none;
@@ -114,8 +114,8 @@
   justify-content: center;
   flex-shrink: 0;
   color: var(--accent) !important;
-  background: rgba(var(--accent-rgb), 0.1) !important;
-  border: 1px solid rgba(var(--accent-rgb), 0.2) !important;
+  background: var(--accent-alpha-10) !important;
+  border: 1px solid var(--accent-alpha-20) !important;
   box-shadow: none !important;
 }
 
@@ -131,8 +131,8 @@
 .role-editor-container,
 .role-placeholder,
 .modal-container {
-  background: rgba(var(--bg2-rgb), 0.52) !important;
-  border: 1px solid rgba(var(--text-rgb, 247, 249, 252), 0.07) !important;
+  background: var(--bg2-alpha-52) !important;
+  border: 1px solid var(--text-alpha-07) !important;
   border-radius: 10px !important;
   box-shadow: none !important;
 }
@@ -168,8 +168,8 @@
 .premium-tabs,
 .pipeline-tabs {
   border-radius: 10px !important;
-  border: 1px solid rgba(var(--text-rgb, 247, 249, 252), 0.07) !important;
-  background: rgba(var(--bg2-rgb), 0.45) !important;
+  border: 1px solid var(--text-alpha-07) !important;
+  background: var(--bg2-alpha-45) !important;
   box-shadow: none !important;
   padding: 4px !important;
   margin-bottom: 14px !important;

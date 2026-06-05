@@ -1,10 +1,10 @@
-﻿// ============================================================
+// ============================================================
 //  AI CONTENT GENERATION - GLOBAL STYLES
 //  Industry-standard SCSS architecture
 //  Supports: Dark/Light themes, Responsive, Utility classes
 // ============================================================
 
-// â”€â”€ @use must come first (SCSS requirement) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── @use must come first (SCSS requirement) ──────────────────
 @use 'styles/base/theme';
 @use 'styles/base/brand';
 @use 'styles/base/typography';
@@ -21,17 +21,20 @@
 @use 'styles/base/forms';
 @use '@ctrl/ngx-emoji-mart/picker';
 
-// â”€â”€ PrimeFlex & PrimeIcons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── PrimeFlex & PrimeIcons ──────────────────────────────────
 @import 'primeflex/primeflex.css';
 @import 'primeicons/primeicons.css';
 
 
-// â”€â”€ Google Fonts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Google Fonts ─────────────────────────────────────────────
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-// â”€â”€ Base Resets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-* {
+// ── Base Resets ──────────────────────────────────────────────
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+  border-color: var(--transparent) !important;
 }
 
 html, body {
@@ -40,11 +43,8 @@ html, body {
 
 body {
   margin: 0;
-  background:
-    linear-gradient(180deg, rgba(var(--accent-rgb), 0.08), transparent 280px),
-    linear-gradient(135deg, rgba(var(--accent2-rgb), 0.06), transparent 45%),
-    linear-gradient(180deg, rgba(var(--bg3-rgb), 0.72), rgba(var(--bg-rgb), 1) 48%),
-    var(--bg);
+  background: var(--app-background);
+  background-color: var(--bg);
   color: var(--text);
   font-family: var(--font-ui);
   font-size: 14px;
@@ -56,17 +56,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 
   &::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    opacity: 0.025;
-    pointer-events: none;
-    z-index: 9999;
-    mix-blend-mode: overlay;
+    display: none;
   }
 }
 
@@ -96,7 +86,7 @@ a {
   text-decoration: none;
 }
 
-// â”€â”€ Scrollbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Scrollbar ────────────────────────────────────────────────
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -117,7 +107,7 @@ a {
   background: var(--text3);
 }
 
-// â”€â”€ Typography Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Typography Helpers ───────────────────────────────────────
 .font-syne {
   font-family: var(--font-display);
 }
@@ -127,13 +117,12 @@ a {
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  background: none;
+  color: var(--accent);
+  -webkit-text-fill-color: currentColor;
 }
 
-// â”€â”€ Layout Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Layout Helpers ───────────────────────────────────────────
 .app-layout {
   display: flex;
   height: calc(100vh - var(--topbar));
@@ -157,7 +146,7 @@ a {
   }
 }
 
-// â”€â”€ Screen / Page Wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Screen / Page Wrapper ────────────────────────────────────
 .screen {
   display: flex;
   flex-direction: column;
@@ -178,7 +167,7 @@ a {
   gap: 16px;
   border-bottom: 1px solid var(--border);
   background:
-    linear-gradient(180deg, rgba(var(--bg2-rgb), 0.88), rgba(var(--bg2-rgb), 0.68)),
+    linear-gradient(180deg, var(--bg2-alpha-88), var(--bg2-alpha-68)),
     color-mix(in srgb, var(--bg2) 80%, transparent);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -192,7 +181,7 @@ a {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 0.15), transparent);
+    background: linear-gradient(90deg, transparent, var(--accent-alpha-15), transparent);
     opacity: 0;
     transition: opacity var(--transition-base);
   }
@@ -222,7 +211,7 @@ a {
   padding: 24px 28px 36px;
 }
 
-// â”€â”€ Table Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Table Styles ─────────────────────────────────────────────
 table {
   width: 100%;
   border-collapse: collapse;
@@ -240,22 +229,22 @@ th {
   color: var(--text3);
   font: 800 11px/1 var(--font-mono);
   text-transform: uppercase;
-  background: linear-gradient(180deg, rgba(var(--bg-rgb), 0.3), transparent);
+  background: linear-gradient(180deg, var(--bg-alpha-30), transparent);
 }
 
 tbody tr {
   transition: background var(--transition-fast);
 
   &:hover {
-    background: rgba(var(--accent-rgb), 0.04);
+    background: var(--accent-alpha-04);
   }
 
   &:active {
-    background: rgba(var(--accent-rgb), 0.08);
+    background: var(--accent-alpha-08);
   }
 }
 
-// â”€â”€ Visibility Utilities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Visibility Utilities ─────────────────────────────────────
 .hide-on-mobile {
   @media (max-width: 1000px) {
     display: none !important;
@@ -269,18 +258,18 @@ tbody tr {
   }
 }
 
-// â”€â”€ Emoji Mart Premium Glassmorphic Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Emoji Mart Premium Glassmorphic Styles ───────────────────
 
 
 .emoji-mart {
   font-family: inherit !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid var(--border-subtle) !important;
   border-radius: 12px !important;
-  background: rgba(15, 17, 26, 0.96) !important;
+  background: var(--surface-overlay) !important;
   backdrop-filter: blur(14px) !important;
   -webkit-backdrop-filter: blur(14px) !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65) !important;
-  color: #ffffff !important;
+  box-shadow: 0 10px 30px var(--scrim-strong) !important;
+  color: var(--text) !important;
   width: 100% !important;
 }
 
@@ -289,22 +278,22 @@ tbody tr {
 }
 
 .emoji-mart-search input {
-  background: rgba(0, 0, 0, 0.45) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: var(--scrim-strong) !important;
+  border: 1px solid var(--border-subtle) !important;
   border-radius: 8px !important;
-  color: #ffffff !important;
+  color: var(--text) !important;
   padding: 8px 12px !important;
   outline: none !important;
   font-size: 0.85rem !important;
 }
 
 .emoji-mart-search input::placeholder {
-  color: rgba(255, 255, 255, 0.35) !important;
+  color: var(--border2) !important;
 }
 
 .emoji-mart-category-label span {
-  background: rgba(15, 17, 26, 0.98) !important;
-  color: #94a3b8 !important;
+  background: var(--surface-overlay) !important;
+  color: var(--text3) !important;
   font-weight: 700 !important;
   font-size: 0.8rem !important;
   text-transform: uppercase !important;
@@ -314,28 +303,28 @@ tbody tr {
 .emoji-mart-category-icons {
   display: flex !important;
   justify-content: space-around !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
   padding: 8px 0 !important;
-  background: rgba(0, 0, 0, 0.2) !important;
+  background: var(--scrim-soft) !important;
 }
 
 .emoji-mart-bar {
-  border-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: var(--border-subtle) !important;
 }
 
 .emoji-mart-anchor {
-  color: #64748b !important;
+  color: var(--text3) !important;
   transition: all 0.2s !important;
   padding: 6px 10px !important;
 }
 
 .emoji-mart-anchor:hover {
-  color: #a5b4fc !important;
+  color: var(--purple) !important;
 }
 
 .emoji-mart-anchor-selected {
-  color: #6366f1 !important;
-  border-bottom-color: #6366f1 !important;
+  color: var(--purple) !important;
+  border-bottom-color: var(--purple) !important;
 }
 
 .emoji-mart-skin-swatches {
@@ -344,7 +333,7 @@ tbody tr {
 }
 
 .emoji-mart-scroll {
-  background: rgba(0, 0, 0, 0.1) !important;
+  background: var(--scrim-soft) !important;
   height: 220px !important;
 }
 
@@ -352,7 +341,7 @@ tbody tr {
   display: none !important; // Hide default bottom preview box to make it compact & light
 }
 
-// â”€â”€ Accessibility: Reduced Motion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Accessibility: Reduced Motion ─────────────────────────────
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
@@ -360,7 +349,7 @@ tbody tr {
   }
 }
 
-// â”€â”€ Theme-Adaptive PrimeFlex & Component Overrides â”€â”€
+// ── Theme-Adaptive PrimeFlex & Component Overrides ──
 
 // Scrollbars Styling
 ::-webkit-scrollbar {
@@ -383,7 +372,7 @@ tbody tr {
 input:focus, textarea:focus, select:focus, .p-inputtext:focus {
   outline: none !important;
   border-color: var(--accent) !important;
-  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.15) !important;
+  box-shadow: 0 0 0 2px var(--accent-alpha-15) !important;
 }
 
 // PrimeNG Dropdown & Overlay Panel Overrides
@@ -391,14 +380,14 @@ input:focus, textarea:focus, select:focus, .p-inputtext:focus {
   background: var(--bg2) !important;
   border: 1px solid var(--border) !important;
   box-shadow: var(--shadow) !important;
-  
+
   .p-dropdown-items, .p-multiselect-items {
     background: transparent !important;
   }
-  
+
   .p-dropdown-item, .p-multiselect-item {
     color: var(--text2) !important;
-    
+
     &:hover, &.p-highlight {
       background: var(--bg3) !important;
       color: var(--text) !important;
@@ -457,7 +446,7 @@ input:focus, textarea:focus, select:focus, .p-inputtext:focus {
 
 // Dynamic Background Overrides
 .bg-indigo-900, .bg-indigo-950, .bg-indigo-900-opacity, .bg-indigo-950-opacity {
-  background: rgba(var(--accent-rgb), 0.12) !important;
+  background: var(--accent-alpha-12) !important;
   color: var(--accent) !important;
 }
 .bg-indigo-600, .bg-indigo-500 {
@@ -466,22 +455,22 @@ input:focus, textarea:focus, select:focus, .p-inputtext:focus {
 }
 
 .bg-blue-900, .bg-blue-950, .bg-blue-900-opacity, .bg-blue-950-opacity {
-  background: rgba(var(--accent2-rgb), 0.12) !important;
+  background: var(--accent2-alpha-12) !important;
   color: var(--accent2) !important;
 }
 
 .bg-orange-900, .bg-orange-950, .bg-orange-900-opacity, .bg-orange-950-opacity {
-  background: rgba(var(--amber-rgb), 0.12) !important;
+  background: var(--warning-alpha-12) !important;
   color: var(--amber) !important;
 }
 
 .bg-green-900, .bg-green-950, .bg-green-900-opacity, .bg-green-950-opacity {
-  background: rgba(var(--green-rgb), 0.12) !important;
+  background: var(--success-alpha-12) !important;
   color: var(--green) !important;
 }
 
 .bg-red-900, .bg-red-950, .bg-red-900-opacity, .bg-red-950-opacity {
-  background: rgba(var(--red-rgb), 0.12) !important;
+  background: var(--danger-alpha-12) !important;
   color: var(--red) !important;
 }
 
@@ -491,24 +480,21 @@ input:focus, textarea:focus, select:focus, .p-inputtext:focus {
 }
 
 // Dynamic Borders Overrides
-.border-indigo-900, .border-indigo-800 { border-color: rgba(var(--accent-rgb), 0.25) !important; }
-.border-blue-900, .border-blue-800 { border-color: rgba(var(--accent2-rgb), 0.25) !important; }
-.border-orange-900, .border-orange-800 { border-color: rgba(var(--amber-rgb), 0.25) !important; }
-.border-green-900, .border-green-800 { border-color: rgba(var(--green-rgb), 0.25) !important; }
-.border-red-900, .border-red-800 { border-color: rgba(var(--red-rgb), 0.25) !important; }
+.border-indigo-900, .border-indigo-800 { border-color: var(--accent-alpha-25) !important; }
+.border-blue-900, .border-blue-800 { border-color: var(--accent2-alpha-25) !important; }
+.border-orange-900, .border-orange-800 { border-color: var(--warning-alpha-25) !important; }
+.border-green-900, .border-green-800 { border-color: var(--success-alpha-25) !important; }
+.border-red-900, .border-red-800 { border-color: var(--danger-alpha-25) !important; }
 
 // Active button/status overrides
 .bg-indigo-900.text-indigo-300 {
-  background: rgba(var(--accent-rgb), 0.15) !important;
+  background: var(--accent-alpha-15) !important;
   color: var(--accent) !important;
 }
 
 .bg-blue-900.text-blue-300 {
-  background: rgba(var(--accent2-rgb), 0.15) !important;
+  background: var(--accent2-alpha-15) !important;
   color: var(--accent2) !important;
 }
 
 // Trigger Sass reload
-
-
-

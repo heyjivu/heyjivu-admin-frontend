@@ -41,16 +41,16 @@ interface CostCategoryCard {
 })
 export class ReportsPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
-  
+
   private readonly dashboardService = inject(DashboardService);
   readonly Icons = AppIcons;
   readonly isSuperAdmin = signal(true);
   private readonly usdToPkrRate = USD_TO_PKR_RATE;
 
-  
+
 
   activeTab = signal<'combined' | 'byok' | 'company'>('combined');
-  
+
   loading = signal(false);
   error = signal<string | null>(null);
 
@@ -59,7 +59,7 @@ export class ReportsPage implements OnInit {
   toDate = signal<string>('');
   selectedRole = signal<string>('');
   selectedUser = signal<string>('');
-  
+
   roles = [{ label: 'All Roles', value: '' }, { label: 'BYOK', value: 'ExpertBYOK' }, { label: 'Free', value: 'FreeGuest' }, { label: 'Premium', value: 'Company' }];
   users = signal<any[]>([{ label: 'All Users', value: '' }]);
 
@@ -69,7 +69,7 @@ export class ReportsPage implements OnInit {
   // Chart configs
   chartViewOptions = [{ label: 'Area', value: 'area' }, { label: 'Bar', value: 'bar' }];
   chartView = signal<'area' | 'bar'>('area');
-  
+
   costBreakdownViewOptions = [{ label: 'Donut', value: 'donut' }, { label: 'Pie', value: 'pie' }];
   costBreakdownView = signal<'donut' | 'pie'>('donut');
 
@@ -79,11 +79,11 @@ export class ReportsPage implements OnInit {
   adminCategoryMixChartOptions: any;
 
   private readonly categoryDefinitions: Array<{ category: CostCategoryKey; label: string; icon: string; tone: string; color: string }> = [
-    { category: 'Text', label: 'Text', icon: 'fas fa-font', tone: 'amber', color: '#f5b84b' },
-    { category: 'Image', label: 'Image', icon: 'fas fa-image', tone: 'blue', color: '#54a6ff' },
-    { category: 'Video', label: 'Video', icon: 'fas fa-film', tone: 'rose', color: '#ff6673' },
-    { category: 'TTS', label: 'TTS', icon: 'fas fa-microphone-lines', tone: 'violet', color: '#a78bfa' },
-    { category: 'Other', label: 'Other', icon: 'fas fa-layer-group', tone: 'teal', color: '#27d6b6' }
+    { category: 'Text', label: 'Text', icon: 'fas fa-font', tone: 'amber', color: 'var(--warning)' },
+    { category: 'Image', label: 'Image', icon: 'fas fa-image', tone: 'blue', color: 'var(--accent)' },
+    { category: 'Video', label: 'Video', icon: 'fas fa-film', tone: 'rose', color: 'var(--danger)' },
+    { category: 'TTS', label: 'TTS', icon: 'fas fa-microphone-lines', tone: 'violet', color: 'var(--purple)' },
+    { category: 'Other', label: 'Other', icon: 'fas fa-layer-group', tone: 'teal', color: 'var(--accent2)' }
   ];
 
   readonly categoryCostCards = computed<CostCategoryCard[]>(() => this.buildCategoryCards(this.combinedReport()));
@@ -126,7 +126,7 @@ export class ReportsPage implements OnInit {
   }
 
   loadReports() {
-    
+
     this.loading.set(true);
     this.error.set(null);
 
@@ -156,35 +156,35 @@ export class ReportsPage implements OnInit {
         { name: 'Included Usage', data: [] },
         { name: 'BYOK Usage', data: [] }
       ],
-      chart: { type: this.chartView(), height: 320, toolbar: { show: false }, background: 'transparent', foreColor: '#8d9caf' },
-      colors: ['#a78bfa', '#ff6673'],
+      chart: { type: this.chartView(), height: 320, toolbar: { show: false }, background: 'transparent', foreColor: 'var(--text3)' },
+      colors: ['var(--purple)', 'var(--danger)'],
       dataLabels: { enabled: false },
       stroke: { curve: 'smooth', width: 2 },
       fill: { opacity: 0.8 },
       xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false } },
       yaxis: {
-        title: { text: 'PKR', style: { color: '#8d9caf' } },
+        title: { text: 'PKR', style: { color: 'var(--text3)' } },
         labels: { formatter: (value: number) => this.formatPkrCompactFromPkr(value) }
       },
       tooltip: {
         theme: 'dark',
         y: { formatter: (value: number) => this.formatPkrUsdFromPkr(value) }
       },
-      grid: { borderColor: 'rgba(148, 163, 184, 0.1)', strokeDashArray: 4 }
+      grid: { borderColor: 'var(--text3-alpha-10)', strokeDashArray: 4 }
     };
 
     this.adminBreakdownChartOptions = {
       series: [50, 50],
       labels: ['Included', 'BYOK'],
-      chart: { type: this.costBreakdownView(), height: 320, background: 'transparent', foreColor: '#8d9caf' },
-      colors: ['#a78bfa', '#ff6673'],
+      chart: { type: this.costBreakdownView(), height: 320, background: 'transparent', foreColor: 'var(--text3)' },
+      colors: ['var(--purple)', 'var(--danger)'],
       dataLabels: { enabled: true, formatter: (val: any) => `${val?.toFixed(0) || 0}%` },
-      legend: { position: 'bottom', labels: { colors: '#8d9caf' } },
+      legend: { position: 'bottom', labels: { colors: 'var(--text3)' } },
       tooltip: {
         theme: 'dark',
         y: { formatter: (value: number) => this.formatPkrUsdFromPkr(value) }
       },
-      stroke: { colors: ['#0f141c'] }
+      stroke: { colors: ['var(--bg2)'] }
     };
 
     this.adminCategoryStackChartOptions = {
@@ -198,9 +198,9 @@ export class ReportsPage implements OnInit {
         stacked: true,
         toolbar: { show: false },
         background: 'transparent',
-        foreColor: '#8d9caf'
+        foreColor: 'var(--text3)'
       },
-      colors: ['#a78bfa', '#ff6673'],
+      colors: ['var(--purple)', 'var(--danger)'],
       plotOptions: {
         bar: {
           borderRadius: 7,
@@ -210,31 +210,31 @@ export class ReportsPage implements OnInit {
       dataLabels: { enabled: false },
       xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false } },
       yaxis: {
-        title: { text: 'PKR', style: { color: '#8d9caf' } },
+        title: { text: 'PKR', style: { color: 'var(--text3)' } },
         labels: { formatter: (value: number) => this.formatPkrCompactFromPkr(value) }
       },
       tooltip: {
         theme: 'dark',
         y: { formatter: (value: number) => this.formatPkrUsdFromPkr(value) }
       },
-      legend: { position: 'top', labels: { colors: '#8d9caf' } },
-      grid: { borderColor: 'rgba(148, 163, 184, 0.1)', strokeDashArray: 4 }
+      legend: { position: 'top', labels: { colors: 'var(--text3)' } },
+      grid: { borderColor: 'var(--text3-alpha-10)', strokeDashArray: 4 }
     };
 
     this.adminCategoryMixChartOptions = {
       series: [1],
       labels: ['No cost yet'],
-      chart: { type: 'donut', height: 320, background: 'transparent', foreColor: '#8d9caf' },
-      colors: ['rgba(148, 163, 184, 0.24)'],
+      chart: { type: 'donut', height: 320, background: 'transparent', foreColor: 'var(--text3)' },
+      colors: ['var(--text3-alpha-24)'],
       dataLabels: { enabled: true, formatter: (val: any) => `${val?.toFixed(0) || 0}%` },
-      legend: { position: 'bottom', labels: { colors: '#8d9caf' } },
+      legend: { position: 'bottom', labels: { colors: 'var(--text3)' } },
       tooltip: {
         theme: 'dark',
         y: { formatter: (value: number) => this.formatPkrUsdFromPkr(value) }
       },
-      stroke: { colors: ['#0f141c'] }
+      stroke: { colors: ['var(--bg2)'] }
     };
-    
+
   }
 
   updateCharts(report: CombinedAdminReport) {
@@ -284,12 +284,12 @@ export class ReportsPage implements OnInit {
     };
 
     const hasOriginCost = companyCost > 0 || byokCost > 0;
-    
+
     this.adminBreakdownChartOptions = {
        ...this.adminBreakdownChartOptions,
        series: hasOriginCost ? [this.usdToPkr(companyCost), this.usdToPkr(byokCost)] : [1],
        labels: hasOriginCost ? ['Included', 'BYOK'] : ['No cost yet'],
-       colors: hasOriginCost ? ['#a78bfa', '#ff6673'] : ['rgba(148, 163, 184, 0.24)']
+       colors: hasOriginCost ? ['var(--purple)', 'var(--danger)'] : ['var(--text3-alpha-24)']
     };
 
     const categoryRows = this.categoryCostCards();
@@ -314,7 +314,7 @@ export class ReportsPage implements OnInit {
        labels: hasCategoryCost ? categoryLabels : ['No cost yet'],
        colors: hasCategoryCost
           ? this.categoryDefinitions.map(category => category.color)
-          : ['rgba(148, 163, 184, 0.24)']
+          : ['var(--text3-alpha-24)']
     };
   }
 
@@ -408,5 +408,3 @@ export class ReportsPage implements OnInit {
     return `Rs ${this.formatNumber(value, 0)}`;
   }
 }
-
-

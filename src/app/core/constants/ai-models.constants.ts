@@ -73,6 +73,12 @@ export const AI_MODELS: Record<string, Record<string, AIModelOption[]>> = {
     ]
   },
   imagegen: {
+    openrouter: [
+      { id: 'microsoft/mai-image-2.5', label: 'Microsoft MAI-Image-2.5 | OpenRouter' },
+      { id: 'x-ai/grok-imagine-image-quality', label: 'Grok Imagine Image Quality | OpenRouter' },
+      { id: 'recraft/recraft-v4.1-pro', label: 'Recraft V4.1 Pro | OpenRouter' },
+      { id: 'recraft/recraft-v4.1', label: 'Recraft V4.1 | OpenRouter' }
+    ],
     openai: [
       { id: 'dall-e-4', label: 'dall-e-4 | $0.06/img' },
       { id: 'dall-e-3', label: 'dall-e-3 | $0.04/img' },
@@ -108,6 +114,12 @@ export const AI_MODELS: Record<string, Record<string, AIModelOption[]>> = {
     ]
   },
   tts: {
+    openrouter: [
+      { id: 'microsoft/mai-voice-2', label: 'Microsoft MAI-Voice-2 | OpenRouter' },
+      { id: 'x-ai/grok-voice-tts-1.0', label: 'Grok Voice TTS 1.0 | OpenRouter' },
+      { id: 'google/gemini-3.1-flash-tts-preview', label: 'Gemini 3.1 Flash TTS Preview | OpenRouter' },
+      { id: 'hexgrad/kokoro-82m', label: 'Kokoro 82M | OpenRouter' }
+    ],
     together: [
       { id: 'hexgrad/Kokoro-82M', label: 'hexgrad/Kokoro-82M | TogetherAI Kokoro' },
       { id: 'canopylabs/orpheus-3b-0.1-ft', label: 'canopylabs/orpheus-3b-0.1-ft | TogetherAI Orpheus' }
@@ -146,6 +158,12 @@ export const AI_MODELS: Record<string, Record<string, AIModelOption[]>> = {
     ]
   },
   whisper: {
+    openrouter: [
+      { id: 'microsoft/mai-transcribe-1.5', label: 'Microsoft MAI-Transcribe 1.5 | OpenRouter' },
+      { id: 'openai/whisper-large-v3', label: 'OpenAI Whisper Large V3 | OpenRouter' },
+      { id: 'openai/whisper-1', label: 'OpenAI Whisper 1 | OpenRouter' },
+      { id: 'openai/gpt-4o-mini-transcribe', label: 'GPT-4o Mini Transcribe | OpenRouter' }
+    ],
     openai: [
       { id: 'whisper-2', label: 'whisper-2 | $0.006/min' },
       { id: 'whisper-1', label: 'whisper-1 | $0.006/min' }
@@ -157,6 +175,13 @@ export const AI_MODELS: Record<string, Record<string, AIModelOption[]>> = {
     ]
   },
   videogen: {
+    openrouter: [
+      { id: 'x-ai/grok-imagine-video', label: 'Grok Imagine Video | OpenRouter' },
+      { id: 'google/veo-3.1-fast', label: 'Google Veo 3.1 Fast | OpenRouter' },
+      { id: 'google/veo-3.1-lite', label: 'Google Veo 3.1 Lite | OpenRouter' },
+      { id: 'kwaivgi/kling-v3.0-std', label: 'Kling v3.0 Standard | OpenRouter' },
+      { id: 'kwaivgi/kling-v3.0-pro', label: 'Kling v3.0 Pro | OpenRouter' }
+    ],
     alibaba: [
       { id: 'wanx-video-v2', label: 'wanx-video-v2 | $0.30/sec' },
       { id: 'wanx-video', label: 'wanx-video | $0.15/sec' }
@@ -212,7 +237,7 @@ export function getProviderModels(category: string, provider: string): AIModelOp
   if (!provider) return [];
   const p = provider.toLowerCase();
   let catKey = (category || 'text').toLowerCase();
-  
+
   // Normalize category names
   if (catKey === 'picture' || catKey === 'image') catKey = 'imagegen';
   if (catKey === 'video') catKey = 'videogen';

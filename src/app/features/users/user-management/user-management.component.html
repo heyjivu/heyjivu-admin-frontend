@@ -2,7 +2,7 @@
 
   <!-- Screen Header -->
   <div class="screen-header screen-header-compact">
-    
+
     <!-- Title row -->
     <div class="flex justify-content-between align-items-center px-4 py-3 screen-title-row">
       <div class="flex align-items-center gap-3">
@@ -45,16 +45,16 @@
     <div class="table-controls">
       <div class="search-box">
         <i class="fas fa-search"></i>
-        <input type="text" placeholder="Search users..." class="glass-input" 
+        <input type="text" placeholder="Search users..." class="glass-input"
                [ngModel]="searchQuery()" (ngModelChange)="onSearchChange($event)">
       </div>
       <div class="filter-group">
-        <select class="filter-select glass-input" 
+        <select class="filter-select glass-input"
                 [ngModel]="selectedRoleFilter()" (ngModelChange)="selectedRoleFilter.set($event); onFilterChange()">
           <option value="">All Roles</option>
           <option *ngFor="let role of roles()" [value]="role.id">{{ displayRoleName(role.name) }}</option>
         </select>
-        <select class="filter-select glass-input" 
+        <select class="filter-select glass-input"
                 [ngModel]="selectedStatusFilter()" (ngModelChange)="selectedStatusFilter.set($event); onFilterChange()">
           <option value="">All Status</option>
           <option value="active">Active</option>
@@ -95,8 +95,8 @@
               </span>
             </td>
             <td>
-              <select class="role-select" 
-                      [ngModel]="user.roleId" 
+              <select class="role-select"
+                      [ngModel]="user.roleId"
                       (ngModelChange)="onRoleChange(user.id, $event)">
                 <option *ngFor="let role of roles()" [value]="role.id">
                   {{ displayRoleName(role.name) }}
@@ -307,8 +307,8 @@
                     </button>
                   </div>
                 </div>
-                <div class="category-item" 
-                     *ngFor="let cat of getCategories()" 
+                <div class="category-item"
+                     *ngFor="let cat of getCategories()"
                      [class.active]="activeCategory() === cat"
                      (click)="activeCategory.set(cat)">
                   <span>{{ cat }}</span>
@@ -344,9 +344,9 @@
                     <button class="btn btn-ghost btn-xs" (click)="cancelRightForm()">Cancel</button>
                   </div>
                 </div>
-                
+
                 <div class="rights-grid-scroll" *ngIf="activeCategory()">
-                  <label class="right-checkbox-item" 
+                  <label class="right-checkbox-item"
                          *ngFor="let right of getRightsForCategory(activeCategory()!)"
                          [class.selected]="isRightSelected(right.key)">
                     <div class="checkbox-wrapper">
@@ -471,7 +471,7 @@
           </div>
         </div>
       </div>
-      
+
       <div class="role-placeholder glass-card" *ngIf="!selectedRole()">
         <i class="fas fa-shield-halved"></i>
         <h3>Role Configuration</h3>
@@ -520,7 +520,7 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      
+
       <div class="modal-content" style="max-height: 70vh; overflow-y: auto; padding: 20px;" *ngIf="userProcessingOptions()">
         <p class="text-sm text-gray-400 mb-4">Leave fields empty to inherit from Role defaults.</p>
 
@@ -540,7 +540,7 @@
             <small>{{ quota.description }}</small>
           </div>
         </div>
-        
+
         <div class="section-title settings-section-title">Output Settings</div>
         <div class="settings-options-column">
           <div class="option-row">
@@ -620,8 +620,8 @@
           </div>
         </div>
       </div>
-      
-      <div class="modal-footer" style="padding: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); display: flex; justify-content: flex-end; gap: 10px;">
+
+      <div class="modal-footer" style="padding: 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px;">
         <button class="btn btn-ghost" (click)="editingUser.set(null)">Cancel</button>
         <button class="btn btn-primary" (click)="saveUserProcessingSettings()">Save Options</button>
       </div>

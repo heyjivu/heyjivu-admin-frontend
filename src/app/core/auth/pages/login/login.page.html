@@ -1,4 +1,4 @@
-﻿<div class="login-container">
+<div class="login-container">
   <div class="login-card glass" role="main" aria-label="heyjivu Login">
     <div class="login-header">
       <div class="hj-brand-mark hj-brand-mark--auth" aria-hidden="true">
@@ -19,10 +19,10 @@
         <label for="username">Email or Username</label>
         <div class="input-wrapper">
           <i class="fas fa-envelope" aria-hidden="true"></i>
-          <input 
-            type="text" 
-            id="username" 
-            formControlName="username" 
+          <input
+            type="text"
+            id="username"
+            formControlName="username"
             placeholder="Enter your email or username"
             autocomplete="email"
             autocapitalize="none"
@@ -35,16 +35,16 @@
         <label for="password">Password</label>
         <div class="input-wrapper password-field">
           <i class="fas fa-lock" aria-hidden="true"></i>
-          <input 
-            [type]="showPassword ? 'text' : 'password'" 
-            id="password" 
-            formControlName="password" 
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            id="password"
+            formControlName="password"
             placeholder="Enter your password"
             autocomplete="current-password"
           >
-          <button 
-            type="button" 
-            class="password-toggle" 
+          <button
+            type="button"
+            class="password-toggle"
             (click)="togglePasswordVisibility()"
             [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
           >
@@ -54,8 +54,8 @@
         </div>
       </div>
 
-      <button 
-        type="submit" 
+      <button
+        type="submit"
         class="btn-login"
         [disabled]="loginForm.invalid || store.loading()"
       >
@@ -74,12 +74,12 @@
 
     <div class="google-auth-section">
       <div id="googleButtonWrapper" aria-label="Sign in with Google"></div>
-      
+
       <div class="server-error" role="alert" *ngIf="store.error()" [attr.aria-live]="'polite'">
         <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
         {{ store.error() }}
       </div>
-      
+
       <div class="loading-state" *ngIf="store.loading()" aria-live="polite" aria-busy="true">
         <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
         <span>Connecting securely...</span>
@@ -95,6 +95,3 @@
     </div>
   </div>
 </div>
-
-
-

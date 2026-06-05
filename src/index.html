@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -19,7 +19,7 @@
       body {
         min-height: 100%;
         margin: 0;
-        background: #080b10;
+        background: var(--bg);
       }
 
       .jivu-splash {
@@ -27,12 +27,12 @@
         display: grid;
         place-items: center;
         overflow: hidden;
-        color: #f7f9fc;
+        color: var(--text);
         font-family: var(--font-ui, "Inter", "Segoe UI", sans-serif);
         background:
-          radial-gradient(circle at 20% 16%, rgba(84, 166, 255, 0.2), transparent 30%),
-          radial-gradient(circle at 80% 78%, rgba(39, 214, 182, 0.16), transparent 34%),
-          linear-gradient(145deg, #080b10 0%, #0f141c 58%, #101216 100%);
+          radial-gradient(circle at 20% 16%, var(--accent-soft), transparent 30%),
+          radial-gradient(circle at 80% 78%, var(--accent2-soft), transparent 34%),
+          linear-gradient(145deg, var(--bg) 0%, var(--surface) 58%, var(--surface) 100%);
       }
 
       .jivu-splash-card {
@@ -49,8 +49,8 @@
         width: 84px;
         height: 84px;
         border-radius: 999px;
-        background: rgba(84, 166, 255, 0.12);
-        box-shadow: 0 0 0 8px rgba(84, 166, 255, 0.06), 0 24px 44px rgba(0, 0, 0, 0.28);
+        background: var(--accent-soft);
+        box-shadow: 0 0 0 8px var(--accent-soft), 0 24px 44px var(--scrim-soft);
         animation: jivu-float 2.6s ease-in-out infinite;
       }
 
@@ -59,8 +59,8 @@
         width: 62px;
         height: 62px;
         border-radius: 999px;
-        background: linear-gradient(135deg, #54a6ff 0%, #27d6b6 100%);
-        box-shadow: inset 0 -8px 16px rgba(0, 0, 0, 0.18);
+        background: var(--button-primary-bg);
+        box-shadow: inset 0 -8px 16px var(--scrim-soft);
       }
 
       .jivu-eye {
@@ -69,7 +69,7 @@
         width: 7px;
         height: 7px;
         border-radius: 999px;
-        background: #fff;
+        background: var(--text);
       }
 
       .jivu-eye.left { left: 20px; }
@@ -81,15 +81,15 @@
         right: 21px;
         bottom: 16px;
         height: 10px;
-        border-bottom: 3px solid #fff;
+        border-bottom: 3px solid var(--text);
         border-radius: 0 0 999px 999px;
       }
 
       .jivu-spark {
         position: absolute;
         border-radius: 999px;
-        background: #f7c948;
-        box-shadow: 0 0 12px rgba(247, 201, 72, 0.8);
+        background: var(--warning);
+        box-shadow: 0 0 12px var(--warning-soft);
       }
 
       .jivu-spark.one { top: -2px; right: 7px; width: 8px; height: 8px; }
@@ -99,14 +99,14 @@
         display: inline-flex;
         align-items: baseline;
         gap: 2px;
-        font-family: var(--font-display, "Syne", "Inter", sans-serif);
+        font-family: var(--font-display);
         font-weight: 900;
         letter-spacing: -0.065em;
       }
 
       .jivu-splash-word .hey {
         font-size: 15px;
-        color: rgba(247, 249, 252, 0.64);
+        color: var(--text3);
       }
 
       .jivu-splash-word .jivu {
@@ -115,7 +115,7 @@
 
       .jivu-splash-sub {
         margin: -7px 0 0;
-        color: rgba(247, 249, 252, 0.62);
+        color: var(--text3);
         font-size: 11px;
         letter-spacing: 0.2em;
         text-transform: uppercase;
@@ -126,7 +126,7 @@
         height: 4px;
         overflow: hidden;
         border-radius: 999px;
-        background: rgba(247, 249, 252, 0.08);
+        background: var(--border-subtle);
       }
 
       .jivu-loading-pill::before {
@@ -135,7 +135,7 @@
         width: 65%;
         height: 100%;
         border-radius: inherit;
-        background: linear-gradient(90deg, #54a6ff, #27d6b6, #f7c948);
+        background: var(--accent);
         animation: jivu-load 1.6s ease-in-out infinite alternate;
       }
 

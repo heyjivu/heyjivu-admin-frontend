@@ -5,11 +5,9 @@
 
 // Glass surface mixin for reuse
 %glass-surface {
-  background:
-    linear-gradient(180deg, rgba(var(--bg2-rgb), 0.88), rgba(var(--bg2-rgb), 0.68)),
-    color-mix(in srgb, var(--bg2) 80%, transparent);
-  backdrop-filter: blur(var(--glass-blur, 20px)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--glass-blur, 20px)) saturate(180%);
+  background: var(--shell-surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .app-layout {
@@ -54,7 +52,7 @@
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 0.15), transparent);
+    background: linear-gradient(90deg, transparent, var(--accent-alpha-15), transparent);
     opacity: 0;
     transition: opacity var(--transition-base);
   }
@@ -96,13 +94,12 @@
   position: fixed;
   inset: 0 0 auto 0;
   z-index: 200;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
   transition: box-shadow var(--transition-base),
               background var(--transition-glass);
 
   &.topbar--scrolled {
-    box-shadow: 0 6px 40px rgba(0, 0, 0, 0.35),
-                0 0 0 1px rgba(var(--accent-rgb), 0.08);
+    box-shadow: 0 1px 0 var(--border-subtle);
   }
 
   &.topbar--floating {
@@ -133,18 +130,18 @@
   border-radius: 8px;
   display: grid;
   place-items: center;
-  background: var(--gold-gradient, linear-gradient(135deg, var(--accent), var(--accent2)));
+  background: var(--gold-gradient, var(--button-primary-bg));
   color: var(--bg);
   font-weight: 900;
   font-size: 14px;
-  box-shadow: 0 8px 24px rgba(var(--accent-rgb), 0.25),
+  box-shadow: 0 8px 24px var(--accent-alpha-25),
               var(--border-subtle) inset;
   transition: box-shadow var(--transition-base),
               transform var(--transition-bounce);
 
   &:hover {
-    box-shadow: 0 12px 32px rgba(var(--accent-rgb), 0.35),
-                0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+    box-shadow: 0 12px 32px var(--accent-alpha-35),
+                0 0 0 1px var(--border) inset;
     transform: translateY(-2px);
   }
 }
@@ -161,14 +158,14 @@
   gap: 6px;
   min-width: 0;
   padding: 5px;
-  background: rgba(var(--bg-rgb), 0.4);
+  background: var(--bg-alpha-40);
   border: 1px solid var(--border);
   border-radius: 8px;
   transition: background var(--transition-base),
               border-color var(--transition-base);
 
   &:hover {
-    background: rgba(var(--bg-rgb), 0.5);
+    background: var(--bg-alpha-50);
     border-color: var(--border2);
   }
 }
@@ -207,9 +204,7 @@
   transition: background var(--transition-glass);
 
   &:hover {
-    background:
-      linear-gradient(180deg, rgba(var(--bg2-rgb), 0.95), rgba(var(--bg2-rgb), 0.82)),
-      color-mix(in srgb, var(--bg2) 85%, transparent);
+    background: var(--shell-surface-hover);
   }
 }
 
@@ -229,16 +224,16 @@
 
   &--collapsed {
     width: var(--nav, 68px);
-    
+
     .sidebar-header {
       padding: 12px 4px;
     }
-    
+
     .glass-nav-item {
       padding: 10px;
       justify-content: center;
       margin: 2px 8px;
-      
+
       i {
         font-size: 16px;
         margin-right: 0;
@@ -257,13 +252,13 @@
         display: none;
       }
     }
-    
+
     .glass-divider {
       width: 24px;
       margin: 8px auto;
       transition: width var(--transition-base), margin var(--transition-base);
     }
-    
+
     .snav-label {
       opacity: 0;
       height: 0;
@@ -274,34 +269,34 @@
 
     &:hover {
       width: 240px;
-      box-shadow: 10px 0 30px rgba(0, 0, 0, 0.25);
+      box-shadow: 10px 0 30px var(--scrim-soft);
       z-index: 100;
-      
+
       .glass-nav-item {
         padding: 8px 14px;
         justify-content: flex-start;
-        
+
         i {
           font-size: 14px;
           margin-right: 12px;
           width: 20px;
         }
-        
+
         .icon-label {
           opacity: 0.9;
           width: auto;
         }
-        
+
         .nav-badge {
           display: inline-block;
         }
       }
-      
+
       .glass-divider {
         width: calc(100% - 24px);
         margin: 8px 12px;
       }
-      
+
       .snav-label {
         opacity: 1;
         height: auto;
@@ -343,25 +338,25 @@
   }
 
   &:hover {
-    background: rgba(var(--accent-rgb), 0.05);
+    background: var(--accent-alpha-05);
     color: var(--text);
-    
+
     i {
       color: var(--accent);
     }
   }
 
   &.active {
-    background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.15) 0%, rgba(var(--accent-rgb), 0.05) 100%);
+    background: linear-gradient(90deg, var(--accent-alpha-15) 0%, var(--accent-alpha-05) 100%);
     color: var(--accent);
     font-weight: 700;
     box-shadow: inset 3px 0 0 var(--accent);
     border-radius: 4px 8px 8px 4px;
-    
+
     i {
       color: var(--accent);
     }
-    
+
     .icon-label {
       color: var(--accent);
     }
@@ -391,7 +386,7 @@
     right: 0;
     width: 100%;
     height: 80px;
-    background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.03), transparent);
+    background: linear-gradient(180deg, var(--accent-alpha-03), transparent);
     pointer-events: none;
   }
 }
@@ -411,7 +406,7 @@
     width: 600px;
     height: 600px;
     transform: translate(-50%, -50%);
-    background: radial-gradient(circle, rgba(var(--accent-rgb), 0.04) 0%, transparent 70%);
+    background: radial-gradient(circle, var(--accent-alpha-04) 0%, transparent 70%);
     pointer-events: none;
     opacity: 0.5;
   }
@@ -441,13 +436,13 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.05), transparent);
+    background: linear-gradient(135deg, var(--accent-alpha-05), transparent);
     opacity: 0;
     transition: opacity var(--transition-fast);
   }
 
   &:hover {
-    background: rgba(var(--bg-rgb), 0.4);
+    background: var(--bg-alpha-40);
     transform: translateX(2px);
 
     &::before {
@@ -457,13 +452,13 @@
 
   &.active {
     background: linear-gradient(90deg,
-      rgba(var(--accent-rgb), 0.18) 0%,
-      rgba(var(--accent-rgb), 0.06) 100%
+      var(--accent-alpha-18) 0%,
+      var(--accent-alpha-06) 100%
     );
     color: var(--accent);
     font-weight: 700;
     box-shadow: inset 3px 0 0 var(--accent),
-                0 0 20px rgba(var(--accent-rgb), 0.1);
+                0 0 20px var(--accent-alpha-10);
     border-radius: 4px 8px 8px 4px;
 
     &::before {
@@ -480,7 +475,7 @@
     &.active {
       color: var(--accent);
       background: linear-gradient(90deg,
-        rgba(var(--accent-rgb), 0.12) 0%,
+        var(--accent-alpha-12) 0%,
         transparent 100%
       );
     }
