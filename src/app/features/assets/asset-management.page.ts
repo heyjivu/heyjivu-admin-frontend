@@ -1,25 +1,25 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MemesApiService, MemeDto } from './services/memes-api.service';
+import { AssetsApiService, AssetDto } from './services/assets-api.service';
 import { ToastService } from '../../core/services/toast.service';
 
 @Component({
-  selector: 'app-meme-management',
+  selector: 'app-asset-management',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './meme-management.page.html',
-  styleUrl: './meme-management.page.scss'
+  templateUrl: './asset-management.page.html',
+  styleUrl: './asset-management.page.scss'
 })
-export class MemeManagementPage implements OnInit {
-  private api = inject(MemesApiService);
+export class AssetManagementPage implements OnInit {
+  private api = inject(AssetsApiService);
   private toast = inject(ToastService);
 
-  memes = signal<MemeDto[]>([]);
+  assets = signal<AssetDto[]>([]);
   loading = signal(false);
   showForm = signal(false);
-  editing = signal<MemeDto | null>(null);
-  pendingDeleteMemeId = signal<string | null>(null);
+  editing = signal<AssetDto | null>(null);
+  pendingDeleteAssetId = signal<string | null>(null);
 
   formName = '';
   formDescription = '';
@@ -30,14 +30,14 @@ export class MemeManagementPage implements OnInit {
   formIsActive = true;
 
   ngOnInit() {
-    this.loadMemes();
+    this.loadAssets();
   }
 
-  loadMemes() {
+  loadAssets() {
     this.loading.set(true);
-    this.api.getMemesAdmin().subscribe({
-      next: (data) => this.memes.set(data),
-      error: () => this.memes.set([]),
+    this.api.getAssetsAdmin().subscribe({
+      next: (data) => this.assets.set(data),
+      error: () => this.assets.set([]),
       complete: () => this.loading.set(false)
     });
   }
@@ -54,15 +54,15 @@ export class MemeManagementPage implements OnInit {
     this.showForm.set(true);
   }
 
-  openEdit(meme: MemeDto) {
-    this.editing.set(meme);
-    this.formName = meme.name;
-    this.formDescription = meme.description;
-    this.formType = meme.type;
-    this.formFileUrl4k = meme.fileUrl4k;
-    this.formFileUrl2k = meme.fileUrl2k;
-    this.formFileUrl1k = meme.fileUrl1k;
-    this.formIsActive = meme.isActive;
+  openEdit(asset: AssetDto) {
+    this.editing.set(asset);
+    this.formName = asset.name;
+    this.formDescription = asset.description;
+    this.formType = asset.type;
+    this.formFileUrl4k = asset.fileUrl4k;
+    this.formFileUrl2k = asset.fileUrl2k;
+    this.formFileUrl1k = asset.fileUrl1k;
+    this.formIsActive = asset.isActive;
     this.showForm.set(true);
   }
 
@@ -71,7 +71,7 @@ export class MemeManagementPage implements OnInit {
     this.editing.set(null);
   }
 
-  saveMeme() {
+  saveAsset() {
     const payload = {
       id: this.editing()?.id || null,
       name: this.formName,
@@ -84,33 +84,33 @@ export class MemeManagementPage implements OnInit {
       allowedRoles: [] as string[]
     };
 
-    this.api.createMeme(payload).subscribe({
+    this.api.saveAsset(payload).subscribe({
       next: () => {
         this.showForm.set(false);
-        this.loadMemes();
+        this.loadAssets();
       }
     });
   }
 
-  deleteMeme(id: string) {
-    if (this.pendingDeleteMemeId() !== id) {
-      this.pendingDeleteMemeId.set(id);
-      this.toast.show('Click delete again to remove this meme.', 'warning', 5000);
+  deleteAsset(id: string) {
+    if (this.pendingDeleteAssetId() !== id) {
+      this.pendingDeleteAssetId.set(id);
+      this.toast.show('Click delete again to remove this asset.', 'warning', 5000);
       setTimeout(() => {
-        if (this.pendingDeleteMemeId() === id) {
-          this.pendingDeleteMemeId.set(null);
+        if (this.pendingDeleteAssetId() === id) {
+          this.pendingDeleteAssetId.set(null);
         }
       }, 5000);
       return;
     }
 
-    this.pendingDeleteMemeId.set(null);
-    this.api.deleteMeme(id).subscribe({
+    this.pendingDeleteAssetId.set(null);
+    this.api.deleteAsset(id).subscribe({
       next: () => {
-        this.toast.success('Meme deleted.');
-        this.loadMemes();
+        this.toast.success('Asset deleted.');
+        this.loadAssets();
       },
-      error: () => this.toast.error('Failed to delete meme.')
+      error: () => this.toast.error('Failed to delete asset.')
     });
   }
 }

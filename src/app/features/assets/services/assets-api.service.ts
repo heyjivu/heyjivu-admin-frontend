@@ -5,7 +5,7 @@ import { environment } from '../../../../environments/environment';
 
 const ADMIN_API = environment.apiUrl;
 
-export interface MemeDto {
+export interface AssetDto {
   id: string;
   name: string;
   description: string;
@@ -18,18 +18,18 @@ export interface MemeDto {
 }
 
 @Injectable({ providedIn: 'root' })
-export class MemesApiService {
+export class AssetsApiService {
   private http = inject(HttpClient);
 
-  getMemesAdmin(): Observable<MemeDto[]> {
-    return this.http.get<MemeDto[]>(`${ADMIN_API}/admin/memes`);
+  getAssetsAdmin(): Observable<AssetDto[]> {
+    return this.http.get<AssetDto[]>(`${ADMIN_API}/admin/assets`);
   }
 
-  createMeme(meme: any): Observable<MemeDto> {
-    return this.http.post<MemeDto>(`${ADMIN_API}/admin/memes`, meme);
+  saveAsset(asset: any): Observable<AssetDto> {
+    return this.http.post<AssetDto>(`${ADMIN_API}/admin/assets`, asset);
   }
 
-  deleteMeme(id: string): Observable<void> {
-    return this.http.delete<void>(`${ADMIN_API}/admin/memes/${id}`);
+  deleteAsset(id: string): Observable<void> {
+    return this.http.delete<void>(`${ADMIN_API}/admin/assets/${id}`);
   }
 }

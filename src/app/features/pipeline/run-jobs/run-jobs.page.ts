@@ -89,7 +89,7 @@ export class RunJobsPage implements OnInit {
         this.isPricingLoading.set(false);
       },
       error: () => {
-        this.toastService.show('Failed to load OpenRouter pricing status.', 'error');
+        this.toastService.show('Failed to load model pricing status.', 'error');
         this.isPricingLoading.set(false);
       }
     });
@@ -101,11 +101,11 @@ export class RunJobsPage implements OnInit {
       next: (result) => {
         this.lastSyncResult.set(result);
         this.isPricingSyncing.set(false);
-        this.toastService.show(`Synced ${result.totalModels} OpenRouter model prices.`, 'success');
+        this.toastService.show(`Synced ${result.totalModels} model catalog records.`, 'success');
         this.loadPricingStatus();
       },
       error: () => {
-        this.toastService.show('OpenRouter pricing sync failed.', 'error');
+        this.toastService.show('Model pricing sync failed.', 'error');
         this.isPricingSyncing.set(false);
       }
     });

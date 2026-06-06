@@ -3,14 +3,19 @@
 //  Run: ng serve  (uses this file by default)
 //  API: http://localhost:5000
 // ════════════════════════════════════════════════════════════════
+const localApiHost =
+  typeof window !== 'undefined' && window.location?.hostname
+    ? window.location.hostname
+    : 'localhost';
+
 export const environment = {
   production: false,
   envName: 'local',
 
   // ── API & SignalR ──────────────────────────────────────────────
-  apiUrl: 'http://localhost:5100/api',          // Admin API — admin data endpoints
-  authApiUrl: 'http://localhost:5000/api',      // Main API — auth endpoints (login, me, etc.)
-  hubUrl: 'http://localhost:5100/hubs/dashboard',
+  apiUrl: `http://${localApiHost}:5100/api`,          // Admin API — admin data endpoints
+  authApiUrl: `http://${localApiHost}:5000/api`,      // Main API — auth endpoints (login, me, etc.)
+  hubUrl: `http://${localApiHost}:5100/hubs/dashboard`,
 
   // ── Storage — R2 direct playback (staging bucket, shared with local) ──
   // When a file is in R2 (server storage users), the frontend can play

@@ -27,9 +27,6 @@ export const Rights = {
   Settings_View: 'Settings_View',
   Settings_Manage: 'Settings_Manage',
   
-  Memes_View: 'Memes_View',
-  Memes_Manage: 'Memes_Manage',
-
   // Admin Rights
   Admin_Metrics_View: 'Admin_Metrics_View',
   Admin_Metrics_Manage: 'Admin_Metrics_Manage',

@@ -6,8 +6,10 @@
           <i class="fas fa-tasks"></i>
         </div>
         <div>
-          <div class="screen-title">Processing Configuration</div>
-          <div class="screen-sub">Manage company-wide video processing defaults</div>
+          <div class="screen-title">{{ activeTab() === 'models' ? 'Model Configuration' : 'Processing Configuration' }}</div>
+          <div class="screen-sub">
+            {{ activeTab() === 'models' ? 'Manage model capabilities, visible tiers, pricing overrides and quota multipliers' : 'Manage company-wide video processing defaults' }}
+          </div>
         </div>
       </div>
       <div class="header-actions">
@@ -25,7 +27,158 @@
       </div>
     }
 
-    @if (companyOptions(); as opts) {
+    @if (activeTab() === 'models') {
+      <div class="proc-grid">
+        <div class="proc-section proc-section--wide">
+          <div class="proc-section__header proc-section__header--actions">
+            <div class="proc-section__icon proc-section__icon--cyan">
+              <i class="fas fa-sliders"></i>
+            </div>
+            <div class="proc-section__title-group">
+              <div class="proc-section__title">Model Capabilities</div>
+              <div class="proc-section__sub">Provider metadata, sync locks, voices, resolutions, prices and quota tiers</div>
+            </div>
+            <div class="cap-actions">
+              <button class="btn btn-soft btn-sm" type="button" (click)="loadModelCapabilities()">
+                <i class="fas fa-sync" [class.fa-spin]="capabilitiesLoading()"></i> Refresh
+              </button>
+              <button class="btn btn-primary btn-sm" type="button" (click)="openCapabilityEditor()">
+                <i class="fas fa-plus"></i> Add Model
+              </button>
+            </div>
+          </div>
+          <div class="proc-section__body">
+            @if (capabilitiesSaved()) {
+              <div class="proc-toast proc-toast--compact">
+                <i class="fas fa-check-circle"></i> Model capability saved.
+              </div>
+            }
+            <div class="cap-filter-row">
+              <select class="proc-input proc-input--select" [ngModel]="capabilityProviderFilter()" (change)="updateCapabilityFilter('provider', $event); applyCapabilityFilters()">
+                <option value="">All providers</option>
+                @for (provider of capabilityProviders; track provider) {
+                  <option [value]="provider">{{ provider }}</option>
+                }
+              </select>
+              <select class="proc-input proc-input--select" [ngModel]="capabilityCategoryFilter()" (change)="updateCapabilityFilter('category', $event); applyCapabilityFilters()">
+                <option value="">All categories</option>
+                @for (category of capabilityCategories; track category) {
+                  <option [value]="category">{{ category }}</option>
+                }
+              </select>
+              <input class="proc-input" [ngModel]="capabilitySearch()" (input)="onCapabilitySearchChange($event)" (keyup.enter)="applyCapabilityFilters()" placeholder="Search model or provider" />
+              <select class="proc-input proc-input--select" [ngModel]="capabilityPageSize()" (change)="updateCapabilityPageSize($event)">
+                <option [value]="10">10 rows</option>
+                <option [value]="25">25 rows</option>
+                <option [value]="50">50 rows</option>
+                <option [value]="100">100 rows</option>
+              </select>
+              <button class="btn btn-soft btn-sm" type="button" (click)="applyCapabilityFilters()">Apply</button>
+            </div>
+
+            <div class="cap-table-wrap">
+              <table class="cap-table">
+                <thead>
+                  <tr>
+                    <th>Provider</th>
+                    <th>Model</th>
+                    <th>Category</th>
+                    <th>Capabilities</th>
+                    <th>Price</th>
+                    <th>Source</th>
+                    <th>Record</th>
+                    <th>Updated</th>
+                    <th>Sync</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of modelCapabilities(); track trackByCapabilityId($index, row)) {
+                    <tr>
+                      <td><span class="cap-provider">{{ row.provider }}</span></td>
+                      <td>
+                        <div class="cap-model">{{ row.displayName || row.modelName }}</div>
+                        <div class="cap-model-sub">{{ row.modelName }}</div>
+                      </td>
+                      <td><span class="cap-pill">{{ row.category }}</span></td>
+                      <td>
+                        <div class="cap-flags">
+                          @if (row.maxResolution) { <span>{{ row.maxResolution }}</span> }
+                          @if (row.supportsTextToVideo) { <span>text to video</span> }
+                          @if (row.supportsImageToVideo) { <span>image to video</span> }
+                          @if (row.supportsAudio) { <span>audio</span> }
+                          @if (row.supportsVoiceClone) { <span>clone</span> }
+                          @if (row.supportsStreaming) { <span>stream</span> }
+                          @if (row.supportedVoices.length) { <span>{{ row.supportedVoices.length }} voices</span> }
+                          @if (row.priceTiers.length) { <span>{{ row.priceTiers.length }} tiers</span> }
+                        </div>
+                      </td>
+                      <td>
+                        <div class="cap-price-list">
+                          @for (line of priceLines(row); track line) {
+                            <span>{{ line }}</span>
+                          } @empty {
+                            <span class="cap-price-empty">$0 fallback</span>
+                          }
+                        </div>
+                        @if (row.pricingSource) {
+                          <div class="cap-model-sub">Price: {{ row.pricingSource }}</div>
+                        }
+                      </td>
+                      <td>
+                        <div class="cap-source">{{ row.metadataSource }}</div>
+                        <div class="cap-model-sub">{{ row.metadataQuality }}</div>
+                      </td>
+                      <td>
+                        <div class="cap-source">{{ recordType(row) }}</div>
+                        <div class="cap-model-sub">{{ recordActor(row) }}</div>
+                      </td>
+                      <td>
+                        <div class="cap-date">{{ formatDateTime(latestRecordTime(row)) }}</div>
+                        <div class="cap-model-sub">Seen {{ formatDateTime(row.lastSeenAt) }}</div>
+                      </td>
+                      <td>
+                        <span class="cap-lock" [class.cap-lock--locked]="row.skipAutoSync">
+                          {{ row.skipAutoSync ? 'Manual lock' : 'Auto sync' }}
+                        </span>
+                      </td>
+                      <td class="cap-row-actions">
+                        <button class="cap-icon-btn" type="button" title="Edit" (click)="openCapabilityEditor(row)">
+                          <i class="fas fa-pen"></i>
+                        </button>
+                        @if (row.id !== '00000000-0000-0000-0000-000000000000') {
+                          <button class="cap-icon-btn cap-icon-btn--danger" type="button" title="Delete" (click)="deleteCapability(row)">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        }
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="10"><div class="cap-empty">No model capabilities yet.</div></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="cap-pager">
+              <div class="cap-pager__summary">
+                Showing {{ capabilityPageStart() }}-{{ capabilityPageEnd() }} of {{ capabilityTotalItems() }}
+              </div>
+              <div class="cap-pager__controls">
+                <button class="btn btn-soft btn-sm" type="button" (click)="prevCapabilityPage()" [disabled]="capabilityPage() <= 1 || capabilitiesLoading()">
+                  Previous
+                </button>
+                <span class="cap-pager__page">Page {{ capabilityPage() }} / {{ capabilityTotalPages() }}</span>
+                <button class="btn btn-soft btn-sm" type="button" (click)="nextCapabilityPage()" [disabled]="capabilityPage() >= capabilityTotalPages() || capabilitiesLoading()">
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    } @else if (companyOptions(); as opts) {
       <div class="proc-grid">
 
         <!-- ── Section: Output Settings ────────────────────────────── -->
@@ -171,117 +324,6 @@
           </div>
         </div>
 
-        <!-- ── Section: Meme Controls ──────────────────────────────── -->
-        <div class="proc-section">
-          <div class="proc-section__header">
-            <div class="proc-section__icon proc-section__icon--violet">
-              <i class="fas fa-laugh"></i>
-            </div>
-            <div class="proc-section__title-group">
-              <div class="proc-section__title">Meme Controls</div>
-              <div class="proc-section__sub">Meme video, image &amp; audio overlays for main &amp; shorts</div>
-            </div>
-          </div>
-          <div class="proc-section__body">
-            <!-- Meme Videos -->
-            <div class="proc-pair-header">
-              <i class="fas fa-video"></i> Meme Videos
-            </div>
-            <div class="proc-pair-grid">
-              <div class="proc-pair">
-                <div class="proc-toggle-row proc-toggle-row--condensed">
-                  <span class="proc-toggle-label">Main Video</span>
-                  <label class="proc-switch proc-switch--sm">
-                    <input type="checkbox" [(ngModel)]="opts.mainVideoEnableMemeVideos" />
-                    <span class="proc-switch__track"></span>
-                  </label>
-                </div>
-                @if (opts.mainVideoEnableMemeVideos) {
-                  <input class="proc-input proc-input--sm" [(ngModel)]="opts.mainVideoMemeVideosPlacementMode" placeholder="Placement mode" />
-                }
-              </div>
-              <div class="proc-pair">
-                <div class="proc-toggle-row proc-toggle-row--condensed">
-                  <span class="proc-toggle-label">Shorts</span>
-                  <label class="proc-switch proc-switch--sm">
-                    <input type="checkbox" [(ngModel)]="opts.shortsEnableMemeVideos" />
-                    <span class="proc-switch__track"></span>
-                  </label>
-                </div>
-                @if (opts.shortsEnableMemeVideos) {
-                  <input class="proc-input proc-input--sm" [(ngModel)]="opts.shortsMemeVideosPlacementMode" placeholder="Placement mode" />
-                }
-              </div>
-            </div>
-
-            <div class="proc-divider"></div>
-
-            <!-- Meme Images -->
-            <div class="proc-pair-header">
-              <i class="fas fa-image"></i> Meme Images
-            </div>
-            <div class="proc-pair-grid">
-              <div class="proc-pair">
-                <div class="proc-toggle-row proc-toggle-row--condensed">
-                  <span class="proc-toggle-label">Main Video</span>
-                  <label class="proc-switch proc-switch--sm">
-                    <input type="checkbox" [(ngModel)]="opts.mainVideoEnableMemeImages" />
-                    <span class="proc-switch__track"></span>
-                  </label>
-                </div>
-                @if (opts.mainVideoEnableMemeImages) {
-                  <input class="proc-input proc-input--sm" [(ngModel)]="opts.mainVideoMemeImagesPlacementMode" placeholder="Placement mode" />
-                }
-              </div>
-              <div class="proc-pair">
-                <div class="proc-toggle-row proc-toggle-row--condensed">
-                  <span class="proc-toggle-label">Shorts</span>
-                  <label class="proc-switch proc-switch--sm">
-                    <input type="checkbox" [(ngModel)]="opts.shortsEnableMemeImages" />
-                    <span class="proc-switch__track"></span>
-                  </label>
-                </div>
-                @if (opts.shortsEnableMemeImages) {
-                  <input class="proc-input proc-input--sm" [(ngModel)]="opts.shortsMemeImagesPlacementMode" placeholder="Placement mode" />
-                }
-              </div>
-            </div>
-
-            <div class="proc-divider"></div>
-
-            <!-- Meme Audios -->
-            <div class="proc-pair-header">
-              <i class="fas fa-music"></i> Meme Audios
-            </div>
-            <div class="proc-pair-grid">
-              <div class="proc-pair">
-                <div class="proc-toggle-row proc-toggle-row--condensed">
-                  <span class="proc-toggle-label">Main Video</span>
-                  <label class="proc-switch proc-switch--sm">
-                    <input type="checkbox" [(ngModel)]="opts.mainVideoEnableMemeAudios" />
-                    <span class="proc-switch__track"></span>
-                  </label>
-                </div>
-                @if (opts.mainVideoEnableMemeAudios) {
-                  <input class="proc-input proc-input--sm" [(ngModel)]="opts.mainVideoMemeAudiosPlacementMode" placeholder="Placement mode" />
-                }
-              </div>
-              <div class="proc-pair">
-                <div class="proc-toggle-row proc-toggle-row--condensed">
-                  <span class="proc-toggle-label">Shorts</span>
-                  <label class="proc-switch proc-switch--sm">
-                    <input type="checkbox" [(ngModel)]="opts.shortsEnableMemeAudios" />
-                    <span class="proc-switch__track"></span>
-                  </label>
-                </div>
-                @if (opts.shortsEnableMemeAudios) {
-                  <input class="proc-input proc-input--sm" [(ngModel)]="opts.shortsMemeAudiosPlacementMode" placeholder="Placement mode" />
-                }
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- ── Section: Visual Enhancements ────────────────────────── -->
         <div class="proc-section">
           <div class="proc-section__header">
@@ -369,6 +411,114 @@
           </div>
         </div>
 
+        @if (false) {
+        <div class="proc-section proc-section--wide">
+          <div class="proc-section__header proc-section__header--actions">
+            <div class="proc-section__icon proc-section__icon--cyan">
+              <i class="fas fa-table-list"></i>
+            </div>
+            <div class="proc-section__title-group">
+              <div class="proc-section__title">Model Capabilities</div>
+              <div class="proc-section__sub">Provider metadata, sync locks, voices, resolutions and modality support</div>
+            </div>
+            <div class="cap-actions">
+              <button class="btn btn-soft btn-sm" type="button" (click)="loadModelCapabilities()">
+                <i class="fas fa-sync" [class.fa-spin]="capabilitiesLoading()"></i> Refresh
+              </button>
+              <button class="btn btn-primary btn-sm" type="button" (click)="openCapabilityEditor()">
+                <i class="fas fa-plus"></i> Add Model
+              </button>
+            </div>
+          </div>
+          <div class="proc-section__body">
+            @if (capabilitiesSaved()) {
+              <div class="proc-toast proc-toast--compact">
+                <i class="fas fa-check-circle"></i> Model capability saved.
+              </div>
+            }
+            <div class="cap-filter-row">
+              <select class="proc-input proc-input--select" [ngModel]="capabilityProviderFilter()" (change)="updateCapabilityFilter('provider', $event); loadModelCapabilities()">
+                <option value="">All providers</option>
+                @for (provider of capabilityProviders; track provider) {
+                  <option [value]="provider">{{ provider }}</option>
+                }
+              </select>
+              <select class="proc-input proc-input--select" [ngModel]="capabilityCategoryFilter()" (change)="updateCapabilityFilter('category', $event); loadModelCapabilities()">
+                <option value="">All categories</option>
+                @for (category of capabilityCategories; track category) {
+                  <option [value]="category">{{ category }}</option>
+                }
+              </select>
+              <input class="proc-input" [ngModel]="capabilitySearch()" (input)="updateCapabilityFilter('search', $event)" (keyup.enter)="loadModelCapabilities()" placeholder="Search model or provider" />
+              <button class="btn btn-soft btn-sm" type="button" (click)="loadModelCapabilities()">Apply</button>
+            </div>
+
+            <div class="cap-table-wrap">
+              <table class="cap-table">
+                <thead>
+                  <tr>
+                    <th>Provider</th>
+                    <th>Model</th>
+                    <th>Category</th>
+                    <th>Capabilities</th>
+                    <th>Source</th>
+                    <th>Sync</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of modelCapabilities(); track trackByCapabilityId($index, row)) {
+                    <tr>
+                      <td><span class="cap-provider">{{ row.provider }}</span></td>
+                      <td>
+                        <div class="cap-model">{{ row.displayName || row.modelName }}</div>
+                        <div class="cap-model-sub">{{ row.modelName }}</div>
+                      </td>
+                      <td><span class="cap-pill">{{ row.category }}</span></td>
+                      <td>
+                        <div class="cap-flags">
+                          @if (row.maxResolution) { <span>{{ row.maxResolution }}</span> }
+                          @if (row.supportsTextToVideo) { <span>text to video</span> }
+                          @if (row.supportsImageToVideo) { <span>image to video</span> }
+                          @if (row.supportsAudio) { <span>audio</span> }
+                          @if (row.supportsVoiceClone) { <span>clone</span> }
+                          @if (row.supportsStreaming) { <span>stream</span> }
+                          @if (row.supportedVoices.length) { <span>{{ row.supportedVoices.length }} voices</span> }
+                          @if (row.priceTiers.length) { <span>{{ row.priceTiers.length }} tiers</span> }
+                        </div>
+                      </td>
+                      <td>
+                        <div class="cap-source">{{ row.metadataSource }}</div>
+                        <div class="cap-model-sub">{{ row.metadataQuality }}</div>
+                      </td>
+                      <td>
+                        <span class="cap-lock" [class.cap-lock--locked]="row.skipAutoSync">
+                          {{ row.skipAutoSync ? 'Manual lock' : 'Auto sync' }}
+                        </span>
+                      </td>
+                      <td class="cap-row-actions">
+                        <button class="cap-icon-btn" type="button" title="Edit" (click)="openCapabilityEditor(row)">
+                          <i class="fas fa-pen"></i>
+                        </button>
+                        @if (row.id !== '00000000-0000-0000-0000-000000000000') {
+                          <button class="cap-icon-btn cap-icon-btn--danger" type="button" title="Delete" (click)="deleteCapability(row)">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        }
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="7"><div class="cap-empty">No model capabilities yet.</div></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        }
+
         <!-- ── Save Bar ─────────────────────────────────────────────── -->
         <div class="proc-save-bar">
           <button class="btn btn-primary" (click)="save()">
@@ -385,3 +535,149 @@
     }
   </div>
 </div>
+
+@if (capabilityEditorOpen() && editingCapability(); as form) {
+  <div class="cap-modal-backdrop">
+    <div class="cap-modal">
+      <div class="cap-modal__header">
+        <div>
+          <div class="cap-modal__title">{{ form.id ? 'Edit Model Capability' : 'Add Model Capability' }}</div>
+          <div class="cap-modal__sub">Manual values can be protected from provider sync.</div>
+        </div>
+        <button class="cap-icon-btn" type="button" (click)="closeCapabilityEditor()" aria-label="Close dialog">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="cap-modal__body">
+        <div class="cap-form-grid">
+          <label class="proc-field">
+            <span class="proc-field-label">Provider</span>
+            <input class="proc-input" [(ngModel)]="form.provider" placeholder="TogetherAI" />
+          </label>
+          <label class="proc-field">
+            <span class="proc-field-label">Category</span>
+            <select class="proc-input proc-input--select" [(ngModel)]="form.category">
+              @for (category of capabilityCategories; track category) {
+                <option [value]="category">{{ category }}</option>
+              }
+            </select>
+          </label>
+          <label class="proc-field proc-field--full">
+            <span class="proc-field-label">Model Name</span>
+            <input class="proc-input" [(ngModel)]="form.modelName" placeholder="hexgrad/Kokoro-82M" />
+          </label>
+          <label class="proc-field">
+            <span class="proc-field-label">Display Name</span>
+            <input class="proc-input" [(ngModel)]="form.displayName" placeholder="Kokoro TTS" />
+          </label>
+          <label class="proc-field">
+            <span class="proc-field-label">Max Resolution</span>
+            <input class="proc-input" [(ngModel)]="form.maxResolution" placeholder="1080p" />
+          </label>
+          <label class="proc-field proc-field--full">
+            <span class="proc-field-label">Description</span>
+            <textarea class="proc-input cap-textarea" [(ngModel)]="form.description" rows="3"></textarea>
+          </label>
+          <label class="proc-field">
+            <span class="proc-field-label">Aspect Ratios</span>
+            <input class="proc-input" [ngModel]="listText(form.supportedAspectRatios)" (input)="setCapabilityList('supportedAspectRatios', $event)" placeholder="9:16, 16:9, 1:1" />
+          </label>
+          <label class="proc-field">
+            <span class="proc-field-label">Durations</span>
+            <input class="proc-input" [ngModel]="listText(form.supportedDurations)" (input)="setCapabilityList('supportedDurations', $event)" placeholder="5s, 8s, 10s" />
+          </label>
+          <label class="proc-field">
+            <span class="proc-field-label">Voices</span>
+            <input class="proc-input" [ngModel]="listText(form.supportedVoices)" (input)="setCapabilityList('supportedVoices', $event)" placeholder="af_heart, tara" />
+          </label>
+          <label class="proc-field">
+            <span class="proc-field-label">Languages</span>
+            <input class="proc-input" [ngModel]="listText(form.supportedLanguages)" (input)="setCapabilityList('supportedLanguages', $event)" placeholder="en, ur" />
+          </label>
+        </div>
+
+        <div class="cap-check-grid">
+          <label class="cap-check"><input type="checkbox" [(ngModel)]="form.supportsTextToVideo" /> Text to video</label>
+          <label class="cap-check"><input type="checkbox" [(ngModel)]="form.supportsImageToVideo" /> Image to video</label>
+          <label class="cap-check"><input type="checkbox" [(ngModel)]="form.supportsAudio" /> Audio support</label>
+          <label class="cap-check"><input type="checkbox" [(ngModel)]="form.supportsVoiceClone" /> Voice clone</label>
+          <label class="cap-check"><input type="checkbox" [(ngModel)]="form.supportsStreaming" /> Streaming</label>
+          <label class="cap-check cap-check--strong"><input type="checkbox" [(ngModel)]="form.skipAutoSync" /> Do not sync this model automatically</label>
+        </div>
+
+        <div class="cap-tier-panel">
+          <div class="cap-tier-panel__header">
+            <div>
+              <div class="cap-tier-title">Price And Quota Tiers</div>
+              <div class="cap-tier-sub">Resolution and voice-mode rows control visible Smart Video options.</div>
+            </div>
+            <div class="cap-tier-actions">
+              <button class="btn btn-soft btn-sm" type="button" (click)="addDefaultResolutionTiers()">Add Defaults</button>
+              <button class="btn btn-soft btn-sm" type="button" (click)="addPriceTier('Resolution')">Add Tier</button>
+              <button class="btn btn-soft btn-sm" type="button" (click)="addPriceTier('VoiceMode')">Add Voice</button>
+            </div>
+          </div>
+
+          <div class="cap-tier-table-wrap">
+            <table class="cap-tier-table">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Key</th>
+                  <th>Label</th>
+                  <th>Non-BYOK $</th>
+                  <th>BYOK $</th>
+                  <th>Quota x</th>
+                  <th>Show</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (tier of form.priceTiers; track trackByTierIndex($index)) {
+                  <tr>
+                    <td>
+                      <select class="proc-input proc-input--select proc-input--sm" [(ngModel)]="tier.tierType">
+                        <option value="Resolution">Resolution</option>
+                        <option value="VoiceMode">Voice mode</option>
+                        <option value="Voice">Voice</option>
+                        <option value="Quality">Quality</option>
+                      </select>
+                    </td>
+                    <td><input class="proc-input proc-input--sm" [(ngModel)]="tier.tierKey" placeholder="720p" /></td>
+                    <td><input class="proc-input proc-input--sm" [(ngModel)]="tier.label" placeholder="720p" /></td>
+                    <td><input class="proc-input proc-input--sm" type="number" step="0.000001" [(ngModel)]="tier.nonByokPriceUsd" placeholder="auto" /></td>
+                    <td><input class="proc-input proc-input--sm" type="number" step="0.000001" [(ngModel)]="tier.byokPriceUsd" placeholder="auto" /></td>
+                    <td><input class="proc-input proc-input--sm" type="number" step="0.01" min="0.01" [(ngModel)]="tier.quotaMultiplier" /></td>
+                    <td>
+                      <div class="cap-tier-show">
+                        <label><input type="checkbox" [(ngModel)]="tier.showForNonByok" /> Non</label>
+                        <label><input type="checkbox" [(ngModel)]="tier.showForByok" /> BYOK</label>
+                      </div>
+                    </td>
+                    <td>
+                      <button class="cap-icon-btn cap-icon-btn--danger" type="button" title="Remove tier" (click)="removePriceTier($index)">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="8"><div class="cap-empty">No tiers added.</div></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="cap-modal__footer">
+        <button class="btn btn-soft" type="button" (click)="closeCapabilityEditor()">Cancel</button>
+        <button class="btn btn-primary" type="button" (click)="saveCapability()" [disabled]="!form.provider.trim() || !form.modelName.trim() || !form.category.trim()">
+          Save Model
+        </button>
+      </div>
+    </div>
+  </div>
+}

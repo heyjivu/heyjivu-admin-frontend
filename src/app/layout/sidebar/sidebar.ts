@@ -63,8 +63,9 @@ export class Sidebar {
     { label: 'Failed Jobs', icon: 'fas fa-exclamation-triangle', route: '/admin/pipeline', queryParams: { status: 'failed' }, section: 'pipeline' },
     { label: 'Completed Jobs', icon: 'fas fa-check-circle', route: '/admin/pipeline', queryParams: { status: 'done' }, section: 'pipeline' },
     { label: 'Processing Config', icon: 'fas fa-cog', route: '/admin/processing', right: Rights.Admin_Config_View, section: 'config' },
+    { label: 'Model Configuration', icon: 'fas fa-sliders', route: '/admin/processing', queryParams: { tab: 'models' }, right: Rights.Admin_Config_View, section: 'config' },
     { label: 'Template Studio', icon: 'fas fa-wand-magic-sparkles', route: '/admin/templates', right: Rights.Admin_Config_View, section: 'templates' },
-    { label: 'Memes', icon: 'fas fa-laugh', route: '/admin/memes', right: Rights.Memes_Manage, section: 'memes' },
+    { label: 'Assets', icon: 'fas fa-photo-film', route: '/admin/assets', right: Rights.Admin_Config_View, section: 'assets' },
     { label: 'Free', icon: 'fas fa-user', route: '/admin/plan-users', queryParams: { plan: 'free' }, section: 'plan-users' },
     { label: 'Student', icon: 'fas fa-graduation-cap', route: '/admin/plan-users', queryParams: { plan: 'student' }, section: 'plan-users' },
     { label: 'Merchant', icon: 'fas fa-store', route: '/admin/plan-users', queryParams: { plan: 'merchant' }, section: 'plan-users' },
@@ -81,7 +82,7 @@ export class Sidebar {
     if (path.startsWith('/admin/pipeline') || path.startsWith('/admin/run-jobs')) return 'pipeline';
     if (path.startsWith('/admin/processing')) return 'config';
     if (path.startsWith('/admin/templates')) return 'templates';
-    if (path.startsWith('/admin/memes')) return 'memes';
+    if (path.startsWith('/admin/assets')) return 'assets';
     if (path.startsWith('/admin/plan-users')) return 'plan-users';
     return null;
   });
@@ -109,6 +110,8 @@ export class Sidebar {
         const paramStr = `${key}=${value}`;
         if (!url.includes(paramStr)) return false;
       }
+    } else if (query) {
+      return false;
     }
     return true;
   }
@@ -136,7 +139,7 @@ export class Sidebar {
     if (section === 'pipeline') return 'Pipeline';
     if (section === 'config') return 'Processing Config';
     if (section === 'templates') return 'Template Studio';
-    if (section === 'memes') return 'Meme Management';
+    if (section === 'assets') return 'Asset Management';
     if (section === 'plan-users') return 'Plan Users';
     return 'Admin Portal';
   }

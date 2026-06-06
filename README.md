@@ -17,8 +17,6 @@ Admin Angular application for operations, moderation, settings, and monitoring.
 npm install
 npm run start
 `"
-Ensure-Docs 'N:\heyjivu\heyjivu-modal-pipelines' 'heyjivu-modal-pipelines' 'Modal and local Python processing pipelines for media generation, review, and social workflows.' @('Python','Modal','FastAPI local dispatch') 
-
 ## Branching
 - main: protected production-ready branch
 - staging (recommended to create next): integration branch

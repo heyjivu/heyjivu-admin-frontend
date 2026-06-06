@@ -18,6 +18,7 @@ export interface OpenRouterPricingStatusDto {
   adminOpenRouterKeys: number;
   byokOpenRouterKeys: number;
   recentModels: OpenRouterPricingModelDto[];
+  sources: ModelPricingSourceStatusDto[];
 }
 
 export interface OpenRouterPricingSyncResultDto {
@@ -29,6 +30,25 @@ export interface OpenRouterPricingSyncResultDto {
   snapshotRowsAdded?: number;
   totalModels: number;
   syncedAtUtc: string;
+  sources: ModelPricingSourceSyncResultDto[];
+}
+
+export interface ModelPricingSourceStatusDto {
+  source: string;
+  totalModels: number;
+  lastSyncedAtUtc: string | null;
+}
+
+export interface ModelPricingSourceSyncResultDto {
+  source: string;
+  added: number;
+  updated: number;
+  unchanged: number;
+  removed: number;
+  refreshed: number;
+  totalModels: number;
+  syncedAtUtc: string;
+  error?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

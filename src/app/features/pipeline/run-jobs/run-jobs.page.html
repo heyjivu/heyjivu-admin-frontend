@@ -117,16 +117,16 @@
         <!-- Pricing Sync -->
         <div *ngSwitchCase="'PricingSync'" class="flex flex-column gap-3">
           <div class="text-xl font-semibold text-color-primary flex align-items-center gap-2">
-            <i class="fas fa-tags text-amber-300"></i> OpenRouter Pricing Sync
+            <i class="fas fa-tags text-amber-300"></i> Model Pricing Sync
           </div>
           <p class="text-sm text-color-secondary leading-relaxed">
-            Syncs OpenRouter model pricing into the local pricing cache. BYOK and platform calls use this current
-            catalog when writing AI usage logs, while actual spend reporting comes from saved usage rows by user, role, and key ownership.
+            Syncs provider pricing and the full LiteLLM model catalog into the local pricing cache. Runtime cost lookup uses
+            provider-specific rows first, LiteLLM fallback second, and records zero when no catalog price exists.
           </p>
           <div class="job-meta-grid">
             <div class="meta-item">
               <span class="meta-label">Automatic Cadence:</span>
-              <span class="meta-value">Every 6 hours</span>
+              <span class="meta-value">Every 12 hours</span>
             </div>
             <div class="meta-item">
               <span class="meta-label">Runtime Pricing Source:</span>
@@ -154,9 +154,24 @@
           </div>
 
           <div class="pricing-sync-result" *ngIf="lastSyncResult() as result">
-            Synced {{ result.totalModels }} models at {{ formatDate(result.syncedAtUtc) }}.
+            Synced {{ result.totalModels }} catalog records at {{ formatDate(result.syncedAtUtc) }}.
             {{ result.added }} added, {{ result.updated }} price changes, {{ result.unchanged }} unchanged,
             {{ result.removed || 0 }} stale removed, {{ refreshedRows(result) }} cache rows refreshed.
+          </div>
+
+          <div class="pricing-model-list" *ngIf="pricingStatus()?.sources?.length">
+            <div class="pricing-model-row pricing-model-head">
+              <span>Source</span>
+              <span>Rows</span>
+              <span>Last Sync</span>
+              <span></span>
+            </div>
+            <div class="pricing-model-row" *ngFor="let source of pricingStatus()?.sources">
+              <span>{{ source.source }}</span>
+              <span>{{ source.totalModels || 0 }}</span>
+              <span>{{ formatDate(source.lastSyncedAtUtc) }}</span>
+              <span></span>
+            </div>
           </div>
 
           <div class="pricing-model-list" *ngIf="pricingStatus()?.recentModels?.length">

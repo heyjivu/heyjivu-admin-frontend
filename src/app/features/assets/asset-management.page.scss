@@ -4,14 +4,14 @@
 }
 
 // ── Table Header ──────────────────────────────────────────────────────
-.meme-table-header {
+.asset-table-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 14px;
 }
 
-.meme-table-title {
+.asset-table-title {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -22,7 +22,7 @@
   i { font-size: 15px; color: var(--text3); }
 }
 
-.meme-count-badge {
+.asset-count-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -38,13 +38,13 @@
 }
 
 // ── Name Cell ─────────────────────────────────────────────────────────
-.meme-name-cell {
+.asset-name-cell {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.meme-name-icon {
+.asset-name-icon {
   width: 32px;
   height: 32px;
   border-radius: 8px;
@@ -58,13 +58,13 @@
   border: 1px solid var(--accent-alpha-18);
 }
 
-.meme-name {
+.asset-name {
   font-size: 13px;
   font-weight: 500;
   color: var(--text);
 }
 
-.meme-desc {
+.asset-desc {
   font-size: 11px;
   color: var(--text3);
   margin-top: 2px;
@@ -75,7 +75,7 @@
 }
 
 // ── Type Pill ─────────────────────────────────────────────────────────
-.meme-type-pill {
+.asset-type-pill {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -96,7 +96,7 @@
 }
 
 // ── Status Pill ───────────────────────────────────────────────────────
-.meme-status-pill {
+.asset-status-pill {
   display: inline-flex;
   align-items: center;
   font-size: 10px;
@@ -118,12 +118,12 @@
 }
 
 // ── Action Buttons ────────────────────────────────────────────────────
-.meme-actions {
+.asset-actions {
   display: flex;
   gap: 6px;
 }
 
-.meme-icon-btn {
+.asset-icon-btn {
   width: 32px;
   height: 32px;
   border-radius: 6px;
@@ -145,7 +145,7 @@
 }
 
 // ── Empty State ───────────────────────────────────────────────────────
-.meme-empty {
+.asset-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -162,7 +162,7 @@
 // MODAL
 // ══════════════════════════════════════════════════════════════════════
 
-.meme-overlay {
+.asset-overlay {
   position: fixed;
   inset: 0;
   z-index: 1000;
@@ -175,7 +175,7 @@
   padding: 20px;
 }
 
-.meme-modal {
+.asset-modal {
   width: 100%;
   max-width: 580px;
   background: var(--bg2);
@@ -189,7 +189,7 @@
   flex-direction: column;
 }
 
-.meme-modal__header {
+.asset-modal__header {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -198,7 +198,7 @@
   position: relative;
 }
 
-.meme-modal__icon {
+.asset-modal__icon {
   width: 40px;
   height: 40px;
   border-radius: 11px;
@@ -212,19 +212,19 @@
   border: 1px solid var(--accent-alpha-20);
 }
 
-.meme-modal__title {
+.asset-modal__title {
   font-size: 16px;
   font-weight: 700;
   color: var(--text);
 }
 
-.meme-modal__sub {
+.asset-modal__sub {
   font-size: 12px;
   color: var(--text3);
   margin-top: 2px;
 }
 
-.meme-modal__close {
+.asset-modal__close {
   margin-left: auto;
   width: 32px;
   height: 32px;
@@ -242,13 +242,13 @@
   &:hover { background: var(--border-subtle); color: var(--text); }
 }
 
-.meme-modal__body {
+.asset-modal__body {
   padding: 24px;
   overflow-y: auto;
   flex: 1;
 }
 
-.meme-modal__footer {
+.asset-modal__footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
@@ -258,13 +258,13 @@
 }
 
 // ── Form Grid ─────────────────────────────────────────────────────────
-.meme-form-grid {
+.asset-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
-.meme-field {
+.asset-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -272,7 +272,7 @@
   &--full { grid-column: 1 / -1; }
 }
 
-.meme-label {
+.asset-label {
   font-size: 10px;
   font-weight: 700;
   color: var(--text3);
@@ -281,7 +281,7 @@
   font-family: var(--font-mono);
 }
 
-.meme-input {
+.asset-input {
   width: 100%;
   padding: 10px 13px;
   background: var(--border-subtle);
@@ -306,12 +306,12 @@
 }
 
 // ── Radio Group ───────────────────────────────────────────────────────
-.meme-radio-group {
+.asset-radio-group {
   display: flex;
   gap: 8px;
 }
 
-.meme-radio {
+.asset-radio {
   flex: 1;
   display: flex;
   align-items: center;
@@ -344,20 +344,20 @@
 }
 
 // ── Toggle Row ────────────────────────────────────────────────────────
-.meme-toggle-row {
+.asset-toggle-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 0;
 }
 
-.meme-toggle-label {
+.asset-toggle-label {
   font-size: 13px;
   font-weight: 500;
   color: var(--text);
 }
 
-.meme-switch {
+.asset-switch {
   position: relative;
   display: inline-block;
   cursor: pointer;
@@ -365,7 +365,7 @@
   input { display: none; }
 }
 
-.meme-switch__track {
+.asset-switch__track {
   display: block;
   width: 44px;
   height: 24px;
@@ -387,7 +387,7 @@
   }
 }
 
-.meme-switch input:checked + .meme-switch__track {
+.asset-switch input:checked + .asset-switch__track {
   background: var(--accent-alpha-70);
 
   &::after {

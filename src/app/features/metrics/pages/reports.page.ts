@@ -253,23 +253,21 @@ export class ReportsPage implements OnInit {
     }
 
     const usageRecords = report.usageRecords || [];
-    if (usageRecords.length > 0) {
-       usageRecords.forEach((r: AIUsageReportRecord) => {
-          const dateKey = new Date(r.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-          if (dailyData[dateKey]) {
-             if (r.isAdminKey) dailyData[dateKey].company += r.estimatedCostUsd;
-             else dailyData[dateKey].byok += r.estimatedCostUsd;
-          }
-       });
-    } else if (report.records) {
-       report.records.forEach((r: AiCostRecord) => {
-          const dateKey = new Date(r.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-          if (dailyData[dateKey]) {
-             if (this.isByokReportType(r.reportType)) dailyData[dateKey].byok += r.calculatedCostUsd;
-             else dailyData[dateKey].company += r.calculatedCostUsd;
-          }
-       });
-    }
+    usageRecords.forEach((r: AIUsageReportRecord) => {
+      const dateKey = new Date(r.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      if (dailyData[dateKey]) {
+        if (r.isAdminKey) dailyData[dateKey].company += r.estimatedCostUsd;
+        else dailyData[dateKey].byok += r.estimatedCostUsd;
+      }
+    });
+
+    (report.records || []).forEach((r: AiCostRecord) => {
+      const dateKey = new Date(r.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      if (dailyData[dateKey]) {
+        if (this.isByokReportType(r.reportType)) dailyData[dateKey].byok += r.calculatedCostUsd;
+        else dailyData[dateKey].company += r.calculatedCostUsd;
+      }
+    });
 
     const companySeries = days.map(d => Number(this.usdToPkr(dailyData[d].company).toFixed(2)));
     const byokSeries = days.map(d => Number(this.usdToPkr(dailyData[d].byok).toFixed(2)));
