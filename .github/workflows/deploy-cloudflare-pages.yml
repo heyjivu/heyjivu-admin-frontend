@@ -13,6 +13,8 @@ permissions:
 env:
   NODE_VERSION: 24
   BUILD_OUTPUT_DIR: dist/ai-content-generation-admin-fe/browser
+  CLOUDFLARE_ACCOUNT_ID: 041f3c8b8004f330518bc1cc05c581e0
+  CLOUDFLARE_PAGES_PROJECT_NAME: heyjivu-admin-frontend
 
 jobs:
   deploy:
@@ -46,9 +48,15 @@ jobs:
         if: github.ref_name == 'main'
         run: npm run build -- --configuration production
 
+      - name: Validate Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "CLOUDFLARE_API_TOKEN secret is missing."; exit 1; }
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy ${{ env.BUILD_OUTPUT_DIR }} --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }} --branch=${{ github.ref_name }}
+          accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy ${{ env.BUILD_OUTPUT_DIR }} --project-name=${{ env.CLOUDFLARE_PAGES_PROJECT_NAME }} --branch=${{ github.ref_name }}
