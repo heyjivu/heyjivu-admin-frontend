@@ -1,5 +1,5 @@
 // ============================================================
-//  brain-config.page.scss
+//  company-ai-keys.page.scss
 //  Only component-specific styles. All globals come from
 //  _global-laptop.scss, _forms.scss, _app-shell.scss, etc.
 // ============================================================
@@ -399,6 +399,44 @@
 
 .prov-img { width: 18px; height: 18px; object-fit: contain; }
 
+.drag-handle {
+  width: 22px;
+  height: 28px;
+  flex: 0 0 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text3);
+  border-radius: 6px;
+  cursor: grab;
+  transition: color 0.18s, background 0.18s;
+
+  &:hover {
+    color: var(--accent);
+    background: var(--accent-alpha-08);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--text-alpha-025);
+  color: var(--text3);
+  font-size: 9px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .prov-name {
   font-size: 13px; font-weight: 700; color: var(--text);
 }
@@ -780,13 +818,13 @@
   }
 }
 
-// Toggle switch (used only in brain config body)
-.brain-switch {
+// Toggle switch (used only in company AI key config body)
+.ai-key-switch {
   position: relative; display: inline-block; cursor: pointer;
   input { display: none; }
 }
 
-.brain-switch__track {
+.ai-key-switch__track {
   display: block;
   width: 36px; height: 18px; border-radius: 999px;
   background: var(--border-subtle);
@@ -801,20 +839,20 @@
   }
 }
 
-.brain-switch input:checked + .brain-switch__track {
+.ai-key-switch input:checked + .ai-key-switch__track {
   background: var(--accent-alpha-65);
   &::after { transform: translateX(18px); background: var(--text); }
 }
 
-.brain-switch input:checked + .brain-switch__track--danger {
+.ai-key-switch input:checked + .ai-key-switch__track--danger {
   background: var(--danger-alpha-60);
 }
 
-.brain-switch--sm .brain-switch__track {
+.ai-key-switch--sm .ai-key-switch__track {
   width: 30px; height: 16px;
   &::after { width: 12px; height: 12px; top: 2px; left: 2px; }
 }
 
-.brain-switch--sm input:checked + .brain-switch__track::after {
+.ai-key-switch--sm input:checked + .ai-key-switch__track::after {
   transform: translateX(14px);
 }

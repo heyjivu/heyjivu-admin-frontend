@@ -13,6 +13,9 @@
         </div>
       </div>
       <div class="header-actions">
+        <button class="btn btn-primary btn-sm" type="button" (click)="openAddUserModal()" *ngIf="activeTab() === 'users'">
+          <i class="fas fa-user-plus"></i> Add User
+        </button>
         <button class="btn btn-soft btn-sm" (click)="loadData()">
           <i class="fas fa-sync" [class.fa-spin]="loading()"></i> Refresh
         </button>
@@ -70,6 +73,7 @@
             <th>User</th>
             <th>Organization</th>
             <th>Role</th>
+            <th>Account Type</th>
             <th>Plan</th>
             <th>Usage</th>
             <th>Quotas</th>
@@ -97,11 +101,20 @@
             <td>
               <select class="role-select"
                       [ngModel]="user.roleId"
-                      (ngModelChange)="onRoleChange(user.id, $event)">
-                <option *ngFor="let role of roles()" [value]="role.id">
+                      (ngModelChange)="requestRoleChange(user, $event)">
+                <option *ngFor="let role of roles()" [ngValue]="role.id">
                   {{ displayRoleName(role.name) }}
                 </option>
-                <option [value]="null" *ngIf="!user.roleId">Select Role</option>
+                <option [ngValue]="null" *ngIf="!user.roleId">Select Role</option>
+              </select>
+            </td>
+            <td>
+              <select class="role-select account-type-select"
+                      [ngModel]="normalizeAccountType(user.accountType)"
+                      (ngModelChange)="requestAccountTypeChange(user, $event)">
+                <option *ngFor="let option of accountTypeOptions" [ngValue]="option.value">
+                  {{ option.label }}
+                </option>
               </select>
             </td>
             <td>
@@ -624,6 +637,208 @@
       <div class="modal-footer" style="padding: 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px;">
         <button class="btn btn-ghost" (click)="editingUser.set(null)">Cancel</button>
         <button class="btn btn-primary" (click)="saveUserProcessingSettings()">Save Options</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grid Change Confirmation Modal -->
+  <div class="modal-overlay animate-fade-in" *ngIf="pendingGridChange() as change">
+    <div class="modal-container glass-card grid-confirm-modal">
+      <div class="modal-header">
+        <h3>{{ pendingGridChangeTitle(change) }}</h3>
+        <button class="modal-close" type="button" (click)="cancelPendingGridChange()" aria-label="Close dialog" [disabled]="savingGridChange()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-content grid-confirm-content">
+        <div class="account-change-summary">
+          <span>User</span>
+          <strong>{{ change.user.displayName }}</strong>
+          <small>{{ change.user.email }}</small>
+        </div>
+        <div class="account-change-summary">
+          <span>New Value</span>
+          <strong>{{ pendingGridChangeTarget(change) }}</strong>
+          <small>{{ pendingGridChangeBody(change) }}</small>
+        </div>
+      </div>
+
+      <div class="modal-footer grid-confirm-footer">
+        <button class="btn btn-ghost" type="button" (click)="cancelPendingGridChange()" [disabled]="savingGridChange()">Cancel</button>
+        <button class="btn btn-primary" type="button" (click)="confirmPendingGridChange()" [disabled]="savingGridChange()">
+          <span *ngIf="!savingGridChange()"><i class="fas fa-check"></i> Confirm</span>
+          <span *ngIf="savingGridChange()"><i class="fas fa-spinner fa-spin"></i> Saving...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Account Type Onboarding Modal -->
+  <div class="modal-overlay animate-fade-in" *ngIf="accountOnboarding() as change">
+    <div class="modal-container glass-card account-onboarding-modal">
+      <div class="modal-header">
+        <div>
+          <h3>Complete User App Onboarding</h3>
+          <p>{{ change.user.displayName }} will become {{ change.accountTypeLabel }}.</p>
+        </div>
+        <button class="modal-close" type="button" (click)="closeAccountOnboarding()" aria-label="Close dialog" [disabled]="savingGridChange()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-content account-onboarding-content">
+        <div class="add-user-error" *ngIf="accountOnboardingError()">
+          <i class="fas fa-exclamation-circle"></i>
+          <span>{{ accountOnboardingError() }}</span>
+        </div>
+
+        <section class="account-onboarding-section" [class.has-error]="isAccountOnboardingFieldInvalid('planId') && showAccountOnboardingValidation('planId')">
+          <div class="account-onboarding-heading">
+            <span>01</span>
+            <div>
+              <h4>Plan</h4>
+              <p>Select the user-app plan and quota bucket.</p>
+            </div>
+          </div>
+
+          <div class="add-user-loading" *ngIf="loadingPlans(); else accountPlansTpl">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Loading plans...</span>
+          </div>
+
+          <ng-template #accountPlansTpl>
+            <div class="plan-choice-grid">
+              <button
+                type="button"
+                class="plan-choice-card"
+                *ngFor="let plan of plans()"
+                [class.selected]="accountOnboardingForm().planId === plan.id"
+                (click)="selectAccountPlan(plan.id)"
+              >
+                <span class="plan-choice-card__tier">{{ plan.tier }}</span>
+                <strong>{{ plan.name }}</strong>
+                <small>{{ plan.subscription }}</small>
+                <span class="plan-choice-card__price">{{ formatPlanPrice(plan) }}</span>
+                <span class="plan-choice-card__logic">{{ plan.logic || 'Admin-assigned access' }}</span>
+              </button>
+            </div>
+          </ng-template>
+          <small *ngIf="isAccountOnboardingFieldInvalid('planId') && showAccountOnboardingValidation('planId')">Select a plan.</small>
+        </section>
+
+        <div class="profile-grid profile-grid--admin">
+          <div class="profile-field profile-field--wide" [class.has-error]="isAccountOnboardingFieldInvalid('primaryNiche') && showAccountOnboardingValidation('primaryNiche')">
+            <div class="field-heading">
+              <span class="field-index">02</span>
+              <div>
+                <h3>Primary niche</h3>
+                <p>Pick the topic family this account will create for.</p>
+              </div>
+            </div>
+
+            <div class="chip-grid">
+              <button type="button"
+                      class="choice-chip"
+                      *ngFor="let niche of primaryNicheOptions"
+                      [class.selected]="accountOnboardingForm().primaryNiche === niche"
+                      (click)="selectAccountNiche(niche)">
+                {{ niche }}
+              </button>
+            </div>
+
+            <input *ngIf="accountOnboardingForm().primaryNiche === 'custom'"
+                   class="profile-input custom-niche-input"
+                   type="text"
+                   maxlength="80"
+                   [ngModel]="accountOnboardingForm().customPrimaryNiche"
+                   (ngModelChange)="patchAccountOnboardingForm({ customPrimaryNiche: $event }); markAccountOnboardingField('customPrimaryNiche')"
+                   placeholder="e.g. AI tools for real estate agents">
+            <small *ngIf="isAccountOnboardingFieldInvalid('primaryNiche') && showAccountOnboardingValidation('primaryNiche')">Select a niche.</small>
+            <small *ngIf="isAccountOnboardingFieldInvalid('customPrimaryNiche') && showAccountOnboardingValidation('customPrimaryNiche')">Enter a custom niche.</small>
+          </div>
+
+          <div class="profile-field" [class.has-error]="isAccountOnboardingFieldInvalid('targetAudience') && showAccountOnboardingValidation('targetAudience')">
+            <div class="field-heading">
+              <span class="field-index">03</span>
+              <div>
+                <h3>Target audience</h3>
+                <p>Who should the ideas speak to?</p>
+              </div>
+            </div>
+
+            <input class="profile-input"
+                   type="text"
+                   maxlength="80"
+                   [ngModel]="accountOnboardingForm().targetAudience"
+                   (ngModelChange)="patchAccountOnboardingForm({ targetAudience: $event })"
+                   (blur)="markAccountOnboardingField('targetAudience')"
+                   placeholder="e.g. beginners, buyers, local audience">
+
+            <div class="suggestion-row">
+              <button type="button" *ngFor="let audience of audienceSuggestions" (click)="setAccountAudienceSuggestion(audience)">
+                {{ audience }}
+              </button>
+            </div>
+            <small *ngIf="isAccountOnboardingFieldInvalid('targetAudience') && showAccountOnboardingValidation('targetAudience')">Enter a target audience.</small>
+          </div>
+
+          <div class="profile-field" [class.has-error]="isAccountOnboardingFieldInvalid('mainFormats') && showAccountOnboardingValidation('mainFormats')">
+            <div class="field-heading">
+              <span class="field-index">04</span>
+              <div>
+                <h3>Main formats</h3>
+                <p>Select the formats this account will make most.</p>
+              </div>
+            </div>
+
+            <div class="format-grid">
+              <button type="button"
+                      class="format-tile"
+                      *ngFor="let format of formatOptions"
+                      [class.selected]="accountOnboardingForm().mainFormats.includes(format)"
+                      (click)="toggleAccountFormat(format)">
+                <span>{{ format }}</span>
+              </button>
+            </div>
+            <small *ngIf="isAccountOnboardingFieldInvalid('mainFormats') && showAccountOnboardingValidation('mainFormats')">Select at least one format.</small>
+          </div>
+
+          <div class="profile-field profile-field--wide" [class.has-error]="isAccountOnboardingFieldInvalid('toneStyle') && showAccountOnboardingValidation('toneStyle')">
+            <div class="field-heading">
+              <span class="field-index">05</span>
+              <div>
+                <h3>Tone/style</h3>
+                <p>This controls how Trend Radar frames hooks and execution ideas.</p>
+              </div>
+            </div>
+
+            <div class="tone-strip">
+              <button type="button"
+                      *ngFor="let tone of toneOptions"
+                      [class.selected]="accountOnboardingForm().toneStyle === tone"
+                      (click)="selectAccountTone(tone)">
+                {{ tone }}
+              </button>
+            </div>
+            <small *ngIf="isAccountOnboardingFieldInvalid('toneStyle') && showAccountOnboardingValidation('toneStyle')">Select a tone.</small>
+          </div>
+        </div>
+
+        <div class="profile-summary add-user-summary">
+          <strong>Account profile</strong>
+          <span>
+            {{ selectedAccountPlan()?.name || 'Plan' }} / {{ accountOnboardingNicheLabel() }} / {{ accountOnboardingForm().targetAudience || 'audience' }} / {{ accountOnboardingForm().toneStyle || 'tone' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="modal-footer grid-confirm-footer">
+        <button class="btn btn-ghost" type="button" (click)="closeAccountOnboarding()" [disabled]="savingGridChange()">Cancel</button>
+        <button class="btn btn-primary" type="button" (click)="saveAccountOnboarding()" [disabled]="savingGridChange()">
+          <span *ngIf="!savingGridChange()"><i class="fas fa-check"></i> Save Account Type</span>
+          <span *ngIf="savingGridChange()"><i class="fas fa-spinner fa-spin"></i> Saving...</span>
+        </button>
       </div>
     </div>
   </div>

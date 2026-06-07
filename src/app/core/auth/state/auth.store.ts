@@ -40,6 +40,8 @@ const userFromAuthResponse = (response: AuthResponse): AuthUser => ({
   onboardingStep: response.onboardingStep,
   byokRequested: response.byokRequested,
   useServerStorage: response.useServerStorage,
+  accountType: response.accountType,
+  portal: response.portal,
 });
 
 export const AuthStore = signalStore(

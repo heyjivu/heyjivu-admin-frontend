@@ -3,10 +3,13 @@
   <!-- ══ Screen Header ════════════════════════════════════════════════ -->
   <div class="screen-header">
     <div class="header-content">
-      <div class="screen-title">Brain Configuration</div>
-      <div class="screen-sub">Manage AI brain settings, models &amp; BYOK API keys</div>
+      <div class="screen-title">Company AI Keys</div>
+      <div class="screen-sub">Manage company AI keys, models &amp; provider categories</div>
     </div>
     <div class="header-actions">
+      <button class="btn btn-primary btn-sm" [disabled]="totalKeys() === 0" (click)="openTestAllDialog()">
+        <i class="fas fa-check-double"></i> Validate All Keys
+      </button>
       <button class="btn btn-soft btn-sm" (click)="load()" [disabled]="loading()">
         <i class="fas fa-sync" [class.fa-spin]="loading()"></i> Refresh
       </button>
@@ -23,16 +26,19 @@
       <div class="d-flex items-start justify-between gap-20 flex-wrap hero-inner">
         <div class="d-flex items-start gap-20">
           <div class="byok-icon">
-            <i class="fas fa-brain"></i>
+            <i class="fas fa-key"></i>
           </div>
           <div>
-            <h2 class="byok-title">AI Brain Keys <span class="byok-tag">BYOK</span></h2>
+            <h2 class="byok-title">Company AI Keys <span class="byok-tag">ADMIN</span></h2>
             <p class="byok-sub">
               Global AI API keys for each provider category. Used by all users unless overridden by individual BYOK configs.
             </p>
           </div>
         </div>
         <div class="header-actions">
+          <button class="btn btn-primary btn-sm" [disabled]="totalKeys() === 0" (click)="openTestAllDialog()">
+            <i class="fas fa-check-double"></i> Validate All Keys
+          </button>
           <button class="btn btn-soft btn-sm" (click)="load()" [disabled]="loading()">
             <i class="fas" [ngClass]="loading() ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i> Refresh
           </button>
@@ -52,8 +58,8 @@
         </div>
         <div class="bstat-divider"></div>
         <div class="byok-stat">
-          <div class="bstat-val" [class.bstat-red]="blockedKeys() > 0" [class.bstat-muted]="blockedKeys() === 0">{{ blockedKeys() }}</div>
-          <div class="bstat-lbl">Blocked</div>
+          <div class="bstat-val" [class.bstat-red]="cooldownKeys() > 0" [class.bstat-muted]="cooldownKeys() === 0">{{ cooldownKeys() }}</div>
+          <div class="bstat-lbl">Cooldown</div>
         </div>
         <div class="bstat-divider"></div>
         <div class="byok-stat">
@@ -66,7 +72,7 @@
     <!-- ══ Loading State ═══════════════════════════════════════════════ -->
     <div class="byok-loading" *ngIf="loading()">
       <div class="byok-loading-ring"><i class="fas fa-spinner fa-spin"></i></div>
-      <p class="byok-loading-title">Loading Brain Configuration</p>
+      <p class="byok-loading-title">Loading Company AI Keys</p>
       <p class="byok-loading-sub">Fetching AI provider key settings…</p>
     </div>
 
@@ -113,9 +119,9 @@
               <span class="status-pill" [class.active]="setting.isEnabled">
                 {{ setting.isEnabled ? 'Enabled' : 'Disabled' }}
               </span>
-              <label class="brain-switch brain-switch--sm">
+              <label class="ai-key-switch ai-key-switch--sm">
                 <input type="checkbox" [checked]="setting.isEnabled" (change)="toggleEnabled(setting, $event)" />
-                <span class="brain-switch__track"></span>
+                <span class="ai-key-switch__track"></span>
               </label>
             </div>
 
@@ -141,9 +147,17 @@
           </div>
 
           <!-- Keys List -->
-          <div class="d-flex flex-col gap-8" *ngIf="getCategoryKeysForDisplay(setting).length > 0">
+          <div
+            class="d-flex flex-col gap-8"
+            *ngIf="getCategoryKeysForDisplay(setting).length > 0"
+            cdkDropList
+            (cdkDropListDropped)="onDrop($event, setting)"
+            [cdkDropListDisabled]="loading()"
+          >
             <ng-container *ngFor="let key of getCategoryKeysForDisplay(setting); trackBy: trackByKeyId">
-              <ng-container *ngTemplateOutlet="keyRowTpl; context: { key: key, setting: setting }"></ng-container>
+              <div cdkDrag [cdkDragDisabled]="isVirtualKey(key.id)">
+                <ng-container *ngTemplateOutlet="keyRowTpl; context: { key: key, setting: setting }"></ng-container>
+              </div>
             </ng-container>
           </div>
           
@@ -158,9 +172,9 @@
 
     <!-- Empty state -->
     <div class="key-empty key-empty--lg" *ngIf="!loading() && settings().length === 0">
-      <div class="empty-ring"><i class="fas fa-brain"></i></div>
-      <div class="byok-loading-title">No Brain Settings Loaded</div>
-      <div class="byok-loading-sub">Click Refresh to load the AI brain configuration from the server.</div>
+      <div class="empty-ring"><i class="fas fa-key"></i></div>
+      <div class="byok-loading-title">No Company AI Keys Loaded</div>
+      <div class="byok-loading-sub">Click Refresh to load the company AI key configuration from the server.</div>
     </div>
 
   </div><!-- /screen-container -->
@@ -170,13 +184,16 @@
 <ng-template #keyRowTpl let-key="key" let-setting="setting">
   <div class="key-row" 
        [class.row-open]="getRowState(key.id).isOpen" 
-       [class.row-blocked]="!isVirtualKey(key.id) && key.isBlocked"
+       [class.row-blocked]="!isVirtualKey(key.id) && (key.isBlocked || isInCooldown(key))"
        [class.row-virtual]="isVirtualKey(key.id)">
 
     <!-- Row Header -->
     <div class="key-row__header" (click)="toggleRow(key.id)">
 
       <div class="d-flex items-center gap-12 min-w-0">
+        <div class="drag-handle" cdkDragHandle (click)="$event.stopPropagation()" *ngIf="!isVirtualKey(key.id)" title="Drag to reorder priority">
+          <i class="fas fa-grip-vertical"></i>
+        </div>
         <div class="prov-icon" [ngClass]="getIconBadgeClass(key.provider || setting.provider)">
           <img *ngIf="getProviderIcon(key.provider || setting.provider)"
                [src]="getProviderIcon(key.provider || setting.provider)"
@@ -194,14 +211,19 @@
       </div>
 
       <div class="d-flex items-center gap-8" (click)="$event.stopPropagation()">
+        <span class="priority-badge" *ngIf="!isVirtualKey(key.id)">Prio: {{ key.priority ?? 0 }}</span>
+
         <!-- Status Badges -->
         <span class="status-badge badge-warning" *ngIf="isVirtualKey(key.id)">
           <span class="status-dot"></span> Not Configured
         </span>
-        <span class="status-badge badge-danger" *ngIf="!isVirtualKey(key.id) && key.isBlocked">
-          <span class="status-dot"></span> Blocked
+        <span class="status-badge badge-warning" *ngIf="!isVirtualKey(key.id) && isInCooldown(key)">
+          <span class="status-dot"></span> Cooldown {{ getCooldownMinutes(key) }}m
         </span>
-        <span class="status-badge badge-success" *ngIf="!isVirtualKey(key.id) && !key.isBlocked">
+        <span class="status-badge badge-danger" *ngIf="!isVirtualKey(key.id) && key.isBlocked && !isInCooldown(key)">
+          <span class="status-dot"></span> Paused
+        </span>
+        <span class="status-badge badge-success" *ngIf="!isVirtualKey(key.id) && !key.isBlocked && !isInCooldown(key)">
           <span class="status-dot"></span> Active
         </span>
 
@@ -210,7 +232,7 @@
         <!-- Test Connection Button -->
         <button class="icon-btn action-test"
                 *ngIf="!isVirtualKey(key.id)"
-                [disabled]="getRowState(key.id).isTesting || key.isBlocked"
+                [disabled]="getRowState(key.id).isTesting || key.isBlocked || isInCooldown(key)"
                 (click)="testKey(key.id, $event)"
                 title="Test Connection">
           <i class="fas" [ngClass]="getRowState(key.id).isTesting ? 'fa-spinner fa-spin' : 'fa-vial'"></i>
@@ -272,13 +294,6 @@
 
         <!-- Right Column -->
         <div class="grid-col">
-          <!-- Provider override -->
-          <div class="form-group">
-            <label class="field-label">Provider Override <span class="muted-label">(Optional)</span></label>
-            <input type="text" class="field-input premium-input" [(ngModel)]="key.provider"
-                   [placeholder]="setting.provider || 'e.g. OpenAI'" />
-          </div>
-
           <!-- Model with constants datalist -->
           <div class="form-group">
             <label class="field-label">Model Override <span class="muted-label">(Optional)</span></label>
@@ -289,26 +304,8 @@
               <option *ngFor="let m of getModelsForKey(key, setting)" [value]="m.id">{{ m.label }}</option>
             </datalist>
           </div>
-
-          <!-- Role restriction -->
-          <div class="form-group">
-            <label class="field-label">Role Restriction <span class="muted-label">(Optional)</span></label>
-            <input type="text" class="field-input premium-input" [(ngModel)]="key.roleName"
-                   placeholder="e.g. Admin, Pro" />
-          </div>
         </div>
 
-      </div>
-
-      <!-- Toggles (only Blocked) -->
-      <div class="d-flex items-center gap-20 mt-12" *ngIf="!isVirtualKey(key.id)">
-        <label class="d-flex items-center gap-8 cursor-pointer" style="font-size:13px;color:var(--text2)">
-          <label class="brain-switch brain-switch--sm">
-            <input type="checkbox" [(ngModel)]="key.isBlocked" />
-            <span class="brain-switch__track brain-switch__track--danger"></span>
-          </label>
-          Blocked (Disable Key)
-        </label>
       </div>
 
       <!-- Test result -->

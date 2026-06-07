@@ -1,14 +1,17 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import {
-  MemoryApiService,
-  BrainSettingsDto,
-  BrainApiKeyDto,
+  AdminCompanyAIKeysApiService,
+  CompanyAIKeySettingsDto,
+  CompanyAIKeyDto,
   TestKeyResult
-} from './services/memory-api.service';
+} from './services/company-ai-keys-api.service';
 import { getProviderModels, AIModelOption } from '../../core/constants/ai-models.constants';
 import { ToastService } from '../../core/services/toast.service';
+import { DialogService } from '../../core/dialogs/dialog.service';
+import { TestAllCompanyKeysDialogComponent } from './components/test-all-company-keys-dialog/test-all-company-keys-dialog.component';
 
 interface AIProviderInfo {
   name: string;
@@ -36,27 +39,28 @@ interface KeyRowState {
 }
 
 @Component({
-  selector: 'app-brain-config',
+  selector: 'app-company-ai-keys',
   standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './brain-config.page.html',
-  styleUrl: './brain-config.page.scss'
+  imports: [CommonModule, FormsModule, DragDropModule],
+  templateUrl: './company-ai-keys.page.html',
+  styleUrl: './company-ai-keys.page.scss'
 })
-export class BrainConfigPage implements OnInit {
-  private api = inject(MemoryApiService);
+export class CompanyAIKeysPage implements OnInit {
+  private api = inject(AdminCompanyAIKeysApiService);
   private toast = inject(ToastService);
+  private dialogService = inject(DialogService);
 
   loading = signal(false);
-  settings = signal<BrainSettingsDto[]>([]);
+  settings = signal<CompanyAIKeySettingsDto[]>([]);
   openCategories = signal<Record<string, boolean>>({});
   keyRowStates = signal<Record<string, KeyRowState>>({});
   pendingRemoveKeyId = signal<string | null>(null);
-  private virtualKeyDrafts: Record<string, BrainApiKeyDto> = {};
+  private virtualKeyDrafts: Record<string, CompanyAIKeyDto> = {};
 
   // Hero stats
   totalKeys = computed(() => this.settings().reduce((acc, s) => acc + s.apiKeys.length, 0));
-  activeKeys = computed(() => this.settings().reduce((acc, s) => acc + s.apiKeys.filter(k => !k.isBlocked).length, 0));
-  blockedKeys = computed(() => this.settings().reduce((acc, s) => acc + s.apiKeys.filter(k => k.isBlocked).length, 0));
+  activeKeys = computed(() => this.settings().reduce((acc, s) => acc + s.apiKeys.filter(k => !k.isBlocked && !this.isInCooldown(k)).length, 0));
+  cooldownKeys = computed(() => this.settings().reduce((acc, s) => acc + s.apiKeys.filter(k => k.isBlocked || this.isInCooldown(k)).length, 0));
   categoriesConfigured = computed(() => this.settings().filter(s => s.isEnabled && s.apiKeys.length > 0).length);
 
   readonly categories: CategoryInfo[] = [
@@ -71,8 +75,7 @@ export class BrainConfigPage implements OnInit {
         { name: 'DeepSeek' },
         { name: 'OpenRouter' },
         { name: 'Alibaba' },
-        { name: 'Groq' },
-        { name: 'Ollama' }
+        { name: 'Groq' }
       ]
     },
     {
@@ -160,7 +163,7 @@ export class BrainConfigPage implements OnInit {
 
   load() {
     this.loading.set(true);
-    this.api.getBrainSettings().subscribe({
+    this.api.getCompanyAIKeySettings().subscribe({
       next: (data) => {
         this.settings.set(data);
         // Init key row states
@@ -183,7 +186,7 @@ export class BrainConfigPage implements OnInit {
 
   // ── Category helpers ────────────────────────────────────────────────
   getCategoryInfo(type: string): CategoryInfo {
-    return this.categories.find(c => c.id === type) ?? { id: type, name: type, icon: 'fas fa-brain', description: '', providers: [] };
+    return this.categories.find(c => c.id === type) ?? { id: type, name: type, icon: 'fas fa-key', description: '', providers: [] };
   }
 
   isCategoryOpen(type: string): boolean {
@@ -198,7 +201,7 @@ export class BrainConfigPage implements OnInit {
     return this.settings().find(s => s.type === type)?.apiKeys.length ?? 0;
   }
 
-  toggleEnabled(setting: BrainSettingsDto, event: Event) {
+  toggleEnabled(setting: CompanyAIKeySettingsDto, event: Event) {
     event.stopPropagation();
     const checkbox = event.target as HTMLInputElement;
     setting.isEnabled = checkbox.checked;
@@ -210,8 +213,8 @@ export class BrainConfigPage implements OnInit {
     return (keyId || '').startsWith('virtual-');
   }
 
-  getCategoryKeysForDisplay(setting: BrainSettingsDto): BrainApiKeyDto[] {
-    const keysList: BrainApiKeyDto[] = [];
+  getCategoryKeysForDisplay(setting: CompanyAIKeySettingsDto): CompanyAIKeyDto[] {
+    const keysList: CompanyAIKeyDto[] = [];
 
     // 1. Add all configured keys
     setting.apiKeys.forEach(k => {
@@ -256,8 +259,8 @@ export class BrainConfigPage implements OnInit {
   }
 
   // ── CRUD operations ─────────────────────────────────────────────────
-  addKey(setting: BrainSettingsDto) {
-    const newKey: BrainApiKeyDto = {
+  addKey(setting: CompanyAIKeySettingsDto) {
+    const newKey: CompanyAIKeyDto = {
       id: crypto.randomUUID(),
       key: '',
       isBlocked: false,
@@ -276,7 +279,7 @@ export class BrainConfigPage implements OnInit {
     }));
   }
 
-  removeKey(setting: BrainSettingsDto, key: BrainApiKeyDto) {
+  removeKey(setting: CompanyAIKeySettingsDto, key: CompanyAIKeyDto) {
     const provider = key.provider || setting.provider || 'this provider';
     if (this.pendingRemoveKeyId() !== key.id) {
       this.pendingRemoveKeyId.set(key.id);
@@ -290,11 +293,23 @@ export class BrainConfigPage implements OnInit {
     }
 
     this.pendingRemoveKeyId.set(null);
-    setting.apiKeys = setting.apiKeys.filter(k => k !== key);
-    this.saveAll(setting, `${provider} key removed.`);
+
+    if (this.isVirtualKey(key.id)) {
+      setting.apiKeys = setting.apiKeys.filter(k => k !== key);
+      return;
+    }
+
+    this.api.deleteKey(key.id).subscribe({
+      next: () => {
+        setting.apiKeys = setting.apiKeys.filter(k => k.id !== key.id);
+        this.toast.success(`${provider} key removed.`);
+        this.load();
+      },
+      error: () => this.toast.error('Failed to delete company AI key.')
+    });
   }
 
-  saveKey(setting: BrainSettingsDto, key: BrainApiKeyDto) {
+  saveKey(setting: CompanyAIKeySettingsDto, key: CompanyAIKeyDto) {
     const rowId = key.id;
     const wasVirtual = this.isVirtualKey(rowId);
     const previousApiKeys = setting.apiKeys.map(existingKey => ({ ...existingKey }));
@@ -311,7 +326,7 @@ export class BrainConfigPage implements OnInit {
 
     if (wasVirtual) {
       // Convert to a real key
-      const newKey: BrainApiKeyDto = {
+      const newKey: CompanyAIKeyDto = {
         ...key,
         id: crypto.randomUUID(),
         key: key.key?.trim() ?? '',
@@ -357,11 +372,11 @@ export class BrainConfigPage implements OnInit {
   }
 
   saveAll(
-    setting: BrainSettingsDto,
-    successMessage = 'Brain settings saved.',
+    setting: CompanyAIKeySettingsDto,
+    successMessage = 'Company AI keys saved.',
     afterSuccess?: () => void,
     afterError?: () => void,
-    preferredKey?: BrainApiKeyDto
+    preferredKey?: CompanyAIKeyDto
   ) {
     // Automatically set default provider and default model from the saved active key first.
     const preferredKeyInSetting = preferredKey
@@ -400,7 +415,7 @@ export class BrainConfigPage implements OnInit {
         customLabel: this.nullableText(k.customLabel)
       }))
     };
-    this.api.saveBrainSettings(payload).subscribe({
+    this.api.saveCompanyAIKeySettings(payload).subscribe({
       next: () => {
         afterSuccess?.();
         this.toast.success(successMessage);
@@ -408,7 +423,7 @@ export class BrainConfigPage implements OnInit {
       },
       error: () => {
         afterError?.();
-        this.toast.error('Failed to save brain settings.');
+        this.toast.error('Failed to save company AI keys.');
       }
     });
   }
@@ -427,14 +442,61 @@ export class BrainConfigPage implements OnInit {
     });
   }
 
+  openTestAllDialog() {
+    this.dialogService.open(TestAllCompanyKeysDialogComponent, {
+      header: 'Company AI Keys Validation Report',
+      width: '680px',
+      closable: true,
+      dismissableMask: true
+    });
+  }
+
+  onDrop(event: CdkDragDrop<CompanyAIKeyDto[]>, setting: CompanyAIKeySettingsDto) {
+    const displayed = this.getCategoryKeysForDisplay(setting);
+    const from = displayed[event.previousIndex];
+    const to = displayed[event.currentIndex];
+    if (!from || !to || this.isVirtualKey(from.id) || this.isVirtualKey(to.id)) {
+      return;
+    }
+
+    const ordered = [...displayed];
+    moveItemInArray(ordered, event.previousIndex, event.currentIndex);
+    const orderedRealIds = ordered
+      .filter(key => !this.isVirtualKey(key.id))
+      .map(key => key.id);
+
+    setting.apiKeys = orderedRealIds
+      .map(id => setting.apiKeys.find(key => key.id === id))
+      .filter((key): key is CompanyAIKeyDto => !!key);
+
+    this.api.reorderKeys(setting.type, orderedRealIds).subscribe({
+      next: () => this.toast.success('Company AI key priority updated.'),
+      error: () => {
+        this.toast.error('Failed to reorder company AI keys.');
+        this.load();
+      }
+    });
+  }
+
   // ── Model constants ─────────────────────────────────────────────────
-  getModelsForKey(key: BrainApiKeyDto, setting: BrainSettingsDto): AIModelOption[] {
+  getModelsForKey(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): AIModelOption[] {
     const provider = key.provider || setting.provider;
     return getProviderModels(setting.type, provider);
   }
 
-  getModelsForSetting(setting: BrainSettingsDto): AIModelOption[] {
+  getModelsForSetting(setting: CompanyAIKeySettingsDto): AIModelOption[] {
     return getProviderModels(setting.type, setting.provider);
+  }
+
+  isInCooldown(key: CompanyAIKeyDto): boolean {
+    if (!key.cooldownUntil) return false;
+    return new Date(key.cooldownUntil).getTime() > Date.now();
+  }
+
+  getCooldownMinutes(key: CompanyAIKeyDto): number {
+    if (!key.cooldownUntil) return 0;
+    const remainingMs = new Date(key.cooldownUntil).getTime() - Date.now();
+    return Math.max(1, Math.ceil(remainingMs / 60000));
   }
 
   // ── Provider icon & color ────────────────────────────────────────────
@@ -453,7 +515,6 @@ export class BrainConfigPage implements OnInit {
     if (p.includes('cartesia')) return 'assets/svg/cartesia.svg';
     if (p.includes('pexels')) return 'assets/svg/pexels.svg';
     if (p.includes('pixabay')) return 'assets/svg/pixabay.svg';
-    if (p.includes('ollama')) return 'assets/svg/ollama.svg';
     if (p.includes('luma')) return 'assets/svg/luma.svg';
     if (p.includes('kling')) return 'assets/svg/kling.svg';
     if (p.includes('runway')) return 'assets/svg/runway.svg';
@@ -475,7 +536,6 @@ export class BrainConfigPage implements OnInit {
     if (p.includes('stability')) return 'badge-cyan';
     if (p.includes('azure')) return 'badge-blue';
     if (p.includes('eleven')) return 'badge-orange';
-    if (p.includes('ollama')) return 'badge-orange';
     if (p.includes('luma')) return 'badge-purple';
     if (p.includes('kling')) return 'badge-red';
     if (p.includes('runway')) return 'badge-neutral';
@@ -499,7 +559,7 @@ export class BrainConfigPage implements OnInit {
     };
   }
 
-  private getVirtualKeyDraft(setting: BrainSettingsDto, provider: AIProviderInfo): BrainApiKeyDto {
+  private getVirtualKeyDraft(setting: CompanyAIKeySettingsDto, provider: AIProviderInfo): CompanyAIKeyDto {
     const id = `virtual-${setting.type}-${provider.name}`;
     if (!this.virtualKeyDrafts[id]) {
       this.virtualKeyDrafts[id] = {
@@ -518,11 +578,11 @@ export class BrainConfigPage implements OnInit {
     return this.virtualKeyDrafts[id];
   }
 
-  canSaveKey(key: BrainApiKeyDto): boolean {
+  canSaveKey(key: CompanyAIKeyDto): boolean {
     return !this.isVirtualKey(key.id) || key.isFree || !!key.key?.trim();
   }
 
-  getSaveStatusIcon(key: BrainApiKeyDto): string {
+  getSaveStatusIcon(key: CompanyAIKeyDto): string {
     const state = this.getRowState(key.id);
     if (state.isSaving) return 'fa-spinner fa-spin';
     if (state.saveStatus === 'success') return 'fa-check-circle';
@@ -531,7 +591,7 @@ export class BrainConfigPage implements OnInit {
     return 'fa-save';
   }
 
-  getSaveStatusText(key: BrainApiKeyDto): string {
+  getSaveStatusText(key: CompanyAIKeyDto): string {
     const state = this.getRowState(key.id);
     if (state.isSaving) return 'Saving changes';
     if (state.saveMessage) return state.saveMessage;
@@ -539,6 +599,6 @@ export class BrainConfigPage implements OnInit {
     return this.isVirtualKey(key.id) ? 'Ready to save' : 'Ready';
   }
 
-  trackByKeyId(_: number, key: BrainApiKeyDto) { return key.id; }
-  trackBySettingId(_: number, s: BrainSettingsDto) { return s.id; }
+  trackByKeyId(_: number, key: CompanyAIKeyDto) { return key.id; }
+  trackBySettingId(_: number, s: CompanyAIKeySettingsDto) { return s.id; }
 }

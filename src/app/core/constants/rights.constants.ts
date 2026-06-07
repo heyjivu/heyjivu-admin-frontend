@@ -40,8 +40,8 @@ export const Rights = {
   Admin_Payments_View: 'Admin_Payments_View',
   Admin_Payments_Manage: 'Admin_Payments_Manage',
   
-  Admin_Brain_View: 'Admin_Brain_View',
-  Admin_Brain_Manage: 'Admin_Brain_Manage',
+  Admin_AIKeys_View: 'Admin_AIKeys_View',
+  Admin_AIKeys_Manage: 'Admin_AIKeys_Manage',
   
   Admin_Config_View: 'Admin_Config_View',
   Admin_Config_Manage: 'Admin_Config_Manage'

@@ -12,6 +12,7 @@ export interface UserManagementDto {
   isSuperAdmin: boolean;
   isOrgAdmin: boolean;
   onboardingStep: number;
+  accountType: 'user' | 'admin_only' | 'both';
   roleName: string;
   roleId: string | null;
   planCode?: string | null;
@@ -73,6 +74,44 @@ export interface PlanQuotaOverviewDto {
   quotas?: unknown;
   quotaBuckets?: unknown;
   quotaSummary?: unknown;
+}
+
+export interface AdminPlanDto {
+  id: string;
+  name: string;
+  tier: string;
+  subscription: string;
+  pricePkr: number;
+  priceUsd: number;
+  logic: string;
+  description: string;
+  highlights: string[];
+  isWatermarked: boolean;
+}
+
+export interface AdminCreateContentProfileRequest {
+  primaryNiche: string;
+  customNiche?: string | null;
+  targetAudience: string;
+  mainFormats: string[];
+  toneStyle: string;
+}
+
+export interface AdminCreateUserRequest {
+  email: string;
+  displayName: string;
+  password: string;
+  confirmPassword: string;
+  accountType: 'user' | 'admin_only' | 'both';
+  roleId?: string | null;
+  planId?: string | null;
+  contentProfile?: AdminCreateContentProfileRequest | null;
+}
+
+export interface AdminUpdateAccountTypeRequest {
+  accountType: 'user' | 'admin_only' | 'both';
+  planId?: string | null;
+  contentProfile?: AdminCreateContentProfileRequest | null;
 }
 
 export interface UserQuotaOverviewDto {
@@ -187,12 +226,20 @@ export class AdminService {
     return this.http.post<void>(`${this.apiUrl}/${userId}/role`, { roleId });
   }
 
+  updateUserAccountType(userId: string, request: AdminUpdateAccountTypeRequest): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${userId}/account-type`, request);
+  }
+
   updateRoleRights(roleId: string, rightKeys: string[]): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/roles/${roleId}/rights`, { rightKeys });
   }
 
   updateUserStatus(userId: string, isActive: boolean): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/${userId}/status`, { isActive });
+  }
+
+  createUser(request: AdminCreateUserRequest): Observable<string> {
+    return this.http.post<string>(`${this.apiUrl}/create`, request);
   }
 
   createRole(role: { name: string, description: string, scope: number, quotas?: Record<string, number> }): Observable<string> {
@@ -243,6 +290,10 @@ export class AdminService {
   getPlanQuotaOverview(planCode: string): Observable<PlanQuotaOverviewDto> {
     const encodedPlan = encodeURIComponent(planCode);
     return this.http.get<PlanQuotaOverviewDto>(`${environment.apiUrl}/admin/plans/${encodedPlan}/quota-overview`);
+  }
+
+  getPlans(): Observable<AdminPlanDto[]> {
+    return this.http.get<AdminPlanDto[]>(`${environment.apiUrl}/admin/plans`);
   }
 
   getUserQuotaOverview(userId: string): Observable<UserQuotaOverviewDto> {

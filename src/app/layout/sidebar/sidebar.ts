@@ -56,7 +56,7 @@ export class Sidebar {
     { label: 'Audit Report', icon: 'fas fa-list-check', route: '/admin/metrics/audit', section: 'metrics' },
     { label: 'BYOK Usage', icon: 'fas fa-key', route: '/admin/metrics/byok', section: 'metrics' },
     { label: 'Payment Settings', icon: 'fas fa-credit-card', route: '/admin/payments', section: 'payments' },
-    { label: 'Brain Config', icon: 'fas fa-brain', route: '/admin/brain', right: Rights.Admin_Brain_View, section: 'brain' },
+    { label: 'Company AI Keys', icon: 'fas fa-key', route: '/admin/ai-keys', right: Rights.Admin_AIKeys_View, section: 'ai-keys' },
     { label: 'Run Jobs', icon: 'fas fa-play-circle', route: '/admin/run-jobs', section: 'pipeline' },
     { label: 'Queue', icon: 'fas fa-clock', route: '/admin/pipeline', queryParams: { status: 'queued' }, section: 'pipeline' },
     { label: 'Active Jobs', icon: 'fas fa-spinner', route: '/admin/pipeline', queryParams: { status: 'processing' }, section: 'pipeline' },
@@ -78,7 +78,7 @@ export class Sidebar {
     if (path.startsWith('/admin/metrics')) return 'metrics';
     if (path.startsWith('/admin/users')) return 'users';
     if (path.startsWith('/admin/payments')) return 'payments';
-    if (path.startsWith('/admin/brain')) return 'brain';
+    if (path.startsWith('/admin/ai-keys') || path.startsWith('/admin/brain')) return 'ai-keys';
     if (path.startsWith('/admin/pipeline') || path.startsWith('/admin/run-jobs')) return 'pipeline';
     if (path.startsWith('/admin/processing')) return 'config';
     if (path.startsWith('/admin/templates')) return 'templates';
@@ -89,7 +89,7 @@ export class Sidebar {
 
   readonly navItems = computed(() => {
     const section = this.currentSection();
-    return section ? this.allNav.filter(i => i.section === section) : [];
+    return section ? this.allNav.filter(i => i.section === section && this.canViewNavItem(i)) : [];
   });
 
   getIconClass(icon: string): string {
@@ -135,13 +135,17 @@ export class Sidebar {
     if (section === 'metrics') return 'Metrics & Reports';
     if (section === 'users') return 'User Management';
     if (section === 'payments') return 'Payment Settings';
-    if (section === 'brain') return 'Brain Config';
+    if (section === 'ai-keys') return 'AI Keys';
     if (section === 'pipeline') return 'Pipeline';
     if (section === 'config') return 'Processing Config';
     if (section === 'templates') return 'Template Studio';
     if (section === 'assets') return 'Asset Management';
     if (section === 'plan-users') return 'Plan Users';
     return 'Admin Portal';
+  }
+
+  private canViewNavItem(item: NavItem): boolean {
+    return !item.right || this.authStore.isSuperAdmin() || this.authStore.hasRight()(item.right);
   }
 }
 

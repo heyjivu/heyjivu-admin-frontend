@@ -90,9 +90,14 @@ export const routes: Routes = [
         loadComponent: () => import('./features/payments/payment-management.page').then((m) => m.PaymentManagementPage),
       },
       {
+        path: 'ai-keys',
+        canActivate: [authGuard, hasRight(Rights.Admin_AIKeys_View)],
+        loadComponent: () => import('./features/ai-keys/company-ai-keys.page').then((m) => m.CompanyAIKeysPage),
+      },
+      {
         path: 'brain',
-        canActivate: [authGuard, hasRight(Rights.Admin_Brain_View)],
-        loadComponent: () => import('./features/brain/brain-config.page').then((m) => m.BrainConfigPage),
+        pathMatch: 'full',
+        redirectTo: 'ai-keys',
       },
       {
         path: 'processing',

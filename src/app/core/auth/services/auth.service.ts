@@ -10,7 +10,10 @@ import { environment } from '../../../../environments/environment';
 export class AuthService {
   private http = inject(HttpClient);
   private apiUrl = `${environment.authApiUrl}/auth`;
-  private withCredentials = { withCredentials: true };
+  private withCredentials = {
+    withCredentials: true,
+    headers: { 'X-HeyJivu-Portal': 'admin' }
+  };
 
   googleLogin(request: GoogleLoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/google`, request, this.withCredentials);

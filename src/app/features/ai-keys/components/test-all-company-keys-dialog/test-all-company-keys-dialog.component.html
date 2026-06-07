@@ -1,0 +1,77 @@
+<div class="dialog-container">
+  <div class="dialog-body">
+    <div class="loading-state" *ngIf="isLoading">
+      <i class="fas fa-spinner fa-spin loader-icon"></i>
+      <p class="loading-text">Testing company AI keys across all workflows...</p>
+      <p class="loading-subtext">This makes light request probes to each configured provider.</p>
+    </div>
+
+    <div class="error-state" *ngIf="!isLoading && error">
+      <i class="fas fa-exclamation-triangle error-icon"></i>
+      <p class="error-text">{{ error }}</p>
+      <button class="btn btn-primary" (click)="runTests()">Retry Validation</button>
+    </div>
+
+    <div class="results-state" *ngIf="!isLoading && !error">
+      <div class="summary-card" [ngClass]="summaryClass">
+        <div class="summary-info">
+          <i class="fas" [ngClass]="summaryIconClass"></i>
+          <div>
+            <div class="summary-title">{{ summaryTitle }}</div>
+            <div class="summary-desc">{{ summaryDescription }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="groups-container">
+        <div class="pipeline-group-card" *ngFor="let group of pipelineGroups" [class.open]="group.isOpen">
+          <div class="pipeline-group-header" (click)="toggleGroup(group)">
+            <div class="header-left">
+              <span class="pipeline-badge-large">{{ group.name }}</span>
+              <span class="category-count">{{ group.results.length }} Categories</span>
+            </div>
+
+            <div class="header-right">
+              <span class="status-badge" [ngClass]="group.status">
+                <span class="status-dot"></span>
+                {{ group.statusText }}
+              </span>
+              <i class="fas fa-chevron-down toggle-icon"></i>
+            </div>
+          </div>
+
+          <div class="pipeline-group-body">
+            <div class="category-rows-container">
+              <div class="category-row" *ngFor="let res of group.results" [ngClass]="rowClass(res)">
+                <div class="category-info-col">
+                  <span class="category-label">{{ res.category }}</span>
+                  <span class="provider-label">via {{ res.provider }}</span>
+                </div>
+
+                <div class="category-status-col">
+                  <div class="status-indicator" [ngClass]="statusClass(res)">
+                    <i class="fas" [ngClass]="statusIcon(res)"></i>
+                    {{ statusText(res) }}
+                  </div>
+                  <div class="result-message" [class.error-text]="!res.success" *ngIf="res.message">
+                    {{ res.message }}
+                  </div>
+                </div>
+
+                <div class="category-latency-col">
+                  <span class="latency" *ngIf="res.latencyMs !== undefined && res.latencyMs !== null">{{ formatLatencySeconds(res.latencyMs) }}</span>
+                  <span class="latency-muted" *ngIf="res.latencyMs === undefined || res.latencyMs === null">-</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dialog-footer">
+    <button class="btn btn-secondary" (click)="close()">Close</button>
+    <button class="btn btn-primary" *ngIf="!isLoading" [disabled]="isLoading" (click)="runTests()">Re-Run Tests</button>
+  </div>
+</div>

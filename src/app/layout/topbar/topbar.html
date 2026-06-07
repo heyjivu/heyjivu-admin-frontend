@@ -46,9 +46,15 @@
       <i class="fas fa-credit-card"></i>
       <span class="tab-label">Payments</span>
     </button>
-    <button class="tab-btn" routerLink="/admin/brain" routerLinkActive="active" title="Brain Configuration">
-      <i class="fas fa-brain"></i>
-      <span class="tab-label">Brain</span>
+    <button
+      *ngIf="authStore.isSuperAdmin() || authStore.hasRight()(Rights.Admin_AIKeys_View)"
+      class="tab-btn"
+      routerLink="/admin/ai-keys"
+      routerLinkActive="active"
+      title="Company AI Keys"
+    >
+      <i class="fas fa-key"></i>
+      <span class="tab-label">AI Keys</span>
     </button>
     <button class="tab-btn" routerLink="/admin/run-jobs" routerLinkActive="active" title="Pipeline Monitor">
       <i class="fas fa-tasks"></i>

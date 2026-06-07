@@ -24,6 +24,8 @@ export interface AuthResponse {
   onboardingStep: number;
   byokRequested: boolean;
   useServerStorage: boolean;
+  accountType?: string;
+  portal?: string;
 }
 
 export interface AuthUser {
@@ -35,4 +37,6 @@ export interface AuthUser {
   onboardingStep: number;
   byokRequested: boolean;
   useServerStorage: boolean;
+  accountType?: string;
+  portal?: string;
 }

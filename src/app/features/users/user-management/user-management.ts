@@ -1,10 +1,20 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AdminService, UserManagementDto, RoleDto, OrganizationDto, RightDto } from '../services/admin.service';
+import {
+  AdminCreateContentProfileRequest,
+  AdminPlanDto,
+  AdminService,
+  UserManagementDto,
+  RoleDto,
+  OrganizationDto,
+  RightDto
+} from '../services/admin.service';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../../core/services/toast.service';
 import { forkJoin } from 'rxjs';
+import { DialogService } from '../../../core/dialogs/dialog.service';
+import { AddUserDialogComponent } from '../dialogs/add-user-dialog/add-user-dialog.component';
 
 import { Rights } from '../../../core/constants/rights.constants';
 
@@ -25,6 +35,36 @@ interface DailyQuotaDefinition {
   max: number;
 }
 
+type AdminAccountType = 'user' | 'admin_only' | 'both';
+
+interface PendingRoleGridChange {
+  type: 'role';
+  user: UserManagementDto;
+  roleId: string;
+  roleName: string;
+}
+
+interface PendingAccountTypeGridChange {
+  type: 'accountType';
+  user: UserManagementDto;
+  accountType: AdminAccountType;
+  accountTypeLabel: string;
+  requiresOnboarding: boolean;
+}
+
+type PendingGridChange = PendingRoleGridChange | PendingAccountTypeGridChange;
+
+interface AccountOnboardingForm {
+  planId: string;
+  primaryNiche: string;
+  customPrimaryNiche: string;
+  targetAudience: string;
+  mainFormats: string[];
+  toneStyle: string;
+}
+
+type AccountOnboardingField = keyof AccountOnboardingForm;
+
 const PLAN_ROLE_LABELS: Record<string, string> = {
   freeguest: 'Free',
   free_guest: 'Free',
@@ -41,6 +81,12 @@ const PLAN_ROLE_LABELS: Record<string, string> = {
   company: 'Premium'
 };
 
+const ACCOUNT_TYPE_LABELS: Record<AdminAccountType, string> = {
+  user: 'User Only',
+  both: 'Admin + User',
+  admin_only: 'Admin Only'
+};
+
 @Component({
   selector: 'app-user-management',
   standalone: true,
@@ -53,6 +99,7 @@ export class UserManagementComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private toast = inject(ToastService);
+  private dialog = inject(DialogService);
   public readonly Rights = Rights;
   
   activeTab = signal<'users' | 'orgs' | 'roles'>('users');
@@ -148,6 +195,24 @@ export class UserManagementComponent implements OnInit {
     }
   ];
   userQuotaOverrides = signal<Record<string, number | null>>(this.emptyDailyQuotaOverrides());
+  readonly accountTypeOptions: Array<{ value: AdminAccountType; label: string }> = [
+    { value: 'user', label: ACCOUNT_TYPE_LABELS.user },
+    { value: 'both', label: ACCOUNT_TYPE_LABELS.both },
+    { value: 'admin_only', label: ACCOUNT_TYPE_LABELS.admin_only }
+  ];
+  readonly primaryNicheOptions = ['finance', 'fitness', 'education', 'ecommerce', 'gaming', 'beauty', 'news', 'custom'];
+  readonly formatOptions = ['short videos', 'carousel posts', 'reels/shorts', 'image posts'];
+  readonly toneOptions = ['funny', 'premium', 'educational', 'bold', 'calm'];
+  readonly audienceSuggestions = ['beginners', 'buyers', 'students', 'creators', 'local audience'];
+  plans = signal<AdminPlanDto[]>([]);
+  loadingPlans = signal(false);
+  pendingGridChange = signal<PendingGridChange | null>(null);
+  accountOnboarding = signal<PendingAccountTypeGridChange | null>(null);
+  accountOnboardingForm = signal<AccountOnboardingForm>(this.createEmptyAccountOnboardingForm());
+  accountOnboardingTouched = signal<Set<AccountOnboardingField>>(new Set());
+  accountOnboardingError = signal<string | null>(null);
+  savingGridChange = signal(false);
+
   setTab(tab: 'users' | 'orgs' | 'roles') {
     this.activeTab.set(tab);
     if (tab === 'roles' && this.availableRights().length === 0) {
@@ -222,6 +287,21 @@ export class UserManagementComponent implements OnInit {
     this.totalJobs.set(total);
   }
 
+  openAddUserModal() {
+    const ref = this.dialog.open(AddUserDialogComponent, {
+      width: '920px',
+      closable: false,
+      closeOnEscape: false,
+      dismissableMask: false
+    });
+
+    ref.onClose.subscribe((created) => {
+      if (created) {
+        this.currentPage.set(1);
+        this.loadData();
+      }
+    });
+  }
   displayRoleName(roleName: string | null | undefined): string {
     if (!roleName) return 'Unassigned';
     return PLAN_ROLE_LABELS[this.compactKey(roleName)] ?? roleName;
@@ -472,10 +552,349 @@ export class UserManagementComponent implements OnInit {
     });
   }
 
-  onRoleChange(userId: string, roleId: string) {
-    this.adminService.updateUserRole(userId, roleId).subscribe(() => {
-      this.loadData();
+  requestRoleChange(user: UserManagementDto, roleId: string | null) {
+    if (!roleId || roleId === user.roleId) {
+      this.resetGridSelects();
+      return;
+    }
+
+    const role = this.roles().find(item => item.id === roleId);
+    this.pendingGridChange.set({
+      type: 'role',
+      user,
+      roleId,
+      roleName: this.displayRoleName(role?.name ?? 'Selected role')
     });
+  }
+
+  requestAccountTypeChange(user: UserManagementDto, accountType: AdminAccountType) {
+    const current = this.normalizeAccountType(user.accountType);
+    const next = this.normalizeAccountType(accountType);
+    if (next === current) {
+      this.resetGridSelects();
+      return;
+    }
+
+    this.pendingGridChange.set({
+      type: 'accountType',
+      user,
+      accountType: next,
+      accountTypeLabel: this.accountTypeLabel(next),
+      requiresOnboarding: this.requiresOnboardingForAccountType(user, next)
+    });
+  }
+
+  cancelPendingGridChange() {
+    this.pendingGridChange.set(null);
+    this.resetGridSelects();
+  }
+
+  confirmPendingGridChange() {
+    const change = this.pendingGridChange();
+    if (!change || this.savingGridChange()) return;
+
+    if (change.type === 'role') {
+      this.savingGridChange.set(true);
+      this.adminService.updateUserRole(change.user.id, change.roleId).subscribe({
+        next: () => {
+          this.toast.success('Role updated. Role quota defaults are now applied.');
+          this.pendingGridChange.set(null);
+          this.savingGridChange.set(false);
+          this.loadData();
+        },
+        error: (err) => {
+          this.toast.error(this.readApiError(err, 'Failed to update role.'));
+          this.savingGridChange.set(false);
+          this.cancelPendingGridChange();
+        }
+      });
+      return;
+    }
+
+    if (change.requiresOnboarding) {
+      this.pendingGridChange.set(null);
+      this.openAccountOnboarding(change);
+      return;
+    }
+
+    this.saveAccountTypeChange(change);
+  }
+
+  pendingGridChangeTitle(change: PendingGridChange): string {
+    return change.type === 'role' ? 'Confirm role change' : 'Confirm account type change';
+  }
+
+  pendingGridChangeBody(change: PendingGridChange): string {
+    if (change.type === 'role') {
+      return 'This will update role permissions and role quota defaults. Existing user-specific quota overrides remain attached to the user.';
+    }
+
+    if (change.requiresOnboarding) {
+      return 'This account is gaining user-app access, so plan and onboarding profile must be completed before saving.';
+    }
+
+    return 'This will update which portals this account can access. Plan, quota buckets, and user-specific overrides remain in place.';
+  }
+
+  pendingGridChangeTarget(change: PendingGridChange): string {
+    return change.type === 'role' ? change.roleName : change.accountTypeLabel;
+  }
+
+  closeAccountOnboarding() {
+    if (this.savingGridChange()) return;
+    this.accountOnboarding.set(null);
+    this.accountOnboardingError.set(null);
+    this.accountOnboardingTouched.set(new Set());
+    this.resetGridSelects();
+  }
+
+  patchAccountOnboardingForm(patch: Partial<AccountOnboardingForm>): void {
+    this.accountOnboardingForm.update(form => ({ ...form, ...patch }));
+    this.accountOnboardingError.set(null);
+  }
+
+  markAccountOnboardingField(field: AccountOnboardingField): void {
+    this.accountOnboardingTouched.update(fields => {
+      const next = new Set(fields);
+      next.add(field);
+      return next;
+    });
+  }
+
+  showAccountOnboardingValidation(field: AccountOnboardingField): boolean {
+    return this.accountOnboardingTouched().has(field);
+  }
+
+  isAccountOnboardingFieldInvalid(field: AccountOnboardingField): boolean {
+    const form = this.accountOnboardingForm();
+    switch (field) {
+      case 'planId':
+        return !form.planId;
+      case 'primaryNiche':
+        return !form.primaryNiche;
+      case 'customPrimaryNiche':
+        return form.primaryNiche === 'custom' && !form.customPrimaryNiche.trim();
+      case 'targetAudience':
+        return !form.targetAudience.trim();
+      case 'mainFormats':
+        return form.mainFormats.length === 0;
+      case 'toneStyle':
+        return !form.toneStyle;
+      default:
+        return false;
+    }
+  }
+
+  isAccountOnboardingValid(): boolean {
+    return !this.isAccountOnboardingFieldInvalid('planId') &&
+      !this.isAccountOnboardingFieldInvalid('primaryNiche') &&
+      !this.isAccountOnboardingFieldInvalid('customPrimaryNiche') &&
+      !this.isAccountOnboardingFieldInvalid('targetAudience') &&
+      !this.isAccountOnboardingFieldInvalid('mainFormats') &&
+      !this.isAccountOnboardingFieldInvalid('toneStyle');
+  }
+
+  selectAccountPlan(planId: string): void {
+    this.patchAccountOnboardingForm({ planId });
+    this.markAccountOnboardingField('planId');
+  }
+
+  selectAccountNiche(niche: string): void {
+    this.patchAccountOnboardingForm({
+      primaryNiche: niche,
+      customPrimaryNiche: niche === 'custom' ? this.accountOnboardingForm().customPrimaryNiche : ''
+    });
+    this.markAccountOnboardingField('primaryNiche');
+  }
+
+  setAccountAudienceSuggestion(audience: string): void {
+    this.patchAccountOnboardingForm({ targetAudience: audience });
+    this.markAccountOnboardingField('targetAudience');
+  }
+
+  toggleAccountFormat(format: string): void {
+    const form = this.accountOnboardingForm();
+    this.patchAccountOnboardingForm({
+      mainFormats: form.mainFormats.includes(format)
+        ? form.mainFormats.filter(item => item !== format)
+        : [...form.mainFormats, format]
+    });
+    this.markAccountOnboardingField('mainFormats');
+  }
+
+  selectAccountTone(tone: string): void {
+    this.patchAccountOnboardingForm({ toneStyle: tone });
+    this.markAccountOnboardingField('toneStyle');
+  }
+
+  selectedAccountPlan(): AdminPlanDto | undefined {
+    return this.plans().find(plan => plan.id === this.accountOnboardingForm().planId);
+  }
+
+  formatPlanPrice(plan: AdminPlanDto): string {
+    if (plan.pricePkr <= 0) return 'Free';
+    return `Rs. ${new Intl.NumberFormat('en-PK', { maximumFractionDigits: 0 }).format(plan.pricePkr)} / mo`;
+  }
+
+  accountOnboardingNicheLabel(): string {
+    const form = this.accountOnboardingForm();
+    return form.primaryNiche === 'custom'
+      ? form.customPrimaryNiche.trim() || 'custom niche'
+      : form.primaryNiche || 'niche';
+  }
+
+  saveAccountOnboarding() {
+    const change = this.accountOnboarding();
+    if (!change || this.savingGridChange()) return;
+
+    if (!this.isAccountOnboardingValid()) {
+      this.markAllAccountOnboardingFields();
+      this.accountOnboardingError.set('Complete the plan and onboarding profile before saving.');
+      return;
+    }
+
+    const form = this.accountOnboardingForm();
+    const contentProfile: AdminCreateContentProfileRequest = {
+      primaryNiche: form.primaryNiche,
+      customNiche: form.primaryNiche === 'custom' ? form.customPrimaryNiche.trim() : null,
+      targetAudience: form.targetAudience.trim(),
+      mainFormats: form.mainFormats,
+      toneStyle: form.toneStyle
+    };
+
+    this.saveAccountTypeChange(change, {
+      planId: form.planId,
+      contentProfile
+    });
+  }
+
+  normalizeAccountType(value: unknown): AdminAccountType {
+    const normalized = String(value ?? '').trim().toLowerCase().replace('-', '_');
+    if (normalized === 'admin_only' || normalized === 'adminonly') return 'admin_only';
+    if (normalized === 'both') return 'both';
+    return 'user';
+  }
+
+  accountTypeLabel(value: unknown): string {
+    return ACCOUNT_TYPE_LABELS[this.normalizeAccountType(value)];
+  }
+
+  private saveAccountTypeChange(
+    change: PendingAccountTypeGridChange,
+    onboarding?: { planId: string; contentProfile: AdminCreateContentProfileRequest }
+  ) {
+    this.savingGridChange.set(true);
+    this.accountOnboardingError.set(null);
+
+    this.adminService.updateUserAccountType(change.user.id, {
+      accountType: change.accountType,
+      planId: onboarding?.planId ?? null,
+      contentProfile: onboarding?.contentProfile ?? null
+    }).subscribe({
+      next: () => {
+        this.toast.success('Account type updated.');
+        this.pendingGridChange.set(null);
+        this.accountOnboarding.set(null);
+        this.savingGridChange.set(false);
+        this.accountOnboardingTouched.set(new Set());
+        this.loadData();
+      },
+      error: (err) => {
+        const message = this.readApiError(err, 'Failed to update account type.');
+        if (this.accountOnboarding()) {
+          this.accountOnboardingError.set(message);
+        } else {
+          this.toast.error(message);
+          this.pendingGridChange.set(null);
+          this.resetGridSelects();
+        }
+        this.savingGridChange.set(false);
+      }
+    });
+  }
+
+  private openAccountOnboarding(change: PendingAccountTypeGridChange) {
+    this.accountOnboarding.set(change);
+    this.accountOnboardingTouched.set(new Set());
+    this.accountOnboardingError.set(null);
+    this.accountOnboardingForm.set(this.createEmptyAccountOnboardingForm());
+    this.loadPlansForAccountOnboarding();
+  }
+
+  private loadPlansForAccountOnboarding() {
+    if (this.plans().length > 0) {
+      this.patchAccountOnboardingForm({ planId: this.defaultPlanId(this.plans()) });
+      return;
+    }
+
+    this.loadingPlans.set(true);
+    this.adminService.getPlans().subscribe({
+      next: (plans) => {
+        this.plans.set(plans);
+        this.loadingPlans.set(false);
+        this.patchAccountOnboardingForm({ planId: this.defaultPlanId(plans) });
+      },
+      error: (err) => {
+        console.error('Failed to load plans', err);
+        this.loadingPlans.set(false);
+        this.accountOnboardingError.set('Failed to load plans.');
+      }
+    });
+  }
+
+  private createEmptyAccountOnboardingForm(): AccountOnboardingForm {
+    return {
+      planId: '',
+      primaryNiche: '',
+      customPrimaryNiche: '',
+      targetAudience: '',
+      mainFormats: [],
+      toneStyle: ''
+    };
+  }
+
+  private defaultPlanId(plans: AdminPlanDto[]): string {
+    const freePlan = plans.find(plan => this.compactKey(plan.id).includes('free'));
+    return freePlan?.id ?? plans[0]?.id ?? '';
+  }
+
+  private requiresOnboardingForAccountType(user: UserManagementDto, next: AdminAccountType): boolean {
+    const current = this.normalizeAccountType(user.accountType);
+    const gainsUserAccess = current === 'admin_only' && next !== 'admin_only';
+    const missingUserSetup = this.canAccessUserApp(next) && (!user.planCode || user.onboardingStep !== 8);
+    return gainsUserAccess || missingUserSetup;
+  }
+
+  private canAccessUserApp(accountType: AdminAccountType): boolean {
+    return accountType === 'user' || accountType === 'both';
+  }
+
+  private markAllAccountOnboardingFields() {
+    this.accountOnboardingTouched.set(new Set([
+      'planId',
+      'primaryNiche',
+      'customPrimaryNiche',
+      'targetAudience',
+      'mainFormats',
+      'toneStyle'
+    ]));
+  }
+
+  private resetGridSelects() {
+    this.loadData();
+  }
+
+  private readApiError(error: unknown, fallback: string): string {
+    if (typeof error === 'object' && error !== null && 'error' in error) {
+      const body = (error as { error?: unknown }).error;
+      if (typeof body === 'string') return body;
+      if (typeof body === 'object' && body !== null) {
+        const record = body as Record<string, unknown>;
+        if (typeof record['error'] === 'string') return record['error'];
+        if (typeof record['message'] === 'string') return record['message'];
+      }
+    }
+    return fallback;
   }
 
   toggleStatus(user: UserManagementDto) {

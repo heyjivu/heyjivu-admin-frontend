@@ -1,0 +1,339 @@
+<div class="dialog-header add-user-dialog__header">
+  <div>
+    <h2 class="dialog-title">Add User</h2>
+    <p class="dialog-subtitle">Create user, admin, or combined access from one flow.</p>
+  </div>
+
+  <button class="dialog-close" type="button" (click)="close()" [disabled]="creating()" aria-label="Close dialog">
+    <i class="pi pi-times"></i>
+  </button>
+</div>
+
+<div class="add-user-steps" role="tablist" aria-label="Add user steps">
+  <button
+    type="button"
+    class="add-user-step"
+    *ngFor="let item of visibleSteps()"
+    [class.active]="step() === item.id"
+    [disabled]="!canOpenStep(item.id)"
+    (click)="goToStep(item.id)"
+    role="tab"
+    [attr.aria-selected]="step() === item.id"
+  >
+    <i [class]="item.icon"></i>
+    <span>{{ item.label }}</span>
+  </button>
+</div>
+
+<div class="dialog-content add-user-dialog__content">
+  <div class="add-user-error" *ngIf="error()">
+    <i class="fas fa-exclamation-circle"></i>
+    <span>{{ error() }}</span>
+  </div>
+
+  <section class="add-user-pane" *ngIf="step() === 'account'">
+    <div class="add-user-pane__intro">
+      <span>Account</span>
+      <strong>{{ isAdminOnlyAccount() ? 'Admin portal access only.' : 'Plan and onboarding will be assigned next.' }}</strong>
+    </div>
+
+    <div class="account-type-grid" role="radiogroup" aria-label="Account type">
+      <button
+        type="button"
+        class="account-type-card"
+        *ngFor="let option of accountTypeOptions"
+        [class.selected]="form().accountType === option.value"
+        (click)="patchForm({ accountType: option.value }); markField('accountType')"
+        role="radio"
+        [attr.aria-checked]="form().accountType === option.value"
+      >
+        <i [class]="option.icon"></i>
+        <span>{{ option.label }}</span>
+        <small>{{ option.description }}</small>
+      </button>
+    </div>
+
+    <div class="add-user-form-grid">
+      <label class="wizard-field" [class.has-error]="isFieldInvalid('displayName') && showValidation('displayName')">
+        <span>Full Name</span>
+        <div class="wizard-input-shell">
+          <i class="fas fa-user"></i>
+          <input
+            type="text"
+            class="field-input"
+            placeholder="Enter full name"
+            autocomplete="name"
+            [ngModel]="form().displayName"
+            (ngModelChange)="patchForm({ displayName: $event })"
+            (blur)="markField('displayName')"
+          >
+        </div>
+        <small *ngIf="isFieldInvalid('displayName') && showValidation('displayName')">Enter at least 2 characters.</small>
+      </label>
+
+      <label class="wizard-field" [class.has-error]="isFieldInvalid('email') && showValidation('email')">
+        <span>Email</span>
+        <div class="wizard-input-shell">
+          <i class="fas fa-envelope"></i>
+          <input
+            type="email"
+            class="field-input"
+            placeholder="name@example.com"
+            autocomplete="email"
+            autocapitalize="none"
+            [ngModel]="form().email"
+            (ngModelChange)="patchForm({ email: $event })"
+            (blur)="markField('email')"
+          >
+        </div>
+        <small *ngIf="isFieldInvalid('email') && showValidation('email')">Enter a valid email address.</small>
+      </label>
+
+      <label class="wizard-field wizard-field--wide" [class.has-error]="isFieldInvalid('roleId') && showValidation('roleId')">
+        <span>{{ requiresAdminRole() ? 'Admin Role' : 'Role' }}</span>
+        <div class="wizard-input-shell">
+          <i class="fas fa-shield-alt"></i>
+          <select
+            class="field-input"
+            [ngModel]="form().roleId"
+            (ngModelChange)="patchForm({ roleId: $event || null }); markField('roleId')"
+            (blur)="markField('roleId')"
+          >
+            <option [ngValue]="null">{{ requiresAdminRole() ? 'Select admin role' : 'Use selected plan role' }}</option>
+            <option *ngFor="let role of roles()" [ngValue]="role.id">{{ displayRoleName(role.name) }}</option>
+          </select>
+        </div>
+        <small *ngIf="loadingRoles()">Loading roles...</small>
+        <small *ngIf="isFieldInvalid('roleId') && showValidation('roleId')">Select a role with admin rights.</small>
+        <small class="wizard-field__hint" *ngIf="requiresAdminRole() && !isFieldInvalid('roleId')">Required for admin portal access.</small>
+      </label>
+
+      <label class="wizard-field" [class.has-error]="isFieldInvalid('password') && showValidation('password')">
+        <span>New Password</span>
+        <div class="wizard-input-shell wizard-input-shell--password">
+          <i class="fas fa-lock"></i>
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            class="field-input"
+            placeholder="Create password"
+            autocomplete="new-password"
+            [ngModel]="form().password"
+            (ngModelChange)="patchForm({ password: $event })"
+            (blur)="markField('password')"
+          >
+          <button type="button" class="password-eye" (click)="togglePasswordVisibility()" [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'">
+            <i class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword"></i>
+          </button>
+        </div>
+        <small *ngIf="isFieldInvalid('password') && showValidation('password')">Password must be at least 8 characters.</small>
+      </label>
+
+      <label class="wizard-field" [class.has-error]="isFieldInvalid('confirmPassword') && showValidation('confirmPassword')">
+        <span>Repeat Password</span>
+        <div class="wizard-input-shell wizard-input-shell--password">
+          <i class="fas fa-check-circle"></i>
+          <input
+            [type]="showConfirmPassword ? 'text' : 'password'"
+            class="field-input"
+            placeholder="Repeat password"
+            autocomplete="new-password"
+            [ngModel]="form().confirmPassword"
+            (ngModelChange)="patchForm({ confirmPassword: $event })"
+            (blur)="markField('confirmPassword')"
+          >
+          <button type="button" class="password-eye" (click)="toggleConfirmPasswordVisibility()" [attr.aria-label]="showConfirmPassword ? 'Hide password' : 'Show repeat password'">
+            <i class="fas" [class.fa-eye]="!showConfirmPassword" [class.fa-eye-slash]="showConfirmPassword"></i>
+          </button>
+        </div>
+        <small *ngIf="isFieldInvalid('confirmPassword') && showValidation('confirmPassword')">Passwords do not match.</small>
+      </label>
+    </div>
+
+    <div class="password-helper-wrapper add-user-password-helper" *ngIf="passwordValue() && !passwordAllRulesPassed()" aria-live="polite">
+      <div class="password-strength">
+        <div class="strength-bar">
+          <span class="strength-fill" [class]="'strength-fill ' + passwordStrengthLevel()" [style.width.%]="passwordStrength()"></span>
+        </div>
+        <span class="strength-label" [class]="'strength-' + passwordStrengthLevel()">{{ passwordStrengthText() }}</span>
+      </div>
+
+      <div class="password-requirements">
+        <div class="requirement-item" [class.passed]="passwordRules().hasMinLength">
+          <i class="fas" [class.fa-check-circle]="passwordRules().hasMinLength" [class.fa-times-circle]="!passwordRules().hasMinLength"></i>
+          <span>Length is 8+ characters</span>
+        </div>
+        <div class="requirement-item" [class.passed]="passwordRules().hasUppercase">
+          <i class="fas" [class.fa-check-circle]="passwordRules().hasUppercase" [class.fa-times-circle]="!passwordRules().hasUppercase"></i>
+          <span>At least one uppercase letter ([A-Z])</span>
+        </div>
+        <div class="requirement-item" [class.passed]="passwordRules().hasNumber">
+          <i class="fas" [class.fa-check-circle]="passwordRules().hasNumber" [class.fa-times-circle]="!passwordRules().hasNumber"></i>
+          <span>At least one number ([0-9])</span>
+        </div>
+        <div class="requirement-item" [class.passed]="passwordRules().hasSpecialChar">
+          <i class="fas" [class.fa-check-circle]="passwordRules().hasSpecialChar" [class.fa-times-circle]="!passwordRules().hasSpecialChar"></i>
+          <span>At least one special character ([^A-Za-z0-9])</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="add-user-pane" *ngIf="step() === 'plan'">
+    <div class="add-user-pane__intro">
+      <span>Plan</span>
+      <strong>Select a plan. No checkout or payment will run.</strong>
+    </div>
+
+    <div class="add-user-loading" *ngIf="loadingPlans(); else plansTpl">
+      <i class="fas fa-spinner fa-spin"></i>
+      <span>Loading plans...</span>
+    </div>
+
+    <ng-template #plansTpl>
+      <div class="plan-choice-grid">
+        <button
+          type="button"
+          class="plan-choice-card"
+          *ngFor="let plan of plans()"
+          [class.selected]="form().planId === plan.id"
+          (click)="selectPlan(plan.id)"
+        >
+          <span class="plan-choice-card__tier">{{ plan.tier }}</span>
+          <strong>{{ plan.name }}</strong>
+          <small>{{ plan.subscription }}</small>
+          <span class="plan-choice-card__price">{{ formatPlanPrice(plan) }}</span>
+          <span class="plan-choice-card__logic">{{ plan.logic || 'Admin-assigned access' }}</span>
+          <span class="plan-choice-card__highlight" *ngFor="let highlight of plan.highlights.slice(0, 3)">
+            <i class="fas fa-check"></i> {{ highlight }}
+          </span>
+        </button>
+      </div>
+    </ng-template>
+  </section>
+
+  <section class="add-user-pane" *ngIf="step() === 'profile'">
+    <div class="add-user-pane__intro">
+      <span>Onboarding</span>
+      <strong>Choose the same content profile fields used in the user app.</strong>
+    </div>
+
+    <div class="profile-grid profile-grid--admin">
+      <div class="profile-field profile-field--wide" [class.has-error]="isFieldInvalid('primaryNiche') && showValidation('primaryNiche')">
+        <div class="field-heading">
+          <span class="field-index">01</span>
+          <div>
+            <h3>Primary niche</h3>
+            <p>Pick the topic family this account will create for.</p>
+          </div>
+        </div>
+
+        <div class="chip-grid">
+          <button type="button"
+                  class="choice-chip"
+                  *ngFor="let niche of primaryNicheOptions"
+                  [class.selected]="form().primaryNiche === niche"
+                  (click)="selectNiche(niche)">
+            {{ niche }}
+          </button>
+        </div>
+
+        <input *ngIf="form().primaryNiche === 'custom'"
+               class="profile-input custom-niche-input"
+               type="text"
+               maxlength="80"
+               [ngModel]="form().customPrimaryNiche"
+               (ngModelChange)="patchForm({ customPrimaryNiche: $event }); markField('customPrimaryNiche')"
+               placeholder="e.g. AI tools for real estate agents">
+        <small *ngIf="isFieldInvalid('primaryNiche') && showValidation('primaryNiche')">Select a niche.</small>
+        <small *ngIf="isFieldInvalid('customPrimaryNiche') && showValidation('customPrimaryNiche')">Enter a custom niche.</small>
+      </div>
+
+      <div class="profile-field" [class.has-error]="isFieldInvalid('targetAudience') && showValidation('targetAudience')">
+        <div class="field-heading">
+          <span class="field-index">02</span>
+          <div>
+            <h3>Target audience</h3>
+            <p>Who should the ideas speak to?</p>
+          </div>
+        </div>
+
+        <input class="profile-input"
+               type="text"
+               maxlength="80"
+               [ngModel]="form().targetAudience"
+               (ngModelChange)="patchForm({ targetAudience: $event })"
+               (blur)="markField('targetAudience')"
+               placeholder="e.g. beginners, buyers, local audience">
+
+        <div class="suggestion-row">
+          <button type="button" *ngFor="let audience of audienceSuggestions" (click)="setAudienceSuggestion(audience)">
+            {{ audience }}
+          </button>
+        </div>
+        <small *ngIf="isFieldInvalid('targetAudience') && showValidation('targetAudience')">Enter a target audience.</small>
+      </div>
+
+      <div class="profile-field" [class.has-error]="isFieldInvalid('mainFormats') && showValidation('mainFormats')">
+        <div class="field-heading">
+          <span class="field-index">03</span>
+          <div>
+            <h3>Main formats</h3>
+            <p>Select the formats this account will make most.</p>
+          </div>
+        </div>
+
+        <div class="format-grid">
+          <button type="button"
+                  class="format-tile"
+                  *ngFor="let format of formatOptions"
+                  [class.selected]="form().mainFormats.includes(format)"
+                  (click)="toggleFormat(format)">
+            <span>{{ format }}</span>
+          </button>
+        </div>
+        <small *ngIf="isFieldInvalid('mainFormats') && showValidation('mainFormats')">Select at least one format.</small>
+      </div>
+
+      <div class="profile-field profile-field--wide" [class.has-error]="isFieldInvalid('toneStyle') && showValidation('toneStyle')">
+        <div class="field-heading">
+          <span class="field-index">04</span>
+          <div>
+            <h3>Tone/style</h3>
+            <p>This controls how Trend Radar frames hooks and execution ideas.</p>
+          </div>
+        </div>
+
+        <div class="tone-strip">
+          <button type="button"
+                  *ngFor="let tone of toneOptions"
+                  [class.selected]="form().toneStyle === tone"
+                  (click)="selectTone(tone)">
+            {{ tone }}
+          </button>
+        </div>
+        <small *ngIf="isFieldInvalid('toneStyle') && showValidation('toneStyle')">Select a tone.</small>
+      </div>
+    </div>
+
+    <div class="profile-summary add-user-summary">
+      <strong>New user profile</strong>
+      <span>
+        {{ selectedPlan()?.name || 'Plan' }} / {{ profileNicheLabel() }} / {{ form().targetAudience || 'audience' }} / {{ form().toneStyle || 'tone' }}
+      </span>
+    </div>
+  </section>
+</div>
+
+<div class="dialog-footer add-user-dialog__footer">
+  <button class="btn btn-ghost py-2 px-3 text-sm" type="button" (click)="close()" [disabled]="creating()">Cancel</button>
+  <button class="btn btn-soft py-2 px-3 text-sm" type="button" *ngIf="step() !== 'account'" (click)="back()" [disabled]="creating()">
+    <i class="fas fa-chevron-left"></i> Back
+  </button>
+  <button class="btn btn-primary py-2 px-4 text-sm" type="button" *ngIf="step() !== 'profile' && !isAdminOnlyAccount()" (click)="next()">
+    Next <i class="fas fa-chevron-right"></i>
+  </button>
+  <button class="btn btn-primary py-2 px-4 text-sm" type="button" *ngIf="step() === 'profile' || isAdminOnlyAccount()" (click)="save()" [disabled]="creating()">
+    <span *ngIf="!creating()"><i class="fas fa-check"></i> {{ isAdminOnlyAccount() ? 'Save Admin' : 'Save User' }}</span>
+    <span *ngIf="creating()"><i class="fas fa-spinner fa-spin"></i> Creating...</span>
+  </button>
+</div>
