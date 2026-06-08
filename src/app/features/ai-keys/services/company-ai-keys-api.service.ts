@@ -84,11 +84,12 @@ interface AdminCompanyAIKeyDto {
 const COMPANY_CATEGORIES: Array<{ id: string; providers: string[] }> = [
   { id: 'Text', providers: ['OpenAI', 'Gemini', 'DeepSeek', 'OpenRouter', 'Alibaba', 'Groq'] },
   { id: 'Whisper', providers: ['Groq', 'OpenAI', 'OpenRouter'] },
-  { id: 'ImageGen', providers: ['Gemini', 'OpenAI', 'TogetherAI', 'OpenRouter', 'StabilityAI', 'Pollinations'] },
+  { id: 'ImageGen', providers: ['Gemini', 'OpenAI', 'TogetherAI', 'OpenRouter', 'StabilityAI'] },
   { id: 'Vision', providers: ['Gemini', 'OpenAI'] },
   { id: 'VideoGen', providers: ['Alibaba', 'TogetherAI', 'OpenRouter', 'Generic', 'Luma', 'Kling', 'Runway'] },
   { id: 'TTS', providers: ['TogetherAI', 'OpenRouter', 'Gemini', 'OpenAI', 'Azure', 'ElevenLabs', 'Cartesia'] },
-  { id: 'Search', providers: ['Pexels', 'Pixabay', 'Serper', 'Tavily'] }
+  { id: 'StockMedia', providers: ['Pexels', 'Pixabay'] },
+  { id: 'WebSearch', providers: ['Serper', 'Tavily'] }
 ];
 
 @Injectable({ providedIn: 'root' })
@@ -168,7 +169,7 @@ export class AdminCompanyAIKeysApiService {
           provider: key.provider,
           modelName: key.modelOverride ?? null,
           roleName: null,
-          isFree: key.provider === 'Pollinations',
+          isFree: false,
           priority: key.priority ?? 0,
           customLabel: key.label ?? null
         }))

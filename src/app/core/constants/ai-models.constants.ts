@@ -242,6 +242,7 @@ export function getProviderModels(category: string, provider: string): AIModelOp
   if (catKey === 'picture' || catKey === 'image') catKey = 'imagegen';
   if (catKey === 'video') catKey = 'videogen';
   if (catKey === 'audio') catKey = 'tts';
+  if (catKey === 'stockmedia' || catKey === 'stock' || catKey === 'websearch' || catKey === 'web') return [];
 
   const categoryModels = AI_MODELS[catKey] || AI_MODELS['text'];
 

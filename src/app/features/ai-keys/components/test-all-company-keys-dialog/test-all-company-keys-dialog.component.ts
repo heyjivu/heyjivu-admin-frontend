@@ -173,6 +173,16 @@ export class TestAllCompanyKeysDialogComponent {
     }
   }
 
+  categoryLabel(category: string): string {
+    const normalized = (category || '').toLowerCase();
+    if (normalized === 'stockmedia' || normalized === 'stock') return 'Stock Media';
+    if (normalized === 'websearch' || normalized === 'web') return 'Web Search';
+    if (normalized === 'imagegen') return 'Image Generation';
+    if (normalized === 'videogen') return 'Video Generation';
+    if (normalized === 'tts') return 'TTS';
+    return category;
+  }
+
   formatLatencySeconds(latencyMs?: number): string {
     if (latencyMs === undefined || latencyMs === null) return '-';
     return `${(latencyMs / 1000).toFixed(2)}s`;

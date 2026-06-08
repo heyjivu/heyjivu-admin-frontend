@@ -17,7 +17,7 @@ interface QuotaStackItem {
 }
 
 interface QuotaCard {
-  label: 'Creation Wallet' | 'Video Creation Minutes' | 'Voice Minutes' | 'AI Video Clips' | 'Storage';
+  label: 'Creation Wallet' | 'Processing / Whisper Minutes' | 'Voice Minutes' | 'AI Video Clips' | 'Storage';
   icon: string;
   lines: QuotaLine[];
   stack: QuotaStackItem[];
@@ -46,10 +46,10 @@ const FINAL_PLANS: AdminPlan[] = [
     priceRs: 0,
     icon: 'fas fa-user',
     quotaCards: [
-      quotaCard('Creation Wallet', 'fas fa-wallet', [['AI images', '10'], ['Stock images', '100'], ['Stock clips', '10 clips / 2 min']]),
-      quotaCard('Voice Minutes', 'fas fa-microphone', [['Allowance', '2 min']]),
+      quotaCard('Creation Wallet', 'fas fa-wallet', [['AI images', '5'], ['Stock images', '50/mo'], ['Stock videos', '50/mo']]),
+      quotaCard('Voice Minutes', 'fas fa-microphone', [['Allowance', '0 min']]),
       quotaCard('AI Video Clips', 'fas fa-film', [['Provider clips', '0']]),
-      quotaCard('Video Creation Minutes', 'fas fa-clock', [['Allowance', '5 min']]),
+      quotaCard('Processing / Whisper Minutes', 'fas fa-clock', [['Allowance', '0 min']]),
       quotaCard('Storage', 'fas fa-database', [['Allowance', '0.5 GB']])
     ]
   },
@@ -59,10 +59,10 @@ const FINAL_PLANS: AdminPlan[] = [
     priceRs: 1500,
     icon: 'fas fa-graduation-cap',
     quotaCards: [
-      quotaCard('Creation Wallet', 'fas fa-wallet', [['AI images', '60'], ['Stock images', '300'], ['Stock clips', '30 clips / 10 min']]),
+      quotaCard('Creation Wallet', 'fas fa-wallet', [['AI images', '50'], ['Stock images', '100/day'], ['Stock videos', '50/day']]),
       quotaCard('Voice Minutes', 'fas fa-microphone', [['Allowance', '15 min']]),
-      quotaCard('AI Video Clips', 'fas fa-film', [['Provider clips', '6']]),
-      quotaCard('Video Creation Minutes', 'fas fa-clock', [['Allowance', '15 min']]),
+      quotaCard('AI Video Clips', 'fas fa-film', [['Provider clips', '2']]),
+      quotaCard('Processing / Whisper Minutes', 'fas fa-clock', [['Allowance', '30 min']]),
       quotaCard('Storage', 'fas fa-database', [['Allowance', '5 GB']])
     ]
   },
@@ -72,10 +72,10 @@ const FINAL_PLANS: AdminPlan[] = [
     priceRs: 2000,
     icon: 'fas fa-store',
     quotaCards: [
-      quotaCard('Creation Wallet', 'fas fa-wallet', [['AI images', '130'], ['Stock images', '800'], ['Stock clips', '75 clips / 30 min']]),
-      quotaCard('Voice Minutes', 'fas fa-microphone', [['Allowance', '25 min']]),
-      quotaCard('AI Video Clips', 'fas fa-film', [['Provider clips', '6']]),
-      quotaCard('Video Creation Minutes', 'fas fa-clock', [['Allowance', '25 min']]),
+      quotaCard('Creation Wallet', 'fas fa-wallet', [['AI images', '90'], ['Stock images', '250/day'], ['Stock videos', '100/day']]),
+      quotaCard('Voice Minutes', 'fas fa-microphone', [['Allowance', '35 min']]),
+      quotaCard('AI Video Clips', 'fas fa-film', [['Provider clips', '4']]),
+      quotaCard('Processing / Whisper Minutes', 'fas fa-clock', [['Allowance', '80 min']]),
       quotaCard('Storage', 'fas fa-database', [['Allowance', '15 GB']])
     ]
   },
@@ -85,10 +85,10 @@ const FINAL_PLANS: AdminPlan[] = [
     priceRs: 5000,
     icon: 'fas fa-crown',
     quotaCards: [
-      quotaCard('Creation Wallet', 'fas fa-wallet', [['AI images', '350'], ['Stock images', '2,000'], ['Stock clips', '150 clips / 75 min']]),
-      quotaCard('Voice Minutes', 'fas fa-microphone', [['Allowance', '60 min']]),
+      quotaCard('Creation Wallet', 'fas fa-wallet', [['AI images', '280'], ['Stock images', '750/day'], ['Stock videos', '300/day']]),
+      quotaCard('Voice Minutes', 'fas fa-microphone', [['Allowance', '160 min']]),
       quotaCard('AI Video Clips', 'fas fa-film', [['Provider clips', '12']]),
-      quotaCard('Video Creation Minutes', 'fas fa-clock', [['Allowance', '50 min']]),
+      quotaCard('Processing / Whisper Minutes', 'fas fa-clock', [['Allowance', '300 min']]),
       quotaCard('Storage', 'fas fa-database', [['Allowance', '50 GB']])
     ]
   },
@@ -102,7 +102,7 @@ const FINAL_PLANS: AdminPlan[] = [
       quotaCard('Creation Wallet', 'fas fa-wallet', [['Allowance', 'Own keys / fair use']]),
       quotaCard('Voice Minutes', 'fas fa-microphone', [['Allowance', 'Own keys / fair use']]),
       quotaCard('AI Video Clips', 'fas fa-film', [['Provider clips', 'Own keys / fair use']]),
-      quotaCard('Video Creation Minutes', 'fas fa-clock', [['Allowance', '20 min']]),
+      quotaCard('Processing / Whisper Minutes', 'fas fa-clock', [['Allowance', 'Own keys / fair use']]),
       quotaCard('Storage', 'fas fa-database', [['Allowance', '30 GB']])
     ]
   }
@@ -384,7 +384,7 @@ export class PlanUsersPage implements OnInit {
     if (text.includes('voice') || text.includes('tts') || text.includes('speech')) return 'Voice Minutes';
     if (text.includes('image') && text.includes('motion')) return 'Creation Wallet';
     if ((text.includes('ai') && text.includes('video')) || text.includes('providerclip')) return 'AI Video Clips';
-    if (text.includes('video') || text.includes('smart') || text.includes('pipeline')) return 'Video Creation Minutes';
+    if (text.includes('processing') || text.includes('whisper') || text.includes('pipeline') || text.includes('videocreation')) return 'Processing / Whisper Minutes';
     return 'Creation Wallet';
   }
 
@@ -401,7 +401,7 @@ export class PlanUsersPage implements OnInit {
   private quotaIcon(label: QuotaCard['label']): string {
     const icons: Record<QuotaCard['label'], string> = {
       'Creation Wallet': 'fas fa-wallet',
-      'Video Creation Minutes': 'fas fa-clock',
+      'Processing / Whisper Minutes': 'fas fa-clock',
       'Voice Minutes': 'fas fa-microphone',
       'AI Video Clips': 'fas fa-film',
       Storage: 'fas fa-database'

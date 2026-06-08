@@ -99,8 +99,7 @@ export class CompanyAIKeysPage implements OnInit {
         { name: 'OpenAI' },
         { name: 'TogetherAI' },
         { name: 'OpenRouter' },
-        { name: 'StabilityAI' },
-        { name: 'Pollinations', isFree: true }
+        { name: 'StabilityAI' }
       ]
     },
     {
@@ -117,7 +116,7 @@ export class CompanyAIKeysPage implements OnInit {
       id: 'VideoGen',
       name: 'Video Generation',
       icon: 'fas fa-film',
-      description: 'AI video generation and rendering engines',
+      description: 'AI video generation providers for 5-second clips',
       providers: [
         { name: 'Alibaba' },
         { name: 'TogetherAI' },
@@ -144,13 +143,21 @@ export class CompanyAIKeysPage implements OnInit {
       ]
     },
     {
-      id: 'Search',
-      name: 'Stock / Search',
-      icon: 'fas fa-search',
-      description: 'Media discovery and stock resource lookup APIs',
+      id: 'StockMedia',
+      name: 'Stock Media',
+      icon: 'fas fa-photo-video',
+      description: 'Stock image, clip, music, and visual asset lookup APIs',
       providers: [
         { name: 'Pexels' },
-        { name: 'Pixabay' },
+        { name: 'Pixabay' }
+      ]
+    },
+    {
+      id: 'WebSearch',
+      name: 'Web Search',
+      icon: 'fas fa-globe',
+      description: 'Trend research and web search result providers',
+      providers: [
         { name: 'Serper' },
         { name: 'Tavily' }
       ]
@@ -269,6 +276,7 @@ export class CompanyAIKeysPage implements OnInit {
       modelName: null,
       roleName: null,
       isFree: false,
+      priority: setting.apiKeys.length,
       customLabel: null
     };
     setting.apiKeys = [...setting.apiKeys, newKey];
@@ -333,6 +341,7 @@ export class CompanyAIKeysPage implements OnInit {
         provider: key.provider || setting.provider,
         modelName: this.nullableText(key.modelName),
         roleName: this.nullableText(key.roleName),
+        priority: setting.apiKeys.length,
         customLabel: this.nullableText(key.customLabel)
       };
       setting.apiKeys = [...setting.apiKeys, newKey];
@@ -467,10 +476,14 @@ export class CompanyAIKeysPage implements OnInit {
 
     setting.apiKeys = orderedRealIds
       .map(id => setting.apiKeys.find(key => key.id === id))
-      .filter((key): key is CompanyAIKeyDto => !!key);
+      .filter((key): key is CompanyAIKeyDto => !!key)
+      .map((key, priority) => ({ ...key, priority }));
 
     this.api.reorderKeys(setting.type, orderedRealIds).subscribe({
-      next: () => this.toast.success('Company AI key priority updated.'),
+      next: () => {
+        this.toast.success('Company AI key priority updated.');
+        this.load();
+      },
       error: () => {
         this.toast.error('Failed to reorder company AI keys.');
         this.load();

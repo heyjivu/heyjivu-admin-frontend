@@ -19,7 +19,7 @@ import { AddUserDialogComponent } from '../dialogs/add-user-dialog/add-user-dial
 import { Rights } from '../../../core/constants/rights.constants';
 
 interface UserQuotaCard {
-  label: 'Creation Wallet' | 'Video Creation Minutes' | 'Voice Minutes' | 'AI Video Clips' | 'Storage' | 'Brain Talk' | 'Manual Scan';
+  label: 'Creation Wallet' | 'Processing / Whisper Minutes' | 'Voice Minutes' | 'AI Video Clips' | 'Storage' | 'Brain Talk' | 'Manual Scan';
   lines: Array<{ label: string; value: string }>;
   stack: Array<{ label: string; value: string }>;
 }
@@ -167,10 +167,10 @@ export class UserManagementComponent implements OnInit {
       key: 'BrainTalkDaily',
       label: 'Brain Talk Daily',
       overrideLabel: 'Brain Talk Daily Override',
-      description: 'Daily Jivu Talk messages for this role.',
+      description: 'Daily Jivu Talk messages for this role. Use -1 for unlimited BYOK roles.',
       unitLabel: 'per day',
       defaultValue: 100,
-      min: 0,
+      min: -1,
       max: 10000
     },
     {
@@ -373,7 +373,7 @@ export class UserManagementComponent implements OnInit {
     if (text.includes('voice') || text.includes('tts') || text.includes('speech')) return 'Voice Minutes';
     if (text.includes('image') && text.includes('motion')) return 'Creation Wallet';
     if ((text.includes('ai') && text.includes('video')) || text.includes('providerclip')) return 'AI Video Clips';
-    if (text.includes('video') || text.includes('smart') || text.includes('pipeline')) return 'Video Creation Minutes';
+    if (text.includes('processing') || text.includes('whisper') || text.includes('pipeline') || text.includes('videocreation')) return 'Processing / Whisper Minutes';
     return 'Creation Wallet';
   }
 
@@ -1022,6 +1022,11 @@ export class UserManagementComponent implements OnInit {
   private defaultDailyQuotaForRole(key: string, roleName: string | null | undefined): number {
     const roleKey = this.compactKey(roleName);
     if (key === 'SocialPostMaxVideoSeconds') return 60;
+    if (key === 'BrainTalkDaily') {
+      if (roleKey.includes('byok') || roleKey.includes('expert')) return -1;
+      if (roleKey.includes('free')) return 0;
+      return 100;
+    }
     if (roleKey.includes('free')) return 0;
 
     if (key === 'ManualScanDaily') {

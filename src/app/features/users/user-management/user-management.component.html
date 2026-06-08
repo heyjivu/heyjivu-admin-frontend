@@ -122,7 +122,7 @@
             </td>
             <td class="usage-cell">
               <div class="usage-badges">
-                <span class="badge processing" title="Video Creation">
+                <span class="badge processing" title="Processing / Whisper">
                   <i class="fas fa-video"></i> {{ user.usage?.processingJobs || 0 }}
                 </span>
                 <span class="badge trends" title="Creation Wallet">
@@ -151,9 +151,9 @@
             </td>
             <td>
               <div class="byok-toggles">
-                <label class="byok-toggle" [title]="'Video Creation Minutes BYOK'" [class.requested]="user.byokRequested">
+                <label class="byok-toggle" [title]="'Processing / Whisper BYOK'" [class.requested]="user.byokRequested">
                   <input type="checkbox" [checked]="user.isByokProcessing" (change)="toggleByok(user, 'isByokProcessing')">
-                  <span class="pill"><i class="fas fa-clock"></i> Video</span>
+                  <span class="pill"><i class="fas fa-clock"></i> Processing</span>
                 </label>
                 <label class="byok-toggle" [title]="'Creation Wallet BYOK'" [class.requested]="user.byokRequested">
                   <input type="checkbox" [checked]="user.isByokTrend" (change)="toggleByok(user, 'isByokTrend')">

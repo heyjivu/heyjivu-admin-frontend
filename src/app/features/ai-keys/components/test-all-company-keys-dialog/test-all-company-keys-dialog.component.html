@@ -44,7 +44,7 @@
             <div class="category-rows-container">
               <div class="category-row" *ngFor="let res of group.results" [ngClass]="rowClass(res)">
                 <div class="category-info-col">
-                  <span class="category-label">{{ res.category }}</span>
+                  <span class="category-label">{{ categoryLabel(res.category) }}</span>
                   <span class="provider-label">via {{ res.provider }}</span>
                 </div>
 

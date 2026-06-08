@@ -38,7 +38,7 @@ export class ProcessingConfigPage implements OnInit {
   private capabilitySearchTimeout: ReturnType<typeof setTimeout> | null = null;
 
   capabilityCategories = ['Text', 'ImageGen', 'TTS', 'VideoGen', 'Whisper', 'Vision', 'Embedding'];
-  capabilityProviders = ['OpenRouter', 'TogetherAI', 'Pollinations', 'Gemini', 'OpenAI', 'StabilityAI', 'Azure', 'ElevenLabs', 'Cartesia', 'Runway', 'Luma', 'Kling', 'Alibaba', 'LiteLLM'];
+  capabilityProviders = ['OpenRouter', 'TogetherAI', 'Gemini', 'OpenAI', 'StabilityAI', 'Azure', 'ElevenLabs', 'Cartesia', 'Runway', 'Luma', 'Kling', 'Alibaba', 'LiteLLM'];
 
   ngOnInit() {
     this.route.queryParamMap.subscribe(params => {
