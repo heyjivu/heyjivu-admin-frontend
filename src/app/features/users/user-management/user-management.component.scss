@@ -265,6 +265,30 @@ select.select-input {
   white-space: nowrap;
 }
 
+.role-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.btn-danger {
+  background: var(--danger-alpha-16);
+  border: 1px solid var(--danger-alpha-25);
+  color: var(--danger);
+
+  &:hover:not(:disabled) {
+    background: var(--danger-alpha-25);
+    border-color: var(--danger);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
 @media (max-width: 900px) {
   .users-table {
     min-width: 1280px;

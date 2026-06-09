@@ -211,9 +211,19 @@
       <div class="roles-list table-container glass-card">
         <div class="panel-header">
           <h3>System Roles</h3>
-          <button class="btn btn-primary btn-sm" (click)="createNewRole()">
-            <i class="fas fa-plus"></i> Create Role
-          </button>
+          <div class="role-header-actions">
+            <button class="btn btn-danger btn-sm"
+                    type="button"
+                    title="Send Free Shell users through the existing app flow"
+                    [disabled]="shellBypassUpdating() || !freeShellRole() || freeShellBypassed()"
+                    (click)="bypassFreeShellLaunch($event)">
+              <i class="fas" [class.fa-spinner]="shellBypassUpdating()" [class.fa-spin]="shellBypassUpdating()" [class.fa-power-off]="!shellBypassUpdating()"></i>
+              Bypass Free Shell
+            </button>
+            <button class="btn btn-primary btn-sm" (click)="createNewRole()">
+              <i class="fas fa-plus"></i> Create Role
+            </button>
+          </div>
         </div>
         <table class="admin-table">
           <thead>

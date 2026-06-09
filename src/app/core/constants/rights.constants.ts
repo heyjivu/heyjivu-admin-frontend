@@ -26,6 +26,9 @@ export const Rights = {
   
   Settings_View: 'Settings_View',
   Settings_Manage: 'Settings_Manage',
+
+  JivuTalkShell_Access: 'JivuTalkShell_Access',
+  JivuCommand_Access: 'JivuCommand_Access',
   
   // Admin Rights
   Admin_Metrics_View: 'Admin_Metrics_View',

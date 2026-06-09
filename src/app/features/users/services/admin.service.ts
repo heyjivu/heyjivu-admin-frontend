@@ -51,6 +51,11 @@ export interface RoleDto {
   quotas?: Record<string, number>;
 }
 
+export interface BypassFreeShellRoleResult {
+  roleName: string;
+  rightKeys: string[];
+}
+
 export interface OrganizationDto {
   id: string;
   name: string;
@@ -232,6 +237,10 @@ export class AdminService {
 
   updateRoleRights(roleId: string, rightKeys: string[]): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/roles/${roleId}/rights`, { rightKeys });
+  }
+
+  bypassFreeShellRole(): Observable<BypassFreeShellRoleResult> {
+    return this.http.post<BypassFreeShellRoleResult>(`${this.apiUrl}/roles/free-shell/bypass`, {});
   }
 
   updateUserStatus(userId: string, isActive: boolean): Observable<void> {

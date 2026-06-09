@@ -66,6 +66,9 @@ interface AccountOnboardingForm {
 type AccountOnboardingField = keyof AccountOnboardingForm;
 
 const PLAN_ROLE_LABELS: Record<string, string> = {
+  freeshell: 'Free Shell',
+  free_shell: 'Free Shell',
+  freejivutalk: 'Free Shell',
   freeguest: 'Free',
   free_guest: 'Free',
   socialmerchant: 'Student',
@@ -80,6 +83,27 @@ const PLAN_ROLE_LABELS: Record<string, string> = {
   expert_byok: 'BYOK',
   company: 'Premium'
 };
+
+const FULL_APP_RIGHTS = [
+  Rights.Dashboard_View,
+  Rights.Dashboard_Manage,
+  Rights.VideoGen_View,
+  Rights.VideoGen_Manage,
+  Rights.Pipeline_View,
+  Rights.Pipeline_Manage,
+  Rights.PostGen_View,
+  Rights.PostGen_Manage,
+  Rights.Review_View,
+  Rights.Review_Manage,
+  Rights.Social_View,
+  Rights.Social_Manage,
+  Rights.Drive_View,
+  Rights.Drive_Manage,
+  Rights.Memory_View,
+  Rights.Memory_Manage,
+  Rights.Settings_View,
+  Rights.Settings_Manage
+];
 
 const ACCOUNT_TYPE_LABELS: Record<AdminAccountType, string> = {
   user: 'User Only',
@@ -212,6 +236,7 @@ export class UserManagementComponent implements OnInit {
   accountOnboardingTouched = signal<Set<AccountOnboardingField>>(new Set());
   accountOnboardingError = signal<string | null>(null);
   savingGridChange = signal(false);
+  shellBypassUpdating = signal(false);
 
   setTab(tab: 'users' | 'orgs' | 'roles') {
     this.activeTab.set(tab);
@@ -315,6 +340,46 @@ export class UserManagementComponent implements OnInit {
     return ['Free', 'Student', 'Merchant', 'Premium', 'BYOK'].includes(roleLabel)
       ? roleLabel
       : 'Plan not exposed';
+  }
+
+  freeShellRole(): RoleDto | undefined {
+    return this.roles().find(role => this.isFreeShellRole(role));
+  }
+
+  freeShellBypassed(): boolean {
+    const role = this.freeShellRole();
+    return !!role && this.roleHasFullAppAccess(role);
+  }
+
+  bypassFreeShellLaunch(event?: Event): void {
+    event?.stopPropagation();
+    const role = this.freeShellRole();
+    if (!role) {
+      this.toast.error('Free Shell role is not loaded.');
+      return;
+    }
+
+    if (this.freeShellBypassed()) {
+      this.toast.show('Free Shell already uses the existing app flow.', 'info');
+      return;
+    }
+
+    const confirmed = window.confirm('Bypass Free Shell for all launch-role users and send them through the existing app flow?');
+    if (!confirmed) return;
+
+    this.shellBypassUpdating.set(true);
+    this.adminService.bypassFreeShellRole().subscribe({
+      next: () => {
+        this.toast.success('Free Shell now uses the existing app flow.');
+        this.shellBypassUpdating.set(false);
+        this.loadRolesAndRights();
+        this.loadData();
+      },
+      error: (err) => {
+        this.toast.error(this.readApiError(err, 'Failed to bypass Free Shell.'));
+        this.shellBypassUpdating.set(false);
+      }
+    });
   }
 
   getUserQuotaCards(user: UserManagementDto): UserQuotaCard[] {
@@ -440,6 +505,15 @@ export class UserManagementComponent implements OnInit {
 
   private compactKey(value: unknown): string {
     return String(value ?? '').toLowerCase().replace(/[^a-z0-9_]/g, '');
+  }
+
+  private isFreeShellRole(role: RoleDto): boolean {
+    const key = this.compactKey(role.name);
+    return key === 'freeshell' || key === 'free_shell' || key === 'freejivutalk';
+  }
+
+  private roleHasFullAppAccess(role: RoleDto): boolean {
+    return FULL_APP_RIGHTS.some(right => role.rights.includes(right));
   }
 
   private findQuotaLimit(source: unknown, key: string): number | null {
