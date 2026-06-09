@@ -5,7 +5,7 @@ import { patchState, signalStore, withComputed, withMethods, withState } from '@
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { catchError, finalize, map, Observable, of, pipe, shareReplay, switchMap, tap } from 'rxjs';
 import { AuthService } from '../services/auth.service';
-import { AuthResponse, AuthUser, GoogleLoginRequest, LoginRequest, RegisterRequest } from '../models/auth.model';
+import { AuthResponse, AuthUser, ForgotPasswordRequest, GoogleLoginRequest, LoginRequest, RegisterRequest, ResetPasswordRequest } from '../models/auth.model';
 import { HttpCancelService } from '../../services/http-cancel.service';
 
 export interface AuthState {
@@ -19,6 +19,9 @@ export interface AuthState {
 
 const USER_STORAGE_KEY = 'ai-content-user';
 const LEGACY_TOKEN_STORAGE_KEY = 'ai-content-token';
+const AUTH_EVENT_STORAGE_KEY = 'ai-content-auth-event';
+const IDLE_LOGOUT_MS = 2 * 60 * 60 * 1000;
+const IDLE_ACTIVITY_EVENTS = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
 
 const initialState: AuthState = {
   user: null,
@@ -63,6 +66,15 @@ export const AuthStore = signalStore(
   withMethods((store, authService = inject(AuthService), router = inject(Router), httpCancelService = inject(HttpCancelService)) => {
     let refreshInProgress: Observable<boolean> | null = null;
     let logoutInProgress: Observable<void> | null = null;
+    let sessionListenersRegistered = false;
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const cancelIdleTimer = () => {
+      if (idleTimer) {
+        clearTimeout(idleTimer);
+        idleTimer = null;
+      }
+    };
 
     const persistUser = (user: AuthUser) => {
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
@@ -83,9 +95,17 @@ export const AuthStore = signalStore(
     };
 
     const clearSessionState = () => {
+      cancelIdleTimer();
       patchState(store, { ...initialState, token: null, isAuthenticated: false });
       localStorage.removeItem(USER_STORAGE_KEY);
       localStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
+    };
+
+    const broadcastLogout = () => {
+      localStorage.setItem(
+        AUTH_EVENT_STORAGE_KEY,
+        JSON.stringify({ type: 'logout', at: Date.now() })
+      );
     };
 
     const applyAuthResponse = (response: AuthResponse) => {
@@ -97,6 +117,37 @@ export const AuthStore = signalStore(
         isAuthenticated: true,
         error: null,
         loading: false
+      });
+      resetIdleTimer();
+    };
+
+    function resetIdleTimer() {
+      if (typeof window === 'undefined') return;
+      cancelIdleTimer();
+      if (!store.isAuthenticated()) return;
+
+      idleTimer = window.setTimeout(() => executeLogout(), IDLE_LOGOUT_MS);
+    }
+
+    const registerSessionListeners = () => {
+      if (sessionListenersRegistered || typeof window === 'undefined') return;
+
+      sessionListenersRegistered = true;
+      window.addEventListener('storage', (event) => {
+        if (event.key !== AUTH_EVENT_STORAGE_KEY || !event.newValue) return;
+
+        try {
+          const payload = JSON.parse(event.newValue) as { type?: string };
+          if (payload.type === 'logout') {
+            logoutInternal();
+          }
+        } catch {
+          return;
+        }
+      });
+
+      IDLE_ACTIVITY_EVENTS.forEach((eventName) => {
+        window.addEventListener(eventName, resetIdleTimer, { passive: true });
       });
     };
 
@@ -134,7 +185,7 @@ export const AuthStore = signalStore(
       httpCancelService.cancelPendingRequests();
     };
 
-    const executeLogout = () => {
+    function executeLogout() {
       if (logoutInProgress) {
         return;
       }
@@ -143,15 +194,17 @@ export const AuthStore = signalStore(
         catchError(() => of(void 0)),
         finalize(() => {
           logoutInProgress = null;
+          broadcastLogout();
           logoutInternal();
         })
       );
 
       logoutInProgress.subscribe();
-    };
+    }
 
     return {
       initializeFromStorage() {
+        registerSessionListeners();
         hydrateUserFromStorage();
         if (!store.isAuthenticated()) {
           refreshSession().subscribe({
@@ -172,6 +225,7 @@ export const AuthStore = signalStore(
               token: token || store.token(),
               isAuthenticated: Boolean(token || store.token())
             });
+            resetIdleTimer();
             if (callback) callback();
           },
           error: (err) => {
@@ -216,6 +270,54 @@ export const AuthStore = signalStore(
                 patchState(store, {
                   loading: false,
                   error: err.error?.message || 'Registration failed. Please try again.'
+                });
+                return of(null);
+              })
+            )
+          )
+        )
+      ),
+
+      forgotPassword: rxMethod<ForgotPasswordRequest>(
+        pipe(
+          tap(() => patchState(store, { loading: true, error: null, registrationMessage: null })),
+          switchMap((req) =>
+            authService.forgotPassword(req).pipe(
+              tap((res) => {
+                patchState(store, {
+                  loading: false,
+                  registrationMessage: res.message || 'If the email exists, a reset code has been sent.'
+                });
+                router.navigate(['/reset-password'], { queryParams: { email: req.email } });
+              }),
+              catchError((err) => {
+                patchState(store, {
+                  loading: false,
+                  error: err.error?.message || 'Failed to send reset email. Please try again.'
+                });
+                return of(null);
+              })
+            )
+          )
+        )
+      ),
+
+      resetPassword: rxMethod<ResetPasswordRequest>(
+        pipe(
+          tap(() => patchState(store, { loading: true, error: null, registrationMessage: null })),
+          switchMap((req) =>
+            authService.resetPassword(req).pipe(
+              tap((res) => {
+                patchState(store, {
+                  loading: false,
+                  registrationMessage: res.message || 'Password has been successfully reset.'
+                });
+                router.navigate(['/login']);
+              }),
+              catchError((err) => {
+                patchState(store, {
+                  loading: false,
+                  error: err.error?.message || 'Password reset failed. Please check your code.'
                 });
                 return of(null);
               })

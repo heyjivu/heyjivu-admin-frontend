@@ -4,8 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import {
   AdminCompanyAIKeysApiService,
+  ByocActionResponse,
+  ByocConfigurationDto,
   CompanyAIKeySettingsDto,
   CompanyAIKeyDto,
+  ModalByocUpsertRequest,
   TestKeyResult
 } from './services/company-ai-keys-api.service';
 import { getProviderModels, AIModelOption } from '../../core/constants/ai-models.constants';
@@ -38,6 +41,15 @@ interface KeyRowState {
   saveMessage: string | null;
 }
 
+interface ModalByocDraft {
+  tokenId: string;
+  tokenSecret: string;
+  showSecret: boolean;
+  preset: string;
+  gpu: string;
+  model: string;
+}
+
 @Component({
   selector: 'app-company-ai-keys',
   standalone: true,
@@ -56,6 +68,9 @@ export class CompanyAIKeysPage implements OnInit {
   keyRowStates = signal<Record<string, KeyRowState>>({});
   pendingRemoveKeyId = signal<string | null>(null);
   private virtualKeyDrafts: Record<string, CompanyAIKeyDto> = {};
+  modalDrafts: Record<string, ModalByocDraft> = {};
+  modalConfigs: Record<string, ByocConfigurationDto> = {};
+  readonly modalTokenHelp = 'Use a Modal API service-user token, not the Modal Secrets tab. Go to https://modal.com/settings/tokens/service-users, click New Service User, copy MODAL_TOKEN_ID and MODAL_TOKEN_SECRET. The secret is shown only once.';
 
   // Hero stats
   totalKeys = computed(() => this.settings().reduce((acc, s) => acc + s.apiKeys.length, 0));
@@ -99,7 +114,8 @@ export class CompanyAIKeysPage implements OnInit {
         { name: 'OpenAI' },
         { name: 'TogetherAI' },
         { name: 'OpenRouter' },
-        { name: 'StabilityAI' }
+        { name: 'StabilityAI' },
+        { name: 'Modal' }
       ]
     },
     {
@@ -124,7 +140,8 @@ export class CompanyAIKeysPage implements OnInit {
         { name: 'Generic' },
         { name: 'Luma' },
         { name: 'Kling' },
-        { name: 'Runway' }
+        { name: 'Runway' },
+        { name: 'Modal' }
       ]
     },
     {
@@ -254,9 +271,12 @@ export class CompanyAIKeysPage implements OnInit {
     }));
   }
 
-  toggleRow(keyId: string) {
+  toggleRow(keyId: string, key?: CompanyAIKeyDto) {
     const current = this.getRowState(keyId);
     this.updateRowState(keyId, { isOpen: !current.isOpen, testResult: null, saveStatus: 'idle', saveMessage: null });
+    if (!current.isOpen && key && this.isModalProvider(key.provider) && !this.isVirtualKey(key.id)) {
+      this.loadModalConfig(key);
+    }
   }
 
   toggleShowKey(keyId: string, event: Event) {
@@ -451,6 +471,238 @@ export class CompanyAIKeysPage implements OnInit {
     });
   }
 
+  getModalDraft(setting: CompanyAIKeySettingsDto, key: CompanyAIKeyDto): ModalByocDraft {
+    if (!this.modalDrafts[key.id]) {
+      const preset = this.defaultModalPreset(setting.type);
+      this.modalDrafts[key.id] = {
+        tokenId: '',
+        tokenSecret: '',
+        showSecret: false,
+        preset,
+        gpu: this.defaultModalGpu(preset),
+        model: key.modelName || this.defaultModalModel(preset)
+      };
+    }
+
+    return this.modalDrafts[key.id];
+  }
+
+  modalPresetOptions(type: string): { id: string; label: string; help: string }[] {
+    if (type.toLowerCase() === 'imagegen') {
+      return [
+        { id: 'image-budget', label: 'Image Budget', help: 'FLUX Schnell on L40S, 10-30 sec/image' },
+        { id: 'image-quality', label: 'Image Quality', help: 'FLUX Dev or SDXL on H100, 5-20 sec/image' }
+      ];
+    }
+
+    return [
+      { id: 'fast-preview', label: 'Fast Preview', help: 'Wan 480p or distilled Wan, target 2-4 min' },
+      { id: 'high-quality', label: 'High Quality', help: 'Wan 720p on H100/H200, target 5-12 min' },
+      { id: 'premium', label: 'Premium', help: 'Hunyuan on H200, quality-first' }
+    ];
+  }
+
+  modalGpuOptions(type: string): string[] {
+    return type.toLowerCase() === 'imagegen' ? ['L40S', 'H100'] : ['L40S', 'H100', 'H200'];
+  }
+
+  onModalPresetChange(setting: CompanyAIKeySettingsDto, key: CompanyAIKeyDto) {
+    const draft = this.getModalDraft(setting, key);
+    draft.gpu = this.defaultModalGpu(draft.preset);
+    draft.model = this.defaultModalModel(draft.preset);
+  }
+
+  openModalTokenPage(event: Event) {
+    event.stopPropagation();
+    window.open('https://modal.com/settings/tokens/service-users', '_blank', 'noopener,noreferrer');
+  }
+
+  loadModalConfig(key: CompanyAIKeyDto) {
+    if (this.isVirtualKey(key.id)) return;
+    this.api.getByocConfiguration(key.id).subscribe({
+      next: (res) => this.applyModalResponse(res),
+      error: () => undefined
+    });
+  }
+
+  saveModalKey(setting: CompanyAIKeySettingsDto, key: CompanyAIKeyDto) {
+    const draft = this.getModalDraft(setting, key);
+    this.updateRowState(key.id, { isSaving: true, saveStatus: 'idle', saveMessage: null });
+    this.api.upsertModalByoc(this.buildModalRequest(setting, key, draft)).subscribe({
+      next: (res) => {
+        this.applyModalResponse(res);
+        this.toast.success('Modal BYOC settings saved.');
+        this.updateRowState(key.id, { isSaving: false, saveStatus: 'success', saveMessage: 'Saved' });
+        this.load();
+      },
+      error: () => {
+        this.updateRowState(key.id, { isSaving: false, saveStatus: 'error', saveMessage: 'Save failed' });
+        this.toast.error('Failed to save Modal BYOC settings.');
+      }
+    });
+  }
+
+  validateModalKey(setting: CompanyAIKeySettingsDto, key: CompanyAIKeyDto) {
+    const draft = this.getModalDraft(setting, key);
+    if (!this.canValidateModal(key, draft)) {
+      this.toast.show('Modal token id, token secret, preset, GPU, and model are required.', 'warning');
+      return;
+    }
+
+    this.updateRowState(key.id, { isTesting: true, testResult: null });
+    this.api.upsertModalByoc(this.buildModalRequest(setting, key, draft)).subscribe({
+      next: (saved) => {
+        this.applyModalResponse(saved);
+        this.api.validateModalByoc(saved.key.id!).subscribe({
+          next: (validated) => {
+            this.applyModalResponse(validated);
+            this.updateRowState(key.id, {
+              isTesting: false,
+              testResult: {
+                success: validated.success,
+                status: validated.status,
+                latencyMs: validated.latencyMs ?? undefined,
+                message: validated.message ?? undefined
+              }
+            });
+            this.toast.success(validated.success ? 'Modal token validated.' : 'Modal validation failed.');
+            this.load();
+          },
+          error: () => {
+            this.updateRowState(key.id, { isTesting: false, testResult: { success: false, message: 'Modal validation failed' } });
+            this.toast.error('Modal validation failed.');
+          }
+        });
+      },
+      error: () => {
+        this.updateRowState(key.id, { isTesting: false, testResult: { success: false, message: 'Failed to save Modal settings' } });
+        this.toast.error('Failed to save Modal settings.');
+      }
+    });
+  }
+
+  deployModalKey(setting: CompanyAIKeySettingsDto, key: CompanyAIKeyDto) {
+    if (this.isVirtualKey(key.id)) return;
+    const draft = this.getModalDraft(setting, key);
+    this.updateRowState(key.id, { isSaving: true, saveStatus: 'idle', saveMessage: null });
+    this.api.deployModalByoc(key.id, {
+      preset: draft.preset,
+      gpu: draft.gpu,
+      model: draft.model
+    }).subscribe({
+      next: (deployed) => {
+        this.applyModalResponse(deployed);
+        this.updateRowState(key.id, {
+          isSaving: false,
+          saveStatus: deployed.success ? 'success' : 'error',
+          saveMessage: deployed.success ? 'Deployed' : 'Deploy failed',
+          testResult: {
+            success: deployed.success,
+            status: deployed.status,
+            message: deployed.message ?? undefined
+          }
+        });
+        this.toast.show(deployed.success ? 'Modal worker deployed.' : 'Modal deploy failed.', deployed.success ? 'success' : 'error');
+        this.load();
+      },
+      error: () => {
+        this.updateRowState(key.id, { isSaving: false, saveStatus: 'error', saveMessage: 'Deploy failed' });
+        this.toast.error('Modal deploy failed.');
+      }
+    });
+  }
+
+  canValidateModal(key: CompanyAIKeyDto, draft: ModalByocDraft): boolean {
+    const config = this.modalConfigs[key.id];
+    const hasCredentials = !!config?.credentialsConfigured || (!!draft.tokenId.trim() && !!draft.tokenSecret.trim());
+    return hasCredentials && !!draft.preset && !!draft.gpu && !!draft.model;
+  }
+
+  canDeployModal(key: CompanyAIKeyDto): boolean {
+    const config = this.modalConfigs[key.id];
+    return !this.isVirtualKey(key.id) &&
+      !!config &&
+      ['validated', 'deployed', 'needs_redeploy', 'failed'].includes(config.status);
+  }
+
+  modalStatusText(key: CompanyAIKeyDto): string {
+    const config = this.modalConfigs[key.id];
+    if (!config) return this.isVirtualKey(key.id) ? 'Not Configured' : 'BYOC Saved';
+    if (key.isBlocked) return 'Paused';
+    if (config.status === 'deployed') return 'BYOC Active';
+    return `BYOC ${config.status.replace('_', ' ')}`;
+  }
+
+  private buildModalRequest(setting: CompanyAIKeySettingsDto, key: CompanyAIKeyDto, draft: ModalByocDraft): ModalByocUpsertRequest {
+    return {
+      aiKeyId: this.isVirtualKey(key.id) ? null : key.id,
+      category: setting.type,
+      tokenId: draft.tokenId.trim() || null,
+      tokenSecret: draft.tokenSecret.trim() || null,
+      preset: draft.preset,
+      gpu: draft.gpu,
+      model: draft.model,
+      label: key.customLabel ?? null
+    };
+  }
+
+  private applyModalResponse(response: ByocActionResponse) {
+    this.modalConfigs[response.configuration.aiKeyId] = response.configuration;
+    const settings = this.parseModalSettings(response.configuration.settingsJson);
+    const draft = this.modalDrafts[response.configuration.aiKeyId] ?? {
+      tokenId: '',
+      tokenSecret: '',
+      showSecret: false,
+      preset: settings.preset,
+      gpu: settings.gpu,
+      model: settings.model
+    };
+    draft.preset = settings.preset || draft.preset;
+    draft.gpu = settings.gpu || draft.gpu;
+    draft.model = settings.model || draft.model;
+    draft.tokenSecret = '';
+    this.modalDrafts[response.configuration.aiKeyId] = draft;
+  }
+
+  private parseModalSettings(settingsJson?: string | null): { preset: string; gpu: string; model: string } {
+    const preset = this.defaultModalPreset('VideoGen');
+    try {
+      const settings = settingsJson ? JSON.parse(settingsJson) : {};
+      return {
+        preset: settings.preset || preset,
+        gpu: settings.gpu || this.defaultModalGpu(settings.preset || preset),
+        model: settings.model || this.defaultModalModel(settings.preset || preset)
+      };
+    } catch {
+      return { preset, gpu: this.defaultModalGpu(preset), model: this.defaultModalModel(preset) };
+    }
+  }
+
+  private defaultModalPreset(type: string): string {
+    return type.toLowerCase() === 'imagegen' ? 'image-budget' : 'fast-preview';
+  }
+
+  private defaultModalGpu(preset: string): string {
+    if (preset === 'image-quality' || preset === 'high-quality') return 'H100';
+    if (preset === 'premium') return 'H200';
+    return 'L40S';
+  }
+
+  private defaultModalModel(preset: string): string {
+    switch (preset) {
+      case 'image-quality':
+        return 'black-forest-labs/FLUX.1-dev';
+      case 'high-quality':
+        return 'wan-2.1-i2v-720p';
+      case 'premium':
+        return 'hunyuan-video-i2v';
+      case 'fast-preview':
+        return 'wan-2.1-i2v-480p-distilled';
+      default:
+        return 'black-forest-labs/FLUX.1-schnell';
+    }
+  }
+
   openTestAllDialog() {
     this.dialogService.open(TestAllCompanyKeysDialogComponent, {
       header: 'Company AI Keys Validation Report',
@@ -523,6 +775,7 @@ export class CompanyAIKeysPage implements OnInit {
     if (p.includes('groq')) return 'assets/svg/groq.svg';
     if (p.includes('together')) return 'assets/svg/together.svg';
     if (p.includes('stability')) return 'assets/svg/stability.svg';
+    if (p.includes('modal')) return '';
     if (p.includes('azure')) return 'assets/svg/azure.svg';
     if (p.includes('eleven')) return 'assets/svg/elevenlabs.svg';
     if (p.includes('cartesia')) return 'assets/svg/cartesia.svg';
@@ -547,6 +800,7 @@ export class CompanyAIKeysPage implements OnInit {
     if (p.includes('groq')) return 'badge-magenta';
     if (p.includes('together')) return 'badge-purple';
     if (p.includes('stability')) return 'badge-cyan';
+    if (p.includes('modal')) return 'badge-cyan';
     if (p.includes('azure')) return 'badge-blue';
     if (p.includes('eleven')) return 'badge-orange';
     if (p.includes('luma')) return 'badge-purple';
@@ -592,7 +846,14 @@ export class CompanyAIKeysPage implements OnInit {
   }
 
   canSaveKey(key: CompanyAIKeyDto): boolean {
+    if (this.isModalProvider(key.provider)) {
+      return true;
+    }
     return !this.isVirtualKey(key.id) || key.isFree || !!key.key?.trim();
+  }
+
+  isModalProvider(provider: string | null | undefined): boolean {
+    return (provider || '').trim().toLowerCase() === 'modal';
   }
 
   getSaveStatusIcon(key: CompanyAIKeyDto): string {

@@ -39,6 +39,16 @@ export const routes: Routes = [
         loadComponent: () => import('./core/auth/pages/register/register.page').then((m) => m.RegisterPage),
       },
       {
+        path: 'forgot-password',
+        canActivate: [guestGuard],
+        loadComponent: () => import('./core/auth/pages/forgot-password/forgot-password.page').then((m) => m.ForgotPasswordPage),
+      },
+      {
+        path: 'reset-password',
+        canActivate: [guestGuard],
+        loadComponent: () => import('./core/auth/pages/reset-password/reset-password.page').then((m) => m.ResetPasswordPage),
+      },
+      {
         path: 'confirm-email',
         loadComponent: () => import('./core/auth/pages/confirm-email/confirm-email.page').then((m) => m.ConfirmEmailPage),
       }

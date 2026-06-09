@@ -12,6 +12,31 @@ export interface RegisterRequest {
   email: string;
   password: string;
   confirmPassword: string;
+  challengeId?: string;
+  turnstileToken?: string;
+}
+
+export interface RegisterResponse {
+  success?: boolean;
+  userId?: string;
+  email: string;
+  message: string;
+  challengeId?: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  otp: string;
+  newPassword: string;
+}
+
+export interface AuthMessageResponse {
+  message: string;
+  email?: string;
 }
 
 export interface AuthResponse {

@@ -188,7 +188,7 @@
        [class.row-virtual]="isVirtualKey(key.id)">
 
     <!-- Row Header -->
-    <div class="key-row__header" (click)="toggleRow(key.id)">
+    <div class="key-row__header" (click)="toggleRow(key.id, key)">
 
       <div class="d-flex items-center gap-12 min-w-0">
         <div class="drag-handle" cdkDragHandle (click)="$event.stopPropagation()" *ngIf="!isVirtualKey(key.id)" title="Drag to reorder priority">
@@ -204,6 +204,7 @@
         <div class="min-w-0">
           <div class="prov-name">
             {{ key.provider || setting.provider }}
+            <span class="byoc-mini-badge" *ngIf="isModalProvider(key.provider || setting.provider)">BYOC</span>
             <span class="prov-custom-label" *ngIf="key.customLabel">· {{ key.customLabel }}</span>
           </div>
           <div class="prov-model" *ngIf="key.modelName">{{ key.modelName }}</div>
@@ -223,7 +224,10 @@
         <span class="status-badge badge-danger" *ngIf="!isVirtualKey(key.id) && key.isBlocked && !isInCooldown(key)">
           <span class="status-dot"></span> Paused
         </span>
-        <span class="status-badge badge-success" *ngIf="!isVirtualKey(key.id) && !key.isBlocked && !isInCooldown(key)">
+        <span class="status-badge badge-success" *ngIf="!isVirtualKey(key.id) && isModalProvider(key.provider || setting.provider) && !key.isBlocked && !isInCooldown(key)">
+          <span class="status-dot"></span> {{ modalStatusText(key) }}
+        </span>
+        <span class="status-badge badge-success" *ngIf="!isVirtualKey(key.id) && !isModalProvider(key.provider || setting.provider) && !key.isBlocked && !isInCooldown(key)">
           <span class="status-dot"></span> Active
         </span>
 
@@ -247,7 +251,7 @@
         </button>
 
         <!-- Chevron Collapse Indicator -->
-        <div class="collapse-indicator" (click)="toggleRow(key.id); $event.stopPropagation()">
+        <div class="collapse-indicator" (click)="toggleRow(key.id, key); $event.stopPropagation()">
           <i class="fas" [ngClass]="getRowState(key.id).isOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
         </div>
       </div>
@@ -255,6 +259,140 @@
 
     <!-- Row Body (expanded) -->
     <div class="key-row__body" *ngIf="getRowState(key.id).isOpen">
+      <ng-container *ngIf="isModalProvider(key.provider || setting.provider); else standardCompanyKeyForm">
+        <ng-container *ngIf="getModalDraft(setting, key) as modalDraft">
+          <div class="modal-byoc-grid">
+            <div class="form-group">
+              <label class="field-label">
+                Modal Token ID
+                <button type="button" class="info-icon" [title]="modalTokenHelp" (click)="openModalTokenPage($event)">
+                  <i class="fas fa-info"></i>
+                </button>
+              </label>
+              <input type="text"
+                     class="field-input premium-input"
+                     [(ngModel)]="modalDraft.tokenId"
+                     autocomplete="off"
+                     autocapitalize="none"
+                     spellcheck="false"
+                     placeholder="MODAL_TOKEN_ID" />
+            </div>
+
+            <div class="form-group">
+              <label class="field-label">
+                Modal Token Secret
+                <button type="button" class="info-icon" [title]="modalTokenHelp" (click)="openModalTokenPage($event)">
+                  <i class="fas fa-info"></i>
+                </button>
+              </label>
+              <div class="key-input-wrap">
+                <input [type]="modalDraft.showSecret ? 'text' : 'password'"
+                       class="field-input premium-input"
+                       [(ngModel)]="modalDraft.tokenSecret"
+                       autocomplete="off"
+                       autocapitalize="none"
+                       spellcheck="false"
+                       [placeholder]="modalConfigs[key.id]?.credentialsConfigured ? 'Saved - paste only to replace' : 'MODAL_TOKEN_SECRET'" />
+                <button class="key-eye-btn" type="button" (click)="modalDraft.showSecret = !modalDraft.showSecret; $event.stopPropagation()">
+                  <i class="fas" [ngClass]="modalDraft.showSecret ? 'fa-eye-slash' : 'fa-eye'"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="field-label">Preset</label>
+              <select class="field-input premium-input"
+                      [(ngModel)]="modalDraft.preset"
+                      (ngModelChange)="onModalPresetChange(setting, key)">
+                <option *ngFor="let option of modalPresetOptions(setting.type)" [value]="option.id">
+                  {{ option.label }} - {{ option.help }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="field-label">GPU</label>
+              <select class="field-input premium-input" [(ngModel)]="modalDraft.gpu">
+                <option *ngFor="let gpu of modalGpuOptions(setting.type)" [value]="gpu">{{ gpu }}</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="field-label">Model</label>
+              <input type="text"
+                     class="field-input premium-input"
+                     [(ngModel)]="modalDraft.model"
+                     [attr.list]="'modal-model-' + key.id" />
+              <datalist [id]="'modal-model-' + key.id" *ngIf="getModelsForKey(key, setting).length > 0">
+                <option *ngFor="let m of getModelsForKey(key, setting)" [value]="m.id">{{ m.label }}</option>
+              </datalist>
+            </div>
+
+            <div class="form-group">
+              <label class="field-label">Nickname <span class="muted-label">(Optional)</span></label>
+              <input type="text"
+                     class="field-input premium-input"
+                     [(ngModel)]="key.customLabel"
+                     placeholder="e.g. My Modal worker" />
+            </div>
+          </div>
+
+          <div class="modal-byoc-status" *ngIf="modalConfigs[key.id]">
+            <span class="status-badge badge-success">
+              <span class="status-dot"></span> {{ modalStatusText(key) }}
+            </span>
+            <span class="modal-endpoint" *ngIf="modalConfigs[key.id].endpointUrl">{{ modalConfigs[key.id].endpointUrl }}</span>
+          </div>
+
+          <div class="test-result-alert success mt-12"
+               *ngIf="getRowState(key.id).testResult as tr"
+               [ngClass]="tr.success ? 'success' : 'error'">
+            <i class="fas" [ngClass]="tr.success ? 'fa-check-circle' : 'fa-exclamation-circle'"></i>
+            <span class="test-message">
+              {{ tr.success ? 'Connection Successful!' : 'Connection Failed.' }}
+              <span *ngIf="tr.latencyMs" class="latency">({{ tr.latencyMs }}ms)</span>
+              <span *ngIf="tr.message" class="error-details"> - {{ tr.message }}</span>
+            </span>
+          </div>
+
+          <div class="body-actions" [class.save-error]="getRowState(key.id).saveStatus === 'error'"
+               [class.save-success]="getRowState(key.id).saveStatus === 'success'">
+            <div class="save-meta">
+              <i class="fas" [ngClass]="getSaveStatusIcon(key)"></i>
+              <span>{{ getSaveStatusText(key) }}</span>
+            </div>
+            <div class="save-buttons">
+              <button type="button" class="btn btn-outline" (click)="openModalTokenPage($event)">
+                <i class="fas fa-external-link-alt"></i>
+                Open Modal Tokens
+              </button>
+              <button type="button"
+                      class="btn btn-outline"
+                      (click)="saveModalKey(setting, key)"
+                      [disabled]="getRowState(key.id).isSaving || !canValidateModal(key, modalDraft)">
+                <i class="fas" [ngClass]="getRowState(key.id).isSaving ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+                Save BYOC
+              </button>
+              <button type="button"
+                      class="btn btn-outline"
+                      (click)="validateModalKey(setting, key)"
+                      [disabled]="getRowState(key.id).isTesting || !canValidateModal(key, modalDraft)">
+                <i class="fas" [ngClass]="getRowState(key.id).isTesting ? 'fa-spinner fa-spin' : 'fa-vial'"></i>
+                Validate
+              </button>
+              <button type="button"
+                      class="btn btn-primary"
+                      (click)="deployModalKey(setting, key)"
+                      [disabled]="getRowState(key.id).isSaving || !canDeployModal(key)">
+                <i class="fas" [ngClass]="getRowState(key.id).isSaving ? 'fa-spinner fa-spin' : 'fa-cloud-upload-alt'"></i>
+                Deploy Worker
+              </button>
+            </div>
+          </div>
+        </ng-container>
+      </ng-container>
+
+      <ng-template #standardCompanyKeyForm>
 
       <!-- Free provider notice if virtual isFree -->
       <div class="info-box info-box-accent" *ngIf="key.isFree" style="margin-bottom:12px">
@@ -339,6 +477,7 @@
           </button>
         </div>
       </div>
+      </ng-template>
     </div>
   </div>
 </ng-template>

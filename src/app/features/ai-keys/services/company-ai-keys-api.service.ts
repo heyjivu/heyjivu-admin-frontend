@@ -65,7 +65,47 @@ export interface PipelineTestResultDto {
   status?: string;
 }
 
-interface AdminCompanyAIKeyDto {
+export interface ByocConfigurationDto {
+  id: string;
+  aiKeyId: string;
+  provider: string;
+  status: string;
+  credentialsConfigured: boolean;
+  settingsJson?: string | null;
+  endpointUrl?: string | null;
+  workerVersion?: string | null;
+  lastValidatedAt?: string | null;
+  lastDeployedAt?: string | null;
+  lastError?: string | null;
+}
+
+export interface ByocActionResponse {
+  success: boolean;
+  status: string;
+  message?: string | null;
+  latencyMs?: number | null;
+  key: AdminCompanyAIKeyDto;
+  configuration: ByocConfigurationDto;
+}
+
+export interface ModalByocUpsertRequest {
+  aiKeyId?: string | null;
+  category: string;
+  tokenId?: string | null;
+  tokenSecret?: string | null;
+  preset?: string | null;
+  gpu?: string | null;
+  model?: string | null;
+  label?: string | null;
+}
+
+export interface ModalByocDeployRequest {
+  preset?: string | null;
+  gpu?: string | null;
+  model?: string | null;
+}
+
+export interface AdminCompanyAIKeyDto {
   id?: string;
   userId?: string | null;
   category: string;
@@ -84,9 +124,9 @@ interface AdminCompanyAIKeyDto {
 const COMPANY_CATEGORIES: Array<{ id: string; providers: string[] }> = [
   { id: 'Text', providers: ['OpenAI', 'Gemini', 'DeepSeek', 'OpenRouter', 'Alibaba', 'Groq'] },
   { id: 'Whisper', providers: ['Groq', 'OpenAI', 'OpenRouter'] },
-  { id: 'ImageGen', providers: ['Gemini', 'OpenAI', 'TogetherAI', 'OpenRouter', 'StabilityAI'] },
+  { id: 'ImageGen', providers: ['Gemini', 'OpenAI', 'TogetherAI', 'OpenRouter', 'StabilityAI', 'Modal'] },
   { id: 'Vision', providers: ['Gemini', 'OpenAI'] },
-  { id: 'VideoGen', providers: ['Alibaba', 'TogetherAI', 'OpenRouter', 'Generic', 'Luma', 'Kling', 'Runway'] },
+  { id: 'VideoGen', providers: ['Alibaba', 'TogetherAI', 'OpenRouter', 'Generic', 'Luma', 'Kling', 'Runway', 'Modal'] },
   { id: 'TTS', providers: ['TogetherAI', 'OpenRouter', 'Gemini', 'OpenAI', 'Azure', 'ElevenLabs', 'Cartesia'] },
   { id: 'StockMedia', providers: ['Pexels', 'Pixabay'] },
   { id: 'WebSearch', providers: ['Serper', 'Tavily'] }
@@ -144,6 +184,22 @@ export class AdminCompanyAIKeysApiService {
 
   reorderKeys(category: string, orderedKeyIds: string[]): Observable<void> {
     return this.http.patch<void>(`${ADMIN_API}/admin/ai-keys/reorder`, { category, orderedKeyIds });
+  }
+
+  getByocConfiguration(id: string): Observable<ByocActionResponse> {
+    return this.http.get<ByocActionResponse>(`${ADMIN_API}/admin/ai-keys/byoc/${id}`);
+  }
+
+  upsertModalByoc(request: ModalByocUpsertRequest): Observable<ByocActionResponse> {
+    return this.http.put<ByocActionResponse>(`${ADMIN_API}/admin/ai-keys/byoc/modal`, request);
+  }
+
+  validateModalByoc(id: string): Observable<ByocActionResponse> {
+    return this.http.post<ByocActionResponse>(`${ADMIN_API}/admin/ai-keys/byoc/modal/${id}/validate`, {});
+  }
+
+  deployModalByoc(id: string, request: ModalByocDeployRequest): Observable<ByocActionResponse> {
+    return this.http.post<ByocActionResponse>(`${ADMIN_API}/admin/ai-keys/byoc/modal/${id}/deploy`, request);
   }
 
   private toCompanyAIKeySettings(keys: AdminCompanyAIKeyDto[]): CompanyAIKeySettingsDto[] {

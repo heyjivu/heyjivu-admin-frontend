@@ -51,7 +51,7 @@
             <label class="pm-label">Payment Provider</label>
             <div class="pm-select-wrap">
               <i class="fas fa-building-columns pm-field-icon"></i>
-              <select [(ngModel)]="form().providerName" class="pm-input" id="payment-provider-select">
+              <select [ngModel]="form().providerName" (ngModelChange)="selectProvider($event)" class="pm-input" id="payment-provider-select">
                 <option value="Safepay">Safepay</option>
                 <option value="LemonSqueezy">Lemon Squeezy</option>
               </select>
@@ -93,11 +93,12 @@
                      [(ngModel)]="form().apiKey"
                      class="pm-input pm-input-secret"
                      id="api-key-input"
-                     placeholder="sec_..."
+                     [placeholder]="form().hasApiKey ? 'Stored. Leave blank to keep existing key.' : 'Enter API key'"
                      autocomplete="off"
                      autocapitalize="none"
                      spellcheck="false">
             </div>
+            <div class="pm-toggle-sub" *ngIf="form().hasApiKey">A key is already stored. Enter a new value only when rotating it.</div>
           </div>
 
           <!-- Webhook Secret -->
@@ -109,11 +110,12 @@
                      [(ngModel)]="form().webhookSecret"
                      class="pm-input pm-input-secret"
                      id="webhook-secret-input"
-                     placeholder="whsec_..."
+                     [placeholder]="form().hasWebhookSecret ? 'Stored. Leave blank to keep existing secret.' : 'Enter webhook secret'"
                      autocomplete="off"
                      autocapitalize="none"
                      spellcheck="false">
             </div>
+            <div class="pm-toggle-sub" *ngIf="form().hasWebhookSecret">A webhook secret is already stored. Enter a new value only when rotating it.</div>
           </div>
 
           <!-- Active Toggle -->

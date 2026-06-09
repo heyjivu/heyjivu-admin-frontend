@@ -6,11 +6,13 @@ import { environment } from '../../../../environments/environment';
 export interface PaymentSettingDto {
   id?: string;
   providerName: string;
-  apiKey: string;
+  apiKey?: string;
   webhookSecret?: string;
   checkoutUrl?: string;
   environment: string;
   isActive: boolean;
+  hasApiKey?: boolean;
+  hasWebhookSecret?: boolean;
 }
 
 @Injectable({

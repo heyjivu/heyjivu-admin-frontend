@@ -34,9 +34,11 @@ export class PaymentManagementPage implements OnInit {
   }
 
   setEnvironment(environment: 'sandbox' | 'production') {
-    const checkoutUrl = environment === 'production'
-      ? 'https://getsafepay.com/checkout/pay'
-      : 'https://sandbox.api.getsafepay.com/checkout/pay';
+    const checkoutUrl = this.form().providerName === 'Safepay'
+      ? environment === 'production'
+        ? 'https://getsafepay.com/checkout/pay'
+        : 'https://sandbox.api.getsafepay.com/checkout/pay'
+      : this.form().checkoutUrl;
 
     this.form.set({
       ...this.form(),
@@ -45,15 +47,23 @@ export class PaymentManagementPage implements OnInit {
     });
   }
 
+  selectProvider(providerName: string) {
+    this.selectedProvider.set(providerName);
+    const existing = this.settings().find((setting) => setting.providerName === providerName);
+    this.form.set(existing ? this.toEditableForm(existing) : this.defaultForm(providerName));
+  }
+
   loadSettings() {
     this.loading.set(true);
     this.paymentService.getSettings().subscribe({
       next: (data) => {
         this.settings.set(data);
-        const safepay = data.find(s => s.providerName === 'Safepay');
-        if (safepay) {
-          this.form.set({ ...safepay });
+        const providerName = this.selectedProvider();
+        const selected = data.find(s => s.providerName === providerName) || data.find(s => s.providerName === 'Safepay');
+        if (selected) {
+          this.selectedProvider.set(selected.providerName);
         }
+        this.form.set(selected ? this.toEditableForm(selected) : this.defaultForm(providerName));
         this.loading.set(false);
       },
       error: () => this.loading.set(false)
@@ -61,8 +71,15 @@ export class PaymentManagementPage implements OnInit {
   }
 
   save() {
+    const current = this.form();
+    const payload: PaymentSettingDto = {
+      ...current,
+      apiKey: current.apiKey?.trim() || undefined,
+      webhookSecret: current.webhookSecret?.trim() || undefined
+    };
+
     this.loading.set(true);
-    this.paymentService.updateSetting(this.form()).subscribe({
+    this.paymentService.updateSetting(payload).subscribe({
       next: () => {
         this.loadSettings();
         this.toast.success('Payment settings updated successfully.');
@@ -72,6 +89,27 @@ export class PaymentManagementPage implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  private toEditableForm(setting: PaymentSettingDto): PaymentSettingDto {
+    return {
+      ...setting,
+      apiKey: '',
+      webhookSecret: ''
+    };
+  }
+
+  private defaultForm(providerName: string): PaymentSettingDto {
+    return {
+      providerName,
+      apiKey: '',
+      webhookSecret: '',
+      checkoutUrl: providerName === 'Safepay'
+        ? 'https://sandbox.api.getsafepay.com/checkout/pay'
+        : '',
+      environment: 'sandbox',
+      isActive: true
+    };
   }
 }
 

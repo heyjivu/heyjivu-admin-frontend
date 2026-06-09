@@ -111,6 +111,11 @@ export const AI_MODELS: Record<string, Record<string, AIModelOption[]>> = {
     alibaba: [
       { id: 'wanx-v2', label: 'wanx-v2 | $0.04/img' },
       { id: 'wanx-v1', label: 'wanx-v1 | $0.02/img' }
+    ],
+    modal: [
+      { id: 'black-forest-labs/FLUX.1-schnell', label: 'Image Budget | FLUX Schnell on L40S | 10-30 sec/img' },
+      { id: 'black-forest-labs/FLUX.1-dev', label: 'Image Quality | FLUX Dev on H100 | 5-20 sec/img' },
+      { id: 'stabilityai/stable-diffusion-xl-base-1.0', label: 'Image Quality | SDXL on H100 | 5-20 sec/img' }
     ]
   },
   tts: {
@@ -202,6 +207,11 @@ export const AI_MODELS: Record<string, Record<string, AIModelOption[]>> = {
     kling: [
       { id: 'kling-3.5', label: 'kling-3.5 | $0.45/sec' },
       { id: 'kling-3.0', label: 'kling-3.0 | $0.30/sec' }
+    ],
+    modal: [
+      { id: 'wan-2.1-i2v-480p-distilled', label: 'Fast Preview | Wan 480p + upscale | L40S/H100 | 2-4 min' },
+      { id: 'wan-2.1-i2v-720p', label: 'High Quality | Wan 720p | H100/H200 | 5-12 min' },
+      { id: 'hunyuan-video-i2v', label: 'Premium | Hunyuan | H200 | quality-first' }
     ]
   },
   vision: {
@@ -257,6 +267,7 @@ export function getProviderModels(category: string, provider: string): AIModelOp
   else if (p.includes('alibaba') || p.includes('dashscope') || p.includes('qwen')) providerKey = 'alibaba';
   else if (p.includes('stability')) providerKey = 'stability';
   else if (p.includes('pollinations')) providerKey = 'pollinations';
+  else if (p.includes('modal')) providerKey = 'modal';
   else if (p.includes('azure')) providerKey = 'azure';
   else if (p.includes('eleven')) providerKey = 'eleven';
   else if (p.includes('cartesia')) providerKey = 'cartesia';
