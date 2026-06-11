@@ -125,6 +125,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/assets/asset-management.page').then((m) => m.AssetManagementPage),
       },
       {
+        path: 'cloud',
+        canActivate: [authGuard, hasRight(Rights.Admin_Config_View)],
+        loadComponent: () => import('./features/cloud/admin-cloud.page').then((m) => m.AdminCloudPage),
+      },
+      {
         path: 'pipeline',
         canActivate: [authGuard, hasRight(Rights.Pipeline_View)],
         loadComponent: () => import('./features/pipeline/pipeline-monitor.page').then((m) => m.PipelineMonitorPage),

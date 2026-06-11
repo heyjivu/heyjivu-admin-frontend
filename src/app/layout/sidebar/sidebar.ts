@@ -64,8 +64,9 @@ export class Sidebar {
     { label: 'Completed Jobs', icon: 'fas fa-check-circle', route: '/admin/pipeline', queryParams: { status: 'done' }, section: 'pipeline' },
     { label: 'Processing Config', icon: 'fas fa-cog', route: '/admin/processing', right: Rights.Admin_Config_View, section: 'config' },
     { label: 'Model Configuration', icon: 'fas fa-sliders', route: '/admin/processing', queryParams: { tab: 'models' }, right: Rights.Admin_Config_View, section: 'config' },
-    { label: 'Template Studio', icon: 'fas fa-wand-magic-sparkles', route: '/admin/templates', right: Rights.Admin_Config_View, section: 'templates' },
+    { label: 'Assets Studio', icon: 'fas fa-wand-magic-sparkles', route: '/admin/templates', right: Rights.Admin_Config_View, section: 'templates' },
     { label: 'Assets', icon: 'fas fa-photo-film', route: '/admin/assets', right: Rights.Admin_Config_View, section: 'assets' },
+    { label: 'User Cloud', icon: 'fas fa-cloud', route: '/admin/cloud', right: Rights.Admin_Config_View, section: 'cloud' },
     { label: 'Free', icon: 'fas fa-user', route: '/admin/plan-users', queryParams: { plan: 'free' }, section: 'plan-users' },
     { label: 'Student', icon: 'fas fa-graduation-cap', route: '/admin/plan-users', queryParams: { plan: 'student' }, section: 'plan-users' },
     { label: 'Merchant', icon: 'fas fa-store', route: '/admin/plan-users', queryParams: { plan: 'merchant' }, section: 'plan-users' },
@@ -83,6 +84,7 @@ export class Sidebar {
     if (path.startsWith('/admin/processing')) return 'config';
     if (path.startsWith('/admin/templates')) return 'templates';
     if (path.startsWith('/admin/assets')) return 'assets';
+    if (path.startsWith('/admin/cloud')) return 'cloud';
     if (path.startsWith('/admin/plan-users')) return 'plan-users';
     return null;
   });
@@ -138,8 +140,9 @@ export class Sidebar {
     if (section === 'ai-keys') return 'AI Keys';
     if (section === 'pipeline') return 'Pipeline';
     if (section === 'config') return 'Processing Config';
-    if (section === 'templates') return 'Template Studio';
+    if (section === 'templates') return 'Assets Studio';
     if (section === 'assets') return 'Asset Management';
+    if (section === 'cloud') return 'User Cloud';
     if (section === 'plan-users') return 'Plan Users';
     return 'Admin Portal';
   }

@@ -1,0 +1,276 @@
+<div class="screen admin-cloud-screen">
+  <div class="screen-header screen-header-compact">
+    <div class="flex justify-content-between align-items-center px-4 py-3 screen-title-row">
+      <div class="flex align-items-center gap-3">
+        <div class="header-icon-wrap">
+          <i class="fas fa-cloud"></i>
+        </div>
+        <div>
+          <div class="screen-title">User Cloud</div>
+          <div class="screen-sub">Browse each user's storage folders from the admin console</div>
+        </div>
+      </div>
+      <div class="header-actions cloud-header-actions">
+        <button class="btn btn-soft btn-sm" type="button" (click)="refresh()" [disabled]="!selectedUser()">
+          <i class="fas fa-sync" [class.fa-spin]="loadingFiles()"></i>
+          Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cloud-layout">
+    <aside class="cloud-sidebar">
+      <section class="cloud-user-panel">
+        <label class="cloud-label" for="cloud-user-search">Select user by email</label>
+        <div class="cloud-user-search">
+          <i class="fas fa-search"></i>
+          <input
+            id="cloud-user-search"
+            type="text"
+            [ngModel]="userSearch()"
+            (ngModelChange)="onUserSearchChange($event)"
+            placeholder="Search email or username"
+          />
+        </div>
+
+        <div class="cloud-user-list" [class.is-loading]="loadingUsers()">
+          @for (user of users(); track user.id) {
+            <button
+              type="button"
+              class="cloud-user-option"
+              [class.active]="selectedUser()?.id === user.id"
+              (click)="selectUser(user)"
+              [title]="user.email">
+              <span class="cloud-user-avatar">{{ (user.email || user.username).charAt(0).toUpperCase() }}</span>
+              <span class="cloud-user-text">
+                <strong>{{ user.email || user.username }}</strong>
+                <small>{{ user.displayName || user.username }} · {{ user.planName || user.planCode || 'No plan' }}</small>
+              </span>
+            </button>
+          } @empty {
+            <div class="cloud-empty-mini">
+              <i class="fas fa-user-slash"></i>
+              <span>No users found</span>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="cloud-storage-panel">
+        <div class="cloud-storage-heading">
+          <span>Storage</span>
+          <strong>{{ storagePercent() | number:'1.0-0' }}%</strong>
+        </div>
+        <div class="cloud-storage-bar" aria-hidden="true">
+          <span [style.width.%]="storagePercent()"></span>
+        </div>
+        @if (storageInfo(); as info) {
+          <div class="cloud-storage-stats">
+            <span>{{ formatBytes(info.usedSpace) }} used</span>
+            <span>{{ formatBytes(info.totalSpace) }} total</span>
+          </div>
+        } @else {
+          <div class="cloud-storage-stats">
+            <span>No storage data</span>
+          </div>
+        }
+      </section>
+
+      <section class="cloud-folder-panel">
+        <div class="cloud-label">Folder structure</div>
+        @for (section of folderSections; track section.title) {
+          <div class="cloud-folder-section">
+            <div class="cloud-folder-section-title">{{ section.title }}</div>
+            @for (item of section.items; track item.folder) {
+              <button
+                type="button"
+                class="cloud-folder-button"
+                [class.active]="isActiveFolder(item.folder)"
+                (click)="loadFiles(item.folder, item.label)"
+                [title]="item.folder">
+                <i [class]="item.icon"></i>
+                <span>{{ item.label }}</span>
+              </button>
+            }
+          </div>
+        }
+
+        @if (folderChildren().length > 0) {
+          <div class="cloud-folder-section cloud-folder-section--children">
+            <div class="cloud-folder-section-title">Current children</div>
+            @for (folder of folderChildren(); track folder.path) {
+              <button
+                type="button"
+                class="cloud-folder-button"
+                [class.active]="isActiveFolder(folder.path)"
+                (click)="loadFiles(folder.path, folder.name)"
+                [title]="folder.path">
+                <i class="fas fa-folder"></i>
+                <span>{{ folder.name }}</span>
+              </button>
+            }
+          </div>
+        }
+      </section>
+    </aside>
+
+    <main class="cloud-workspace">
+      @if (!selectedUser()) {
+        <div class="cloud-placeholder">
+          <i class="fas fa-cloud"></i>
+          <strong>Select a user</strong>
+          <span>Choose a user by email to inspect their storage folders.</span>
+        </div>
+      } @else {
+        <div class="cloud-workspace-toolbar">
+          <div class="cloud-current-user">
+            <span class="cloud-user-avatar cloud-user-avatar--large">
+              {{ (selectedUser()?.email || selectedUser()?.username || '?').charAt(0).toUpperCase() }}
+            </span>
+            <div>
+              <strong>{{ selectedUser()?.email || selectedUser()?.username }}</strong>
+              <small>{{ selectedUser()?.displayName || selectedUser()?.username }}</small>
+            </div>
+          </div>
+
+          <div class="cloud-toolbar-actions">
+            <div class="cloud-search">
+              <i class="fas fa-search"></i>
+              <input
+                type="text"
+                [ngModel]="searchQuery()"
+                (ngModelChange)="searchQuery.set($event)"
+                placeholder="Search current folder"
+              />
+            </div>
+            <div class="cloud-view-toggle" aria-label="View mode">
+              <button type="button" [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')" title="List view">
+                <i class="fas fa-list"></i>
+              </button>
+              <button type="button" [class.active]="viewMode() === 'grid'" (click)="viewMode.set('grid')" title="Grid view">
+                <i class="fas fa-border-all"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="cloud-breadcrumbs">
+          @for (crumb of history(); track crumb.id; let last = $last) {
+            <button type="button" [class.active]="last" (click)="loadFiles(crumb.id, crumb.name)">
+              {{ crumb.name }}
+            </button>
+            @if (!last) {
+              <span>/</span>
+            }
+          }
+        </div>
+
+        <div class="cloud-files-panel">
+          @if (loadingFiles()) {
+            <div class="cloud-loading">
+              <i class="fas fa-spinner fa-spin"></i>
+              <span>Loading folder...</span>
+            </div>
+          } @else if (filteredFiles().length === 0) {
+            <div class="cloud-empty-state">
+              <i class="fas fa-folder-open"></i>
+              <strong>No files found</strong>
+              <span>This folder is empty or no matching file exists.</span>
+            </div>
+          } @else if (viewMode() === 'list') {
+            <div class="cloud-table-wrap">
+              <table class="cloud-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Size</th>
+                    <th>Modified</th>
+                    <th class="cloud-actions-col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (file of filteredFiles(); track file.path) {
+                    <tr (click)="openItem(file)">
+                      <td>
+                        <div class="cloud-file-cell">
+                          <i [class]="fileIcon(file)"></i>
+                          <span [title]="file.path">{{ file.name }}</span>
+                        </div>
+                      </td>
+                      <td>{{ file.isDirectory ? '--' : formatBytes(file.size) }}</td>
+                      <td>{{ file.createdAt | date:'short' }}</td>
+                      <td class="cloud-row-actions" (click)="$event.stopPropagation()">
+                        @if (!file.isDirectory) {
+                          <button type="button" title="Preview" (click)="openPreview(file)">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button type="button" title="Download" (click)="download(file, $event)">
+                            <i class="fas fa-download"></i>
+                          </button>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="cloud-grid">
+              @for (file of filteredFiles(); track file.path) {
+                <button type="button" class="cloud-grid-item" (click)="openItem(file)" [title]="file.path">
+                  <i [class]="fileIcon(file)"></i>
+                  <strong>{{ file.name }}</strong>
+                  <span>{{ file.isDirectory ? 'Folder' : formatBytes(file.size) }}</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      }
+    </main>
+  </div>
+
+  @if (previewFile(); as file) {
+    <div class="cloud-preview-backdrop" (click)="closePreview()">
+      <div class="cloud-preview-modal" (click)="$event.stopPropagation()">
+        <div class="cloud-preview-header">
+          <div>
+            <strong>{{ file.name }}</strong>
+            <span>{{ file.path }}</span>
+          </div>
+          <button type="button" (click)="closePreview()" aria-label="Close preview">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="cloud-preview-body">
+          @if (previewLoading()) {
+            <div class="cloud-loading">
+              <i class="fas fa-spinner fa-spin"></i>
+              <span>Preparing preview...</span>
+            </div>
+          } @else if (!previewUrl()) {
+            <div class="cloud-empty-state">
+              <i class="fas fa-triangle-exclamation"></i>
+              <strong>Preview unavailable</strong>
+            </div>
+          } @else if (previewKind(file) === 'video') {
+            <video [src]="previewUrl()" controls autoplay></video>
+          } @else if (previewKind(file) === 'image') {
+            <img [src]="previewUrl()" [alt]="file.name" />
+          } @else if (previewKind(file) === 'text') {
+            <a class="btn btn-primary" [href]="previewUrl()" target="_blank" rel="noopener">
+              <i class="fas fa-arrow-up-right-from-square"></i>
+              Open Text File
+            </a>
+          } @else {
+            <a class="btn btn-primary" [href]="previewUrl()" target="_blank" rel="noopener">
+              <i class="fas fa-arrow-up-right-from-square"></i>
+              Open File
+            </a>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>
