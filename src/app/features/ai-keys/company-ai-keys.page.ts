@@ -44,7 +44,9 @@ interface KeyRowState {
 interface ModalByocDraft {
   tokenId: string;
   tokenSecret: string;
+  huggingFaceToken: string;
   showSecret: boolean;
+  showHuggingFaceToken: boolean;
   preset: string;
   gpu: string;
   model: string;
@@ -71,6 +73,7 @@ export class CompanyAIKeysPage implements OnInit {
   modalDrafts: Record<string, ModalByocDraft> = {};
   modalConfigs: Record<string, ByocConfigurationDto> = {};
   readonly modalTokenHelp = 'Use a Modal API service-user token, not the Modal Secrets tab. Go to https://modal.com/settings/tokens/service-users, click New Service User, copy MODAL_TOKEN_ID and MODAL_TOKEN_SECRET. The secret is shown only once.';
+  readonly huggingFaceTokenHelp = 'Use a Hugging Face access token with read permission after accepting any gated model license, such as FLUX.1 Kontext.';
 
   // Hero stats
   totalKeys = computed(() => this.settings().reduce((acc, s) => acc + s.apiKeys.length, 0));
@@ -477,7 +480,9 @@ export class CompanyAIKeysPage implements OnInit {
       this.modalDrafts[key.id] = {
         tokenId: '',
         tokenSecret: '',
+        huggingFaceToken: '',
         showSecret: false,
+        showHuggingFaceToken: false,
         preset,
         gpu: this.defaultModalGpu(preset),
         model: key.modelName || this.defaultModalModel(preset)
@@ -491,7 +496,8 @@ export class CompanyAIKeysPage implements OnInit {
     if (type.toLowerCase() === 'imagegen') {
       return [
         { id: 'image-budget', label: 'Image Budget', help: 'FLUX Schnell on L40S, 10-30 sec/image' },
-        { id: 'image-quality', label: 'Image Quality', help: 'FLUX Dev or SDXL on H100, 5-20 sec/image' }
+        { id: 'image-quality', label: 'Image Quality', help: 'FLUX Dev or SDXL on H100, 5-20 sec/image' },
+        { id: 'image-reference', label: 'Image to Image', help: 'FLUX Kontext on H100, reference image + prompt' }
       ];
     }
 
@@ -515,6 +521,11 @@ export class CompanyAIKeysPage implements OnInit {
   openModalTokenPage(event: Event) {
     event.stopPropagation();
     window.open('https://modal.com/settings/tokens/service-users', '_blank', 'noopener,noreferrer');
+  }
+
+  openHuggingFaceTokenPage(event: Event) {
+    event.stopPropagation();
+    window.open('https://huggingface.co/settings/tokens', '_blank', 'noopener,noreferrer');
   }
 
   loadModalConfig(key: CompanyAIKeyDto) {
@@ -585,7 +596,8 @@ export class CompanyAIKeysPage implements OnInit {
     if (this.isVirtualKey(key.id)) return;
     const draft = this.getModalDraft(setting, key);
     this.updateRowState(key.id, { isSaving: true, saveStatus: 'idle', saveMessage: null });
-    this.api.deployModalByoc(key.id, {
+
+    const deploy = (keyId: string) => this.api.deployModalByoc(keyId, {
       preset: draft.preset,
       gpu: draft.gpu,
       model: draft.model
@@ -610,6 +622,22 @@ export class CompanyAIKeysPage implements OnInit {
         this.toast.error('Modal deploy failed.');
       }
     });
+
+    if (this.hasPendingModalSecrets(draft)) {
+      this.api.upsertModalByoc(this.buildModalRequest(setting, key, draft)).subscribe({
+        next: (saved) => {
+          this.applyModalResponse(saved);
+          deploy(saved.key.id!);
+        },
+        error: () => {
+          this.updateRowState(key.id, { isSaving: false, saveStatus: 'error', saveMessage: 'Save failed' });
+          this.toast.error('Failed to save Modal BYOC settings.');
+        }
+      });
+      return;
+    }
+
+    deploy(key.id);
   }
 
   canValidateModal(key: CompanyAIKeyDto, draft: ModalByocDraft): boolean {
@@ -642,7 +670,8 @@ export class CompanyAIKeysPage implements OnInit {
       preset: draft.preset,
       gpu: draft.gpu,
       model: draft.model,
-      label: key.customLabel ?? null
+      label: key.customLabel ?? null,
+      huggingFaceToken: draft.huggingFaceToken.trim() || null
     };
   }
 
@@ -652,7 +681,9 @@ export class CompanyAIKeysPage implements OnInit {
     const draft = this.modalDrafts[response.configuration.aiKeyId] ?? {
       tokenId: '',
       tokenSecret: '',
+      huggingFaceToken: '',
       showSecret: false,
+      showHuggingFaceToken: false,
       preset: settings.preset,
       gpu: settings.gpu,
       model: settings.model
@@ -660,8 +691,16 @@ export class CompanyAIKeysPage implements OnInit {
     draft.preset = settings.preset || draft.preset;
     draft.gpu = settings.gpu || draft.gpu;
     draft.model = settings.model || draft.model;
+    draft.tokenId = '';
     draft.tokenSecret = '';
+    draft.huggingFaceToken = '';
     this.modalDrafts[response.configuration.aiKeyId] = draft;
+  }
+
+  private hasPendingModalSecrets(draft: ModalByocDraft): boolean {
+    return !!draft.tokenId.trim() ||
+      !!draft.tokenSecret.trim() ||
+      !!draft.huggingFaceToken.trim();
   }
 
   private parseModalSettings(settingsJson?: string | null): { preset: string; gpu: string; model: string } {
@@ -683,13 +722,15 @@ export class CompanyAIKeysPage implements OnInit {
   }
 
   private defaultModalGpu(preset: string): string {
-    if (preset === 'image-quality' || preset === 'high-quality') return 'H100';
+    if (preset === 'image-quality' || preset === 'image-reference' || preset === 'high-quality') return 'H100';
     if (preset === 'premium') return 'H200';
     return 'L40S';
   }
 
   private defaultModalModel(preset: string): string {
     switch (preset) {
+      case 'image-reference':
+        return 'black-forest-labs/FLUX.1-Kontext-dev';
       case 'image-quality':
         return 'black-forest-labs/FLUX.1-dev';
       case 'high-quality':

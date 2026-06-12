@@ -265,6 +265,7 @@
             <div class="form-group">
               <label class="field-label">
                 Modal Token ID
+                <span class="muted-label" *ngIf="modalConfigs[key.id]?.credentialsConfigured">(Saved)</span>
                 <button type="button" class="info-icon" [title]="modalTokenHelp" (click)="openModalTokenPage($event)">
                   <i class="fas fa-info"></i>
                 </button>
@@ -275,7 +276,7 @@
                      autocomplete="off"
                      autocapitalize="none"
                      spellcheck="false"
-                     placeholder="MODAL_TOKEN_ID" />
+                     [placeholder]="modalConfigs[key.id]?.credentialsConfigured ? 'Saved - paste only to replace' : 'MODAL_TOKEN_ID'" />
             </div>
 
             <div class="form-group">
@@ -295,6 +296,28 @@
                        [placeholder]="modalConfigs[key.id]?.credentialsConfigured ? 'Saved - paste only to replace' : 'MODAL_TOKEN_SECRET'" />
                 <button class="key-eye-btn" type="button" (click)="modalDraft.showSecret = !modalDraft.showSecret; $event.stopPropagation()">
                   <i class="fas" [ngClass]="modalDraft.showSecret ? 'fa-eye-slash' : 'fa-eye'"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="field-label">
+                Hugging Face Token
+                <span class="muted-label" *ngIf="modalConfigs[key.id]?.huggingFaceTokenConfigured">(Saved)</span>
+                <button type="button" class="info-icon" [title]="huggingFaceTokenHelp" (click)="openHuggingFaceTokenPage($event)">
+                  <i class="fas fa-info"></i>
+                </button>
+              </label>
+              <div class="key-input-wrap">
+                <input [type]="modalDraft.showHuggingFaceToken ? 'text' : 'password'"
+                       class="field-input premium-input"
+                       [(ngModel)]="modalDraft.huggingFaceToken"
+                       autocomplete="off"
+                       autocapitalize="none"
+                       spellcheck="false"
+                       [placeholder]="modalConfigs[key.id]?.huggingFaceTokenConfigured ? 'Saved - paste only to replace' : 'hf_...'" />
+                <button class="key-eye-btn" type="button" (click)="modalDraft.showHuggingFaceToken = !modalDraft.showHuggingFaceToken; $event.stopPropagation()">
+                  <i class="fas" [ngClass]="modalDraft.showHuggingFaceToken ? 'fa-eye-slash' : 'fa-eye'"></i>
                 </button>
               </div>
             </div>
@@ -365,6 +388,10 @@
               <button type="button" class="btn btn-outline" (click)="openModalTokenPage($event)">
                 <i class="fas fa-external-link-alt"></i>
                 Open Modal Tokens
+              </button>
+              <button type="button" class="btn btn-outline" (click)="openHuggingFaceTokenPage($event)">
+                <i class="fas fa-external-link-alt"></i>
+                Open HF Tokens
               </button>
               <button type="button"
                       class="btn btn-outline"

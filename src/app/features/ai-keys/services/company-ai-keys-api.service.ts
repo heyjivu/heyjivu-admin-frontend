@@ -71,6 +71,7 @@ export interface ByocConfigurationDto {
   provider: string;
   status: string;
   credentialsConfigured: boolean;
+  huggingFaceTokenConfigured?: boolean;
   settingsJson?: string | null;
   endpointUrl?: string | null;
   workerVersion?: string | null;
@@ -97,6 +98,7 @@ export interface ModalByocUpsertRequest {
   gpu?: string | null;
   model?: string | null;
   label?: string | null;
+  huggingFaceToken?: string | null;
 }
 
 export interface ModalByocDeployRequest {
