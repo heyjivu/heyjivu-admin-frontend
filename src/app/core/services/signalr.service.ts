@@ -5,7 +5,8 @@ import { AuthStore } from '../../core/auth/state/auth.store';
 
 @Injectable({ providedIn: 'root' })
 export class SignalRService {
-  private hubConnection!: signalR.HubConnection;
+  private hubConnection: signalR.HubConnection | null = null;
+  private readonly enabled = false;
 
   readonly isConnected = signal<boolean>(false);
   readonly connectionError = signal<string | null>(null);
@@ -14,7 +15,9 @@ export class SignalRService {
 
   constructor() {
     console.log('🚀 SignalR Service Initialized');
-    this.initHubConnection();
+    if (this.enabled) {
+      this.initHubConnection();
+    }
   }
 
   private initHubConnection() {
@@ -30,33 +33,39 @@ export class SignalRService {
       return Promise.resolve(token || '');
     };
 
-    this.hubConnection = new signalR.HubConnectionBuilder()
+    const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, options)
       .withAutomaticReconnect([0, 2000, 5000, 10000, 20000])
       .configureLogging(signalR.LogLevel.Information)
       .build();
+    this.hubConnection = connection;
 
-    this.hubConnection.onclose((error) => {
+    connection.onclose((error) => {
       console.warn('⚠️ SignalR Connection Closed:', error);
       this.isConnected.set(false);
     });
 
-    this.hubConnection.onreconnecting((error) => {
+    connection.onreconnecting((error) => {
       console.warn('🔄 SignalR Reconnecting...', error);
       this.isConnected.set(false);
     });
 
-    this.hubConnection.onreconnected((connectionId) => {
+    connection.onreconnected((connectionId) => {
       console.log('✅ SignalR Reconnected! ConnectionId:', connectionId);
       this.isConnected.set(true);
       this.connectionError.set(null);
     });
 
-    this.hubConnection.serverTimeoutInMilliseconds = 60000;
-    this.hubConnection.keepAliveIntervalInMilliseconds = 15000;
+    connection.serverTimeoutInMilliseconds = 60000;
+    connection.keepAliveIntervalInMilliseconds = 15000;
   }
 
   startConnection() {
+    if (!this.enabled || !this.hubConnection) {
+      this.isConnected.set(false);
+      return;
+    }
+
     if (this.hubConnection.state === signalR.HubConnectionState.Connected) {
       console.log('📡 SignalR already connected.');
       return;
@@ -80,10 +89,9 @@ export class SignalRService {
   }
 
   stopConnection() {
-    if (this.hubConnection) {
-      this.hubConnection.stop().catch(err => console.error('Error stopping connection:', err));
-      this.isConnected.set(false);
-    }
+    if (!this.hubConnection) return;
+    this.hubConnection.stop().catch(err => console.error('Error stopping connection:', err));
+    this.isConnected.set(false);
   }
 
   on<T>(eventName: string, callback: (data: T) => void) {
