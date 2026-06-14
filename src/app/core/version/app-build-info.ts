@@ -1,6 +1,6 @@
 export const APP_BUILD_INFO = {
-  version: "0.0.0",
+  version: "1.0.0",
   buildNumber: "local",
   commitSha: "local",
-  channel: "development"
+  channel: "development" as string
 } as const;

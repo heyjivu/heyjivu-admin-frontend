@@ -23,6 +23,13 @@
   <span class="hj-brand-word hj-brand-word--topbar"><span class="hj-brand-hey">hey</span><span class="hj-brand-jivu">jivu</span></span>
   <span class="hj-brand-subtitle">Admin Console</span>
 </span>
+    <span
+      *ngIf="appUpdate.showVersion()"
+      class="app-version-chip app-version-chip--logo"
+      [title]="'Current version ' + appUpdate.currentVersion()"
+    >
+      v{{ appUpdate.currentVersion() }}
+    </span>
   </a>
 
   <div class="topbar-tabs" *ngIf="!isMobile()">
@@ -79,12 +86,6 @@
   </div>
 
   <div class="topbar-right">
-    <span
-      class="app-version-chip"
-      [title]="'Current version ' + appUpdate.currentVersion()"
-    >
-      v{{ appUpdate.currentVersion() }}
-    </span>
     <button
       *ngIf="appUpdate.hasUpdate()"
       class="app-update-btn"

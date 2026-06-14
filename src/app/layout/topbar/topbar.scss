@@ -22,6 +22,18 @@
   color: var(--text3);
   background: var(--border-subtle);
   font-variant-numeric: tabular-nums;
+
+  &--logo {
+    min-width: auto;
+    height: 18px;
+    margin-left: 6px;
+    padding: 0 5px;
+    border-radius: 5px;
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 18px;
+    opacity: 0.78;
+  }
 }
 
 .app-update-btn {
@@ -104,7 +116,7 @@
 }
 
 @media (max-width: 768px) {
-  .app-version-chip {
+  .app-version-chip:not(.app-version-chip--logo) {
     display: none;
   }
 

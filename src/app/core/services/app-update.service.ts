@@ -19,6 +19,7 @@ export class AppUpdateService implements OnDestroy {
   readonly latestVersion = computed(() => this.state().latestVersion);
   readonly hasUpdate = computed(() => this.state().hasUpdate);
   readonly updateMode = computed(() => this.state().updateMode);
+  readonly showVersion = computed(() => APP_BUILD_INFO.channel === 'production');
 
   constructor() {
     this.refresh();
