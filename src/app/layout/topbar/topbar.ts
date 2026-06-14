@@ -5,6 +5,7 @@ import { Rights } from '../../core/constants/rights.constants';
 import { UIStore } from '../../core/services/ui.store';
 import { AuthStore } from '../../core/auth/state/auth.store';
 import { PipelineStore } from '../../features/pipeline/state/pipeline.store';
+import { AppUpdateService } from '../../core/services/app-update.service';
 
 @Component({
   selector: 'app-topbar',
@@ -17,6 +18,7 @@ export class Topbar implements OnInit {
   uiStore = inject(UIStore);
   authStore = inject(AuthStore);
   pipelineStore = inject(PipelineStore);
+  appUpdate = inject(AppUpdateService);
   private readonly router = inject(Router);
   readonly Rights = Rights;
 
