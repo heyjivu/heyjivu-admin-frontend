@@ -79,6 +79,23 @@
   </div>
 
   <div class="topbar-right">
+    <span
+      class="app-version-chip"
+      [title]="'Current version ' + appUpdate.currentVersion()"
+    >
+      v{{ appUpdate.currentVersion() }}
+    </span>
+    <button
+      *ngIf="appUpdate.hasUpdate()"
+      class="app-update-btn"
+      type="button"
+      (click)="appUpdate.applyUpdate()"
+      [title]="'Install version ' + appUpdate.latestVersion()"
+      aria-label="Update app"
+    >
+      <i class="fas fa-download"></i>
+      <span>Update app</span>
+    </button>
     <button
       class="icon-btn theme-btn"
       type="button"
