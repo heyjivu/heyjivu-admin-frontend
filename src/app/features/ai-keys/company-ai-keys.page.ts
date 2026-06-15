@@ -16,41 +16,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { DialogService } from '../../core/dialogs/dialog.service';
 import { TestAllCompanyKeysDialogComponent } from './components/test-all-company-keys-dialog/test-all-company-keys-dialog.component';
 
-interface AIProviderInfo {
-  name: string;
-  isFree?: boolean;
-}
-
-interface CategoryInfo {
-  id: string;
-  name: string;
-  icon: string;
-  description: string;
-  providers: AIProviderInfo[];
-}
-
-type KeySaveStatus = 'idle' | 'success' | 'error';
-
-interface KeyRowState {
-  isOpen: boolean;
-  showKey: boolean;
-  isTesting: boolean;
-  isSaving: boolean;
-  testResult: TestKeyResult | null;
-  saveStatus: KeySaveStatus;
-  saveMessage: string | null;
-}
-
-interface ModalByocDraft {
-  tokenId: string;
-  tokenSecret: string;
-  huggingFaceToken: string;
-  showSecret: boolean;
-  showHuggingFaceToken: boolean;
-  preset: string;
-  gpu: string;
-  model: string;
-}
+import type { AIProviderInfo, CategoryInfo, KeySaveStatus, KeyRowState, ModalByocDraft } from './company-ai-keys.page.models';
 
 @Component({
   selector: 'app-company-ai-keys',
