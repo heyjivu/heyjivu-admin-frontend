@@ -468,9 +468,9 @@ export class CompanyAIKeysPage implements OnInit {
     }
 
     return [
-      { id: 'fast-preview', label: 'Fast Preview', help: 'Wan 480p or distilled Wan, target 2-4 min' },
-      { id: 'high-quality', label: 'High Quality', help: 'Wan 720p on H100/H200, target 5-12 min' },
-      { id: 'premium', label: 'Premium', help: 'Hunyuan on H200, quality-first' }
+      { id: 'fast-preview', label: 'Fast Preview', help: 'Wan 2.2 preview profile from appsettings' },
+      { id: 'high-quality', label: 'High Quality', help: 'Wan 2.2 H200 profile from appsettings' },
+      { id: 'premium', label: 'Premium', help: 'Wan 2.2 quality-first profile from appsettings' }
     ];
   }
 
@@ -564,9 +564,9 @@ export class CompanyAIKeysPage implements OnInit {
     this.updateRowState(key.id, { isSaving: true, saveStatus: 'idle', saveMessage: null });
 
     const deploy = (keyId: string) => this.api.deployModalByoc(keyId, {
-      preset: draft.preset,
-      gpu: draft.gpu,
-      model: draft.model
+      preset: null,
+      gpu: null,
+      model: null
     }).subscribe({
       next: (deployed) => {
         this.applyModalResponse(deployed);
@@ -633,11 +633,11 @@ export class CompanyAIKeysPage implements OnInit {
       category: setting.type,
       tokenId: draft.tokenId.trim() || null,
       tokenSecret: draft.tokenSecret.trim() || null,
-      preset: draft.preset,
-      gpu: draft.gpu,
-      model: draft.model,
+      preset: null,
+      gpu: null,
+      model: null,
       label: key.customLabel ?? null,
-      huggingFaceToken: draft.huggingFaceToken.trim() || null
+      huggingFaceToken: null
     };
   }
 
@@ -684,11 +684,12 @@ export class CompanyAIKeysPage implements OnInit {
   }
 
   private defaultModalPreset(type: string): string {
-    return type.toLowerCase() === 'imagegen' ? 'image-budget' : 'fast-preview';
+    return type.toLowerCase() === 'imagegen' ? 'image-budget' : 'high-quality';
   }
 
   private defaultModalGpu(preset: string): string {
-    if (preset === 'image-quality' || preset === 'image-reference' || preset === 'high-quality') return 'H100';
+    if (preset === 'high-quality') return 'H200';
+    if (preset === 'image-quality' || preset === 'image-reference') return 'H100';
     if (preset === 'premium') return 'H200';
     return 'L40S';
   }
@@ -700,11 +701,11 @@ export class CompanyAIKeysPage implements OnInit {
       case 'image-quality':
         return 'black-forest-labs/FLUX.1-dev';
       case 'high-quality':
-        return 'wan-2.1-i2v-720p';
+        return 'Wan-AI/Wan2.2-I2V-A14B';
       case 'premium':
-        return 'hunyuan-video-i2v';
+        return 'Wan-AI/Wan2.2-I2V-A14B';
       case 'fast-preview':
-        return 'wan-2.1-i2v-480p-distilled';
+        return 'Wan-AI/Wan2.2-I2V-A14B';
       default:
         return 'black-forest-labs/FLUX.1-schnell';
     }

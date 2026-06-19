@@ -33,6 +33,8 @@ export const FULL_APP_RIGHTS = [
   Rights.Review_Manage,
   Rights.Social_View,
   Rights.Social_Manage,
+  Rights.Ecommerce_View,
+  Rights.Ecommerce_Manage,
   Rights.Drive_View,
   Rights.Drive_Manage,
   Rights.Memory_View,
