@@ -131,13 +131,23 @@ export const routes: Routes = [
       },
       {
         path: 'pipeline',
+        pathMatch: 'full',
+        redirectTo: 'jivu-command',
+      },
+      {
+        path: 'jivu-command',
         canActivate: [authGuard, hasRight(Rights.Pipeline_View)],
-        loadComponent: () => import('./features/pipeline/pipeline-monitor.page').then((m) => m.PipelineMonitorPage),
+        loadComponent: () => import('./features/jivu-command/jivu-command-control.page').then((m) => m.JivuCommandControlPage),
+      },
+      {
+        path: 'radars',
+        canActivate: [authGuard, hasRight(Rights.Pipeline_View)],
+        loadComponent: () => import('./features/radars/admin-radars.page').then((m) => m.AdminRadarsPage),
       },
       {
         path: 'run-jobs',
-        canActivate: [authGuard, hasRight(Rights.Pipeline_Manage)],
-        loadComponent: () => import('./features/pipeline/run-jobs/run-jobs.page').then((m) => m.RunJobsPage),
+        pathMatch: 'full',
+        redirectTo: 'radars',
       },
       {
         path: 'plan-users',

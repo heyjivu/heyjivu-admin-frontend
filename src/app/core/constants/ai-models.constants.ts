@@ -209,9 +209,7 @@ export const AI_MODELS: Record<string, Record<string, AIModelOption[]>> = {
       { id: 'kling-3.0', label: 'kling-3.0 | $0.30/sec' }
     ],
     modal: [
-      { id: 'wan-2.1-i2v-480p-distilled', label: 'Fast Preview | Wan 480p + upscale | L40S/H100 | 2-4 min' },
-      { id: 'wan-2.1-i2v-720p', label: 'High Quality | Wan 720p | H100/H200 | 5-12 min' },
-      { id: 'hunyuan-video-i2v', label: 'Premium | Hunyuan | H200 | quality-first' }
+      { id: 'Wan-AI/Wan2.2-I2V-A14B', label: 'Wan 2.2 I2V | appsettings-controlled quality profile' }
     ]
   },
   vision: {

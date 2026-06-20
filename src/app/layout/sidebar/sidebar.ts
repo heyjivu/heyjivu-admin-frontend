@@ -57,11 +57,10 @@ export class Sidebar {
     { label: 'BYOK Usage', icon: 'fas fa-key', route: '/admin/metrics/byok', section: 'metrics' },
     { label: 'Payment Settings', icon: 'fas fa-credit-card', route: '/admin/payments', section: 'payments' },
     { label: 'Company AI Keys', icon: 'fas fa-key', route: '/admin/ai-keys', right: Rights.Admin_AIKeys_View, section: 'ai-keys' },
-    { label: 'Run Jobs', icon: 'fas fa-play-circle', route: '/admin/run-jobs', section: 'pipeline' },
-    { label: 'Queue', icon: 'fas fa-clock', route: '/admin/pipeline', queryParams: { status: 'queued' }, section: 'pipeline' },
-    { label: 'Active Jobs', icon: 'fas fa-spinner', route: '/admin/pipeline', queryParams: { status: 'processing' }, section: 'pipeline' },
-    { label: 'Failed Jobs', icon: 'fas fa-exclamation-triangle', route: '/admin/pipeline', queryParams: { status: 'failed' }, section: 'pipeline' },
-    { label: 'Completed Jobs', icon: 'fas fa-check-circle', route: '/admin/pipeline', queryParams: { status: 'done' }, section: 'pipeline' },
+    { label: 'Jivu Command', icon: 'fas fa-terminal', route: '/admin/jivu-command', section: 'pipeline' },
+    { label: 'Trend Radar', icon: 'fas fa-share-nodes', route: '/admin/radars', queryParams: { radar: 'trend' }, section: 'radars' },
+    { label: 'Dashboard Radar', icon: 'fas fa-chart-line', route: '/admin/radars', queryParams: { radar: 'dashboard' }, section: 'radars' },
+    { label: 'Store Radar', icon: 'fas fa-store', route: '/admin/radars', queryParams: { radar: 'store' }, section: 'radars' },
     { label: 'Processing Config', icon: 'fas fa-cog', route: '/admin/processing', right: Rights.Admin_Config_View, section: 'config' },
     { label: 'Model Configuration', icon: 'fas fa-sliders', route: '/admin/processing', queryParams: { tab: 'models' }, right: Rights.Admin_Config_View, section: 'config' },
     { label: 'Assets Studio', icon: 'fas fa-wand-magic-sparkles', route: '/admin/templates', right: Rights.Admin_Config_View, section: 'templates' },
@@ -80,7 +79,8 @@ export class Sidebar {
     if (path.startsWith('/admin/users')) return 'users';
     if (path.startsWith('/admin/payments')) return 'payments';
     if (path.startsWith('/admin/ai-keys') || path.startsWith('/admin/brain')) return 'ai-keys';
-    if (path.startsWith('/admin/pipeline') || path.startsWith('/admin/run-jobs')) return 'pipeline';
+    if (path.startsWith('/admin/pipeline') || path.startsWith('/admin/jivu-command')) return 'pipeline';
+    if (path.startsWith('/admin/radars') || path.startsWith('/admin/run-jobs')) return 'radars';
     if (path.startsWith('/admin/processing')) return 'config';
     if (path.startsWith('/admin/templates')) return 'templates';
     if (path.startsWith('/admin/assets')) return 'assets';
@@ -139,6 +139,7 @@ export class Sidebar {
     if (section === 'payments') return 'Payment Settings';
     if (section === 'ai-keys') return 'AI Keys';
     if (section === 'pipeline') return 'Pipeline';
+    if (section === 'radars') return 'Radars';
     if (section === 'config') return 'Processing Config';
     if (section === 'templates') return 'Assets Studio';
     if (section === 'assets') return 'Asset Management';
