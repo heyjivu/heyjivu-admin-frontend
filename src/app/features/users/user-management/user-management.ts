@@ -17,99 +17,17 @@ import { DialogService } from '../../../core/dialogs/dialog.service';
 import { AddUserDialogComponent } from '../dialogs/add-user-dialog/add-user-dialog.component';
 
 import { Rights } from '../../../core/constants/rights.constants';
-
-interface UserQuotaCard {
-  label: 'Creation Wallet' | 'Processing / Whisper Minutes' | 'Voice Minutes' | 'AI Video Clips' | 'Storage' | 'Brain Talk' | 'Manual Scan';
-  lines: Array<{ label: string; value: string }>;
-  stack: Array<{ label: string; value: string }>;
-}
-
-interface DailyQuotaDefinition {
-  key: string;
-  label: string;
-  overrideLabel: string;
-  description: string;
-  unitLabel: string;
-  defaultValue: number;
-  min: number;
-  max: number;
-}
-
-type AdminAccountType = 'user' | 'admin_only' | 'both';
-
-interface PendingRoleGridChange {
-  type: 'role';
-  user: UserManagementDto;
-  roleId: string;
-  roleName: string;
-}
-
-interface PendingAccountTypeGridChange {
-  type: 'accountType';
-  user: UserManagementDto;
-  accountType: AdminAccountType;
-  accountTypeLabel: string;
-  requiresOnboarding: boolean;
-}
-
-type PendingGridChange = PendingRoleGridChange | PendingAccountTypeGridChange;
-
-interface AccountOnboardingForm {
-  planId: string;
-  primaryNiche: string;
-  customPrimaryNiche: string;
-  targetAudience: string;
-  mainFormats: string[];
-  toneStyle: string;
-}
-
-type AccountOnboardingField = keyof AccountOnboardingForm;
-
-const PLAN_ROLE_LABELS: Record<string, string> = {
-  freeshell: 'Free Shell',
-  free_shell: 'Free Shell',
-  freejivutalk: 'Free Shell',
-  freeguest: 'Free',
-  free_guest: 'Free',
-  socialmerchant: 'Student',
-  social_merchant: 'Student',
-  procreator: 'Merchant',
-  pro_creator: 'Merchant',
-  agencyadmin: 'Premium',
-  agency_admin: 'Premium',
-  agencypro: 'Premium',
-  agency_pro: 'Premium',
-  expertbyok: 'BYOK',
-  expert_byok: 'BYOK',
-  company: 'Premium'
-};
-
-const FULL_APP_RIGHTS = [
-  Rights.Dashboard_View,
-  Rights.Dashboard_Manage,
-  Rights.VideoGen_View,
-  Rights.VideoGen_Manage,
-  Rights.Pipeline_View,
-  Rights.Pipeline_Manage,
-  Rights.PostGen_View,
-  Rights.PostGen_Manage,
-  Rights.Review_View,
-  Rights.Review_Manage,
-  Rights.Social_View,
-  Rights.Social_Manage,
-  Rights.Drive_View,
-  Rights.Drive_Manage,
-  Rights.Memory_View,
-  Rights.Memory_Manage,
-  Rights.Settings_View,
-  Rights.Settings_Manage
-];
-
-const ACCOUNT_TYPE_LABELS: Record<AdminAccountType, string> = {
-  user: 'User Only',
-  both: 'Admin + User',
-  admin_only: 'Admin Only'
-};
+import type {
+  UserQuotaCard,
+  DailyQuotaDefinition,
+  AdminAccountType,
+  PendingRoleGridChange,
+  PendingAccountTypeGridChange,
+  PendingGridChange,
+  AccountOnboardingForm,
+  AccountOnboardingField
+} from './user-management.models';
+import { PLAN_ROLE_LABELS, FULL_APP_RIGHTS, ACCOUNT_TYPE_LABELS } from './user-management.constants';
 
 @Component({
   selector: 'app-user-management',
@@ -206,6 +124,16 @@ export class UserManagementComponent implements OnInit {
       defaultValue: 3,
       min: -1,
       max: 10000
+    },
+    {
+      key: 'JivuCommandQueue',
+      label: 'Jivu Command Queue',
+      overrideLabel: 'Jivu Command Queue Override',
+      description: 'Maximum active queued, running, or paused-resumable Jivu Commands per user. Use -1 for unlimited.',
+      unitLabel: 'active commands',
+      defaultValue: 10,
+      min: -1,
+      max: 100
     },
     {
       key: 'SocialPostMaxVideoSeconds',
@@ -1074,8 +1002,9 @@ export class UserManagementComponent implements OnInit {
     const parsed = typeof value === 'number' ? value : Number(value ?? 0);
     const definition = this.roleQuotaDefinitions.find(quota => quota.key === key);
     const min = definition?.min ?? 0;
+    const max = definition?.max ?? Number.MAX_SAFE_INTEGER;
     const safeValue = Number.isFinite(parsed)
-      ? Math.max(min, Math.floor(parsed))
+      ? Math.min(max, Math.max(min, Math.floor(parsed)))
       : this.defaultDailyQuotaForRole(key, role.name);
     this.selectedRole.set({
       ...role,
@@ -1101,6 +1030,12 @@ export class UserManagementComponent implements OnInit {
       if (roleKey.includes('free')) return 0;
       return 100;
     }
+
+    if (key === 'JivuCommandQueue') {
+      if (roleKey.includes('byok') || roleKey.includes('expert')) return -1;
+      return 10;
+    }
+
     if (roleKey.includes('free')) return 0;
 
     if (key === 'ManualScanDaily') {
@@ -1123,11 +1058,12 @@ export class UserManagementComponent implements OnInit {
       : Number(value);
     const definition = this.roleQuotaDefinitions.find(quota => quota.key === key);
     const min = definition?.min ?? 0;
+    const max = definition?.max ?? Number.MAX_SAFE_INTEGER;
     this.userQuotaOverrides.set({
       ...this.userQuotaOverrides(),
       [key]: parsed === null || !Number.isFinite(parsed)
         ? null
-        : Math.max(min, Math.floor(parsed))
+        : Math.min(max, Math.max(min, Math.floor(parsed)))
     });
   }
 

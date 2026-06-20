@@ -17,6 +17,9 @@ export const Rights = {
   
   Social_View: 'Social_View',
   Social_Manage: 'Social_Manage',
+
+  Ecommerce_View: 'Ecommerce_View',
+  Ecommerce_Manage: 'Ecommerce_Manage',
   
   Drive_View: 'Drive_View',
   Drive_Manage: 'Drive_Manage',

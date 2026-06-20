@@ -1,0 +1,479 @@
+<div class="screen">
+  <div class="screen-header screen-header-compact">
+    <div class="command-header">
+      <div class="header-title">
+        <div class="header-icon-wrap">
+          <i class="fas fa-terminal"></i>
+        </div>
+        <div>
+          <div class="screen-title">Jivu Command Control</div>
+          <div class="screen-sub">Cross-device command queue, renderer devices, temp files, and recovery actions</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        @if (notice()) {
+          <span class="notice-pill">{{ notice() }}</span>
+        }
+        <button class="btn btn-soft btn-sm" (click)="refresh()">
+          <i class="fas fa-sync" [class.fa-spin]="loading()"></i>
+          Refresh
+        </button>
+        @if (canManage()) {
+          <button class="btn btn-primary btn-sm" [disabled]="actionBusy()" (click)="runMaintenanceNow()">
+            <i class="fas fa-broom"></i>
+            Maintenance
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-label">Active</span>
+        <strong>{{ stats().activeCommands }}</strong>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Queued</span>
+        <strong>{{ stats().queuedCommands }}</strong>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Running</span>
+        <strong>{{ stats().runningCommands }}</strong>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Temp</span>
+        <strong>{{ stats().activeTempFiles }}</strong>
+        <span>{{ formatBytes(stats().activeTempBytes) }}</span>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <label class="filter-field wide">
+        <span>Search</span>
+        <input type="text" [(ngModel)]="search" placeholder="Title, user, error, command..." (keyup.enter)="applyFilters()" />
+      </label>
+      <label class="filter-field multi-field">
+        <span>Role</span>
+        <p-multiSelect
+          [options]="roleFilterOptions()"
+          [(ngModel)]="selectedRoleIds"
+          optionLabel="label"
+          optionValue="id"
+          styleClass="jivu-filter-multiselect"
+          panelStyleClass="jivu-filter-multiselect-panel"
+          [filter]="true"
+          [showToggleAll]="false"
+          [maxSelectedLabels]="1"
+          selectedItemsLabel="{0} roles"
+          (onChange)="onRoleFilterChange()"
+        ></p-multiSelect>
+      </label>
+      <label class="filter-field multi-field">
+        <span>User</span>
+        <p-multiSelect
+          [options]="userFilterOptions()"
+          [(ngModel)]="selectedUserIds"
+          optionLabel="label"
+          optionValue="id"
+          styleClass="jivu-filter-multiselect"
+          panelStyleClass="jivu-filter-multiselect-panel"
+          [filter]="true"
+          [showToggleAll]="false"
+          [maxSelectedLabels]="1"
+          selectedItemsLabel="{0} users"
+          (onChange)="onUserFilterChange()"
+        ></p-multiSelect>
+      </label>
+      <label class="filter-field">
+        <span>Status</span>
+        <select [(ngModel)]="status" (change)="applyFilters()">
+          <option value="">All</option>
+          <option value="queued">Queued</option>
+          <option value="claimed">Claimed</option>
+          <option value="running">Running</option>
+          <option value="failed">Failed</option>
+          <option value="expired">Expired</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </label>
+      <label class="filter-field">
+        <span>Type</span>
+        <select [(ngModel)]="commandType" (change)="applyFilters()">
+          <option value="">All</option>
+          <option value="smart_video_render">Smart Video</option>
+          <option value="processing_upload_render">Processing Upload</option>
+          <option value="review_render_or_finalize">Review Super Editor</option>
+          <option value="template_use_render">Template Use</option>
+          <option value="asset_sequence_render">Assets Use</option>
+        </select>
+      </label>
+      <label class="filter-field">
+        <span>Target</span>
+        <select [(ngModel)]="targetDeviceInstanceId" (change)="applyFilters()">
+          <option value="">All devices</option>
+          @for (device of devices(); track device.id) {
+            <option [value]="device.deviceInstanceId">{{ device.displayName || device.deviceInstanceId }}</option>
+          }
+        </select>
+      </label>
+      <label class="filter-field date-field">
+        <span>Date</span>
+        <input type="date" [(ngModel)]="date" (change)="applyFilters()" />
+      </label>
+      <button class="btn btn-soft btn-sm" (click)="clearFilters()">Clear</button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">
+      <i class="fas fa-circle-exclamation"></i>
+      {{ error() }}
+    </div>
+  }
+
+  @if (showMaintenanceDialog()) {
+    <div class="maintenance-backdrop" (click)="closeMaintenanceDialog()">
+      <section class="maintenance-modal" role="dialog" aria-modal="true" aria-labelledby="maintenanceTitle" (click)="$event.stopPropagation()">
+        <header class="maintenance-modal__header">
+          <div>
+            <span class="eyebrow">Jivu Command Temp Storage</span>
+            <h2 id="maintenanceTitle">Jivu Command Maintenance</h2>
+            <p>Review command-staged temp folders by user. Largest active temp usage is shown first.</p>
+          </div>
+          <button class="btn-icon" type="button" (click)="closeMaintenanceDialog()" [disabled]="maintenanceBusy()" title="Close">
+            <i class="fas fa-times"></i>
+          </button>
+        </header>
+
+        <div class="maintenance-filters">
+          <label class="filter-field wide">
+            <span>Search</span>
+            <input type="text" [(ngModel)]="maintenanceSearch" placeholder="User, role, storage key..." (keyup.enter)="loadTempUsage()" />
+          </label>
+          <label class="filter-field multi-field">
+            <span>Role</span>
+            <p-multiSelect
+              [options]="roleFilterOptions()"
+              [(ngModel)]="selectedMaintenanceRoleIds"
+              optionLabel="label"
+              optionValue="id"
+              styleClass="jivu-filter-multiselect"
+              panelStyleClass="jivu-filter-multiselect-panel"
+              [filter]="true"
+              [showToggleAll]="false"
+              [maxSelectedLabels]="1"
+              selectedItemsLabel="{0} roles"
+              (onChange)="onMaintenanceRoleFilterChange()"
+            ></p-multiSelect>
+          </label>
+          <label class="filter-field multi-field">
+            <span>User</span>
+            <p-multiSelect
+              [options]="userFilterOptions()"
+              [(ngModel)]="selectedMaintenanceUserIds"
+              optionLabel="label"
+              optionValue="id"
+              styleClass="jivu-filter-multiselect"
+              panelStyleClass="jivu-filter-multiselect-panel"
+              [filter]="true"
+              [showToggleAll]="false"
+              [maxSelectedLabels]="1"
+              selectedItemsLabel="{0} users"
+              (onChange)="onMaintenanceUserFilterChange()"
+            ></p-multiSelect>
+          </label>
+          <button class="btn btn-soft btn-sm" type="button" (click)="loadTempUsage()" [disabled]="maintenanceLoading()">
+            <i class="fas fa-rotate" [class.fa-spin]="maintenanceLoading()"></i>
+            Refresh
+          </button>
+        </div>
+
+        <div class="maintenance-summary">
+          <span>{{ selectedTempUsageRows().length }} selected</span>
+          <strong>{{ formatBytes(selectedTempUsageBytes()) }}</strong>
+          <small>{{ tempUsage().length }} temp folder owner{{ tempUsage().length === 1 ? '' : 's' }}</small>
+        </div>
+
+        <div class="maintenance-table-wrap">
+          @if (maintenanceLoading()) {
+            <div class="loading-state compact">
+              <i class="fas fa-spinner fa-spin"></i>
+              Loading temp usage...
+            </div>
+          } @else if (tempUsage().length === 0) {
+            <div class="empty-state compact">
+              <strong>No active command temp files</strong>
+              <span>Only command-staged files under client-runtime-temp are listed here.</span>
+            </div>
+          } @else {
+            <table class="maintenance-table">
+              <thead>
+                <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      [checked]="allTempUsageSelected()"
+                      (change)="toggleAllTempUsageRows($any($event.target).checked)"
+                      aria-label="Select all temp usage rows"
+                    />
+                  </th>
+                  <th>User</th>
+                  <th>Role</th>
+                  <th>Temp</th>
+                  <th>Files</th>
+                  <th>Commands</th>
+                  <th>Oldest expiry</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of tempUsage(); track row.userId) {
+                  <tr>
+                    <td>
+                      <input
+                        type="checkbox"
+                        [checked]="isTempUsageSelected(row.userId)"
+                        (change)="toggleTempUsageRow(row.userId, $any($event.target).checked)"
+                        [attr.aria-label]="'Select temp files for ' + (row.userName || row.userEmail || row.userId)"
+                      />
+                    </td>
+                    <td>
+                      <div class="user-cell">
+                        <span class="user-avatar-xs">{{ (row.userName || row.userEmail || '?').charAt(0).toUpperCase() }}</span>
+                        <div>
+                          <strong>{{ row.userName || 'Unknown user' }}</strong>
+                          <span>{{ row.userEmail || row.userId }}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{{ row.roleName || 'No role' }}</td>
+                    <td><strong>{{ formatBytes(row.activeBytes) }}</strong></td>
+                    <td>{{ row.activeFileCount }}</td>
+                    <td>{{ row.commandCount }}</td>
+                    <td>{{ row.oldestExpiresAtUtc ? (row.oldestExpiresAtUtc | date:'MMM d, HH:mm') : 'n/a' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+
+        <footer class="maintenance-modal__footer">
+          <button class="btn btn-soft btn-sm" type="button" (click)="closeMaintenanceDialog()" [disabled]="maintenanceBusy()">Close</button>
+          <button class="btn btn-soft btn-sm" type="button" (click)="runMaintenanceForSelection()" [disabled]="maintenanceBusy() || maintenanceLoading()">
+            <i class="fas fa-clock-rotate-left"></i>
+            Run Expired Cleanup
+          </button>
+          <button class="btn btn-primary btn-sm" type="button" (click)="deleteSelectedTempFiles()" [disabled]="maintenanceBusy() || maintenanceLoading() || selectedTempUsageRows().length === 0">
+            <i class="fas fa-trash"></i>
+            Remove Selected Temp
+          </button>
+        </footer>
+      </section>
+    </div>
+  }
+
+  <div class="command-layout" [class.command-layout--detail]="selectedCommand()">
+    <div class="command-table-wrap">
+      @if (loading()) {
+        <div class="loading-state">
+          <i class="fas fa-spinner fa-spin text-2xl text-indigo-400"></i>
+          <span>Loading Jivu Commands...</span>
+        </div>
+      } @else if (commands().length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="fas fa-inbox"></i>
+          </div>
+          <div class="empty-title">No commands found</div>
+          <div class="empty-desc">Try a different status, device, user, or date filter.</div>
+        </div>
+      } @else {
+        <table class="command-table">
+          <thead>
+            <tr>
+              <th>Command</th>
+              <th>User</th>
+              <th>Target</th>
+              <th>Progress</th>
+              <th>Status</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (command of commands(); track command.id) {
+              <tr class="command-row" [class.selected]="selectedCommand()?.id === command.id" (click)="openDetail(command)">
+                <td>
+                  <div class="title-cell">
+                    <span class="command-icon"><i class="fas fa-terminal"></i></span>
+                    <div>
+                      <strong>{{ command.title || commandLabel(command.commandType) }}</strong>
+                      <span>{{ commandLabel(command.commandType) }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="user-cell">
+                    <span class="user-avatar-xs">{{ (command.userName || command.userEmail || '?').charAt(0).toUpperCase() }}</span>
+                    <div>
+                      <strong>{{ command.userName || 'Unknown user' }}</strong>
+                      <span>{{ command.userEmail || command.userId }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <code>{{ command.targetDeviceInstanceId }}</code>
+                </td>
+                <td>
+                  <div class="progress-cell">
+                    <div class="progress-bg">
+                      <div class="progress-fill" [style.width.%]="command.progress"></div>
+                    </div>
+                    <span>{{ command.progress }}%</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="status-badge" [class]="'status-badge status-badge--' + statusClass(command.status)">
+                    <span class="status-dot"></span>
+                    {{ command.status }}
+                  </span>
+                </td>
+                <td>{{ command.createdAtUtc | date:'MMM d, HH:mm' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <div class="pagination">
+          <span>Showing {{ (page() - 1) * pageSize() + 1 }}-{{ Math.min(page() * pageSize(), totalCount()) }} of {{ totalCount() }}</span>
+          <div class="pagination-actions">
+            <button class="page-btn" [disabled]="page() <= 1" (click)="goToPage(page() - 1)">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="page-label">{{ page() }} / {{ totalPages() }}</span>
+            <button class="page-btn" [disabled]="page() >= totalPages()" (click)="goToPage(page() + 1)">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+    @if (selectedCommand(); as command) {
+      <aside class="detail-drawer">
+        <div class="drawer-header">
+          <div>
+            <span class="eyebrow">Command Detail</span>
+            <h2>{{ command.title || commandLabel(command.commandType) }}</h2>
+          </div>
+          <button class="btn-icon" (click)="closeDetail()" title="Close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        @if (detailLoading()) {
+          <div class="drawer-loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            Loading detail...
+          </div>
+        }
+
+        <div class="drawer-actions">
+          @if (canManage()) {
+            <button class="btn btn-soft btn-sm" [disabled]="actionBusy()" (click)="cancelSelected()">Cancel</button>
+            <button class="btn btn-soft btn-sm" [disabled]="actionBusy() || !command.resumeEligible" (click)="resumeSelected()">Resume</button>
+            <button class="btn btn-soft btn-sm" [disabled]="actionBusy() || !command.requeueEligible" (click)="requeueSelected()">Requeue</button>
+          }
+        </div>
+
+        @if (canManage()) {
+          <div class="move-panel">
+            <label>
+              <span>Move to device</span>
+              <select [ngModel]="selectedMoveDevice()" (ngModelChange)="selectedMoveDevice.set($event)">
+                @for (device of devices(); track device.id) {
+                  <option [value]="device.deviceInstanceId">{{ device.displayName || device.deviceInstanceId }}{{ device.isOnline ? '' : ' (offline)' }}</option>
+                }
+              </select>
+            </label>
+            <button class="btn btn-primary btn-sm" [disabled]="actionBusy() || !selectedMoveDevice() || selectedMoveDevice() === command.targetDeviceInstanceId" (click)="moveSelected()">Move</button>
+          </div>
+        }
+
+        <section class="detail-section">
+          <h3>Status</h3>
+          <div class="detail-grid">
+            <div><span>Status</span><strong>{{ command.status }}</strong></div>
+            <div><span>Progress</span><strong>{{ command.progress }}%</strong></div>
+            <div><span>Target</span><code>{{ command.targetDeviceInstanceId }}</code></div>
+            <div><span>Source</span><code>{{ command.sourceDeviceInstanceId || 'none' }}</code></div>
+            <div><span>Queue age</span><strong>{{ queueAge(command) }}</strong></div>
+            <div><span>Created</span><strong>{{ command.createdAtUtc | date:'MMM d, y, HH:mm:ss' }}</strong></div>
+            <div><span>Updated</span><strong>{{ command.updatedAtUtc | date:'MMM d, y, HH:mm:ss' }}</strong></div>
+          </div>
+          @if (command.linkedJobId) {
+            <a class="linked-job" routerLink="/admin/pipeline" [queryParams]="{ search: command.linkedJobId }">
+              <i class="fas fa-arrow-up-right-from-square"></i>
+              Linked pipeline job {{ command.linkedJobId }}
+            </a>
+          }
+          @if (command.errorMessage) {
+            <pre class="error-box">{{ command.errorMessage }}</pre>
+          }
+        </section>
+
+        <section class="detail-section">
+          <h3>R2 File Refs</h3>
+          @if (r2Refs().length === 0) {
+            <p class="muted">No R2 refs declared in this command payload.</p>
+          } @else {
+            <div class="file-list">
+              @for (file of r2Refs(); track file.storageKey + file.role) {
+                <div class="file-row">
+                  <span>{{ file.role }}</span>
+                  <code>{{ file.storageKey }}</code>
+                </div>
+              }
+            </div>
+          }
+        </section>
+
+        <section class="detail-section">
+          <h3>Temp Files</h3>
+          @if (tempFiles().length === 0) {
+            <p class="muted">No command temp files found.</p>
+          } @else {
+            <div class="file-list">
+              @for (file of tempFiles(); track file.id) {
+                <div class="file-row">
+                  <span>{{ file.role }} · {{ file.status }} · {{ formatBytes(file.sizeBytes) }}</span>
+                  <code>{{ file.storageKey }}</code>
+                </div>
+              }
+            </div>
+          }
+        </section>
+
+        <section class="detail-section">
+          <h3>Payload</h3>
+          <pre class="json-box">{{ payloadPreview(command.payload) }}</pre>
+        </section>
+      </aside>
+    }
+  </div>
+
+  <div class="stats-strip">
+    <div>
+      <h3>Status</h3>
+      @for (row of statusRows(); track row.label) {
+        <span>{{ row.label }} <strong>{{ row.count }}</strong></span>
+      }
+    </div>
+    <div>
+      <h3>Types</h3>
+      @for (row of typeRows(); track row.label) {
+        <span>{{ commandLabel(row.label) }} <strong>{{ row.count }}</strong></span>
+      }
+    </div>
+  </div>
+</div>
