@@ -126,6 +126,16 @@ export class UserManagementComponent implements OnInit {
       max: 10000
     },
     {
+      key: 'JivuCommandQueue',
+      label: 'Jivu Command Queue',
+      overrideLabel: 'Jivu Command Queue Override',
+      description: 'Maximum active queued, running, or paused-resumable Jivu Commands per user. Use -1 for unlimited.',
+      unitLabel: 'active commands',
+      defaultValue: 10,
+      min: -1,
+      max: 100
+    },
+    {
       key: 'SocialPostMaxVideoSeconds',
       label: 'Social Post Video Max Seconds',
       overrideLabel: 'Social Post Video Max Override',
@@ -992,8 +1002,9 @@ export class UserManagementComponent implements OnInit {
     const parsed = typeof value === 'number' ? value : Number(value ?? 0);
     const definition = this.roleQuotaDefinitions.find(quota => quota.key === key);
     const min = definition?.min ?? 0;
+    const max = definition?.max ?? Number.MAX_SAFE_INTEGER;
     const safeValue = Number.isFinite(parsed)
-      ? Math.max(min, Math.floor(parsed))
+      ? Math.min(max, Math.max(min, Math.floor(parsed)))
       : this.defaultDailyQuotaForRole(key, role.name);
     this.selectedRole.set({
       ...role,
@@ -1019,6 +1030,12 @@ export class UserManagementComponent implements OnInit {
       if (roleKey.includes('free')) return 0;
       return 100;
     }
+
+    if (key === 'JivuCommandQueue') {
+      if (roleKey.includes('byok') || roleKey.includes('expert')) return -1;
+      return 10;
+    }
+
     if (roleKey.includes('free')) return 0;
 
     if (key === 'ManualScanDaily') {
@@ -1041,11 +1058,12 @@ export class UserManagementComponent implements OnInit {
       : Number(value);
     const definition = this.roleQuotaDefinitions.find(quota => quota.key === key);
     const min = definition?.min ?? 0;
+    const max = definition?.max ?? Number.MAX_SAFE_INTEGER;
     this.userQuotaOverrides.set({
       ...this.userQuotaOverrides(),
       [key]: parsed === null || !Number.isFinite(parsed)
         ? null
-        : Math.max(min, Math.floor(parsed))
+        : Math.min(max, Math.max(min, Math.floor(parsed)))
     });
   }
 

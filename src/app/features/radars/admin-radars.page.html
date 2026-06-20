@@ -1,0 +1,183 @@
+<section class="admin-radars-page">
+  <aside class="radar-side">
+    <div class="radar-side-title">
+      <span>Admin Radars</span>
+      <strong>Manual controls</strong>
+    </div>
+
+    <button
+      *ngFor="let radar of radarMenus; trackBy: trackById"
+      type="button"
+      class="radar-menu-btn"
+      [class.active]="activeRadar() === radar.id"
+      (click)="selectRadar(radar.id)">
+      <i [class]="radar.icon" aria-hidden="true"></i>
+      <span>
+        <strong>{{ radar.label }}</strong>
+        <small>{{ radar.description }}</small>
+      </span>
+    </button>
+  </aside>
+
+  <main class="radar-main">
+    <header class="radar-header">
+      <div>
+        <span class="eyebrow">{{ audienceLabel() }}</span>
+        <h1>{{ activeRadarMenu().label }}</h1>
+        <p>{{ activeRadarMenu().description }}</p>
+      </div>
+      <div class="radar-actions">
+        <button type="button" class="icon-btn" (click)="refresh()" [disabled]="isLoadingJobs() || isLoadingTargets()">
+          <i class="fas" [ngClass]="isLoadingJobs() ? 'fa-spinner fa-spin' : 'fa-rotate'" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="primary-btn" (click)="openTriggerModal()">
+          <i class="fas fa-play" aria-hidden="true"></i>
+          Trigger scan
+        </button>
+      </div>
+    </header>
+
+    <nav class="audience-tabs" aria-label="Radar audience">
+      <button type="button" [class.active]="activeAudience() === 'byok'" (click)="selectAudience('byok')">BYOK</button>
+      <button type="button" [class.active]="activeAudience() === 'non-byok'" (click)="selectAudience('non-byok')">NON-BYOK</button>
+    </nav>
+
+    <section class="radar-stats">
+      <article>
+        <span>Running</span>
+        <strong>{{ activeJobs().length }}</strong>
+      </article>
+      <article>
+        <span>Recent</span>
+        <strong>{{ recentJobs().length }}</strong>
+      </article>
+      <article>
+        <span>Failed</span>
+        <strong>{{ failedJobs().length }}</strong>
+      </article>
+    </section>
+
+    <section class="job-columns" [class.loading]="isLoadingJobs()">
+      <article class="job-panel">
+        <h2>Running jobs</h2>
+        <ng-container *ngIf="activeJobs().length; else noRunningJobs">
+          <div class="job-row" *ngFor="let job of activeJobs(); trackBy: trackById">
+            <div>
+              <strong>{{ job.userName || job.userEmail || 'User' }}</strong>
+              <span>{{ job.roleName }} · {{ job.detail || job.title }}</span>
+            </div>
+            <em [class]="'status-' + statusTone(job.status)">{{ job.status }}</em>
+            <div class="job-meter"><i [style.width.%]="job.progress || 0"></i></div>
+          </div>
+        </ng-container>
+        <ng-template #noRunningJobs>
+          <p class="empty-copy">No running {{ activeRadarMenu().label }} jobs.</p>
+        </ng-template>
+      </article>
+
+      <article class="job-panel">
+        <h2>Recent jobs</h2>
+        <ng-container *ngIf="recentJobs().length; else noRecentJobs">
+          <div class="job-row" *ngFor="let job of recentJobs(); trackBy: trackById">
+            <div>
+              <strong>{{ job.userName || job.userEmail || 'User' }}</strong>
+              <span>{{ job.createdAt | date:'medium' }} · {{ job.detail || job.title }}</span>
+            </div>
+            <em [class]="'status-' + statusTone(job.status)">{{ job.status }}</em>
+          </div>
+        </ng-container>
+        <ng-template #noRecentJobs>
+          <p class="empty-copy">No recent jobs found.</p>
+        </ng-template>
+      </article>
+
+      <article class="job-panel">
+        <h2>Failed jobs</h2>
+        <ng-container *ngIf="failedJobs().length; else noFailedJobs">
+          <div class="job-row job-row--failed" *ngFor="let job of failedJobs(); trackBy: trackById">
+            <div>
+              <strong>{{ job.userName || job.userEmail || 'User' }}</strong>
+              <span>{{ job.errorMessage || 'No error message saved.' }}</span>
+            </div>
+            <em class="status-danger">{{ job.status }}</em>
+          </div>
+        </ng-container>
+        <ng-template #noFailedJobs>
+          <p class="empty-copy">No failed jobs in this view.</p>
+        </ng-template>
+      </article>
+    </section>
+  </main>
+</section>
+
+<div class="modal-backdrop" *ngIf="isTriggerModalOpen()" (click)="closeTriggerModal()">
+  <section class="trigger-modal" role="dialog" aria-modal="true" aria-labelledby="triggerRadarTitle" (click)="$event.stopPropagation()">
+    <header>
+      <div>
+        <span class="eyebrow">{{ audienceLabel() }}</span>
+        <h2 id="triggerRadarTitle">Trigger {{ activeRadarMenu().label }}</h2>
+        <p>{{ targetSummary() }}</p>
+      </div>
+      <button type="button" class="icon-btn" (click)="closeTriggerModal()" [disabled]="isTriggering()">
+        <i class="fas fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="trigger-grid">
+      <section class="target-panel">
+        <h3>Roles</h3>
+        <p class="panel-hint">Select one or more roles.</p>
+        <label class="target-row" *ngFor="let role of roles(); trackBy: trackById">
+          <input
+            type="checkbox"
+            [checked]="roleSelected(role.id)"
+            [disabled]="isTriggering()"
+            (change)="toggleRole(role.id, $any($event.target).checked)"
+          />
+          <span>
+            <strong>{{ role.name }}</strong>
+            <small>{{ role.description || 'No description' }}</small>
+          </span>
+        </label>
+      </section>
+
+      <section class="target-panel">
+        <h3>Users</h3>
+        <p class="panel-hint">Optional. Empty means all matching users.</p>
+        <ng-container *ngIf="eligibleUsers().length; else noEligibleUsers">
+          <label class="target-row" *ngFor="let user of eligibleUsers(); trackBy: trackById">
+            <input
+              type="checkbox"
+              [checked]="userSelected(user.id)"
+              [disabled]="isTriggering()"
+              (change)="toggleUser(user.id, $any($event.target).checked)"
+            />
+            <span>
+              <strong>{{ user.displayName || user.username }}</strong>
+              <small>{{ user.email }} · {{ user.roleName }}</small>
+            </span>
+          </label>
+        </ng-container>
+        <ng-template #noEligibleUsers>
+          <p class="empty-copy">Select a role to see matching {{ audienceLabel() }} users.</p>
+        </ng-template>
+      </section>
+    </div>
+
+    <div class="trigger-result" *ngIf="lastTriggerResult() as result" [class.failed]="!result.success">
+      <strong>{{ result.success ? (result.jobsCount + ' job(s) queued') : result.errorMessage }}</strong>
+      <span>{{ result.targetUsers.length }} target user(s), {{ result.skippedUsers.length }} skipped.</span>
+      <ul *ngIf="result.skippedUsers.length">
+        <li *ngFor="let skipped of result.skippedUsers">{{ skipped.username }}: {{ skipped.reason }}</li>
+      </ul>
+    </div>
+
+    <footer>
+      <button type="button" class="ghost-btn" (click)="closeTriggerModal()" [disabled]="isTriggering()">Close</button>
+      <button type="button" class="primary-btn" (click)="submitTrigger()" [disabled]="!canTrigger()">
+        <i class="fas" [ngClass]="isTriggering() ? 'fa-spinner fa-spin' : 'fa-play'" aria-hidden="true"></i>
+        {{ isTriggering() ? 'Triggering...' : 'Trigger scan' }}
+      </button>
+    </footer>
+  </section>
+</div>

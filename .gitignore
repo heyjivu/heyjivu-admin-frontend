@@ -31,11 +31,17 @@ yarn-error.log
 
 # Miscellaneous
 /.angular/cache
+/.tmp/
+/local-logs/
+/output/
+/test-results/
+graphify-out/
 .sass-cache/
 /connect.lock
 /coverage
 /libpeerconnection.log
 testem.log
+_ngserve*.log
 /typings
 __screenshots__/
 

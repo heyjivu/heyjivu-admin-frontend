@@ -63,9 +63,13 @@
       <i class="fas fa-key"></i>
       <span class="tab-label">AI Keys</span>
     </button>
-    <button class="tab-btn" routerLink="/admin/run-jobs" routerLinkActive="active" title="Pipeline Monitor">
-      <i class="fas fa-tasks"></i>
-      <span class="tab-label">Pipeline</span>
+    <button class="tab-btn" routerLink="/admin/jivu-command" routerLinkActive="active" title="Jivu Command">
+      <i class="fas fa-terminal"></i>
+      <span class="tab-label">Jivu Command</span>
+    </button>
+    <button class="tab-btn" routerLink="/admin/radars" routerLinkActive="active" title="Radars">
+      <i class="fas fa-satellite-dish"></i>
+      <span class="tab-label">Radars</span>
     </button>
     <button class="tab-btn" routerLink="/admin/processing" routerLinkActive="active" title="Processing Configuration">
       <i class="fas fa-cog"></i>
@@ -158,9 +162,9 @@
         </div>
 
         <div class="dropdown-divider"></div>
-        <a class="dropdown-item text-center justify-content-center text-indigo-400 font-semibold" routerLink="/admin/run-jobs" (click)="showPipelineMenu.set(false)">
-          <i class="fas fa-tasks mr-1"></i>
-          View Pipeline Page
+        <a class="dropdown-item text-center justify-content-center text-indigo-400 font-semibold" routerLink="/admin/jivu-command" (click)="showPipelineMenu.set(false)">
+          <i class="fas fa-terminal mr-1"></i>
+          View Jivu Command
         </a>
       </div>
     </div>
