@@ -42,7 +42,6 @@ const userFromAuthResponse = (response: AuthResponse): AuthUser => ({
   rights: response.rights,
   onboardingStep: response.onboardingStep,
   byokRequested: response.byokRequested,
-  useServerStorage: response.useServerStorage,
   accountType: response.accountType,
   portal: response.portal,
 });

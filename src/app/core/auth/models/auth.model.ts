@@ -48,7 +48,6 @@ export interface AuthResponse {
   rights: string[];
   onboardingStep: number;
   byokRequested: boolean;
-  useServerStorage: boolean;
   accountType?: string;
   portal?: string;
 }
@@ -61,7 +60,6 @@ export interface AuthUser {
   rights: string[];
   onboardingStep: number;
   byokRequested: boolean;
-  useServerStorage: boolean;
   accountType?: string;
   portal?: string;
 }

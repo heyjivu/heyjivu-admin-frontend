@@ -10,11 +10,10 @@ export const environment = {
   production: true,
   envName: 'production',
 
-  // ── API & SignalR ──────────────────────────────────────────────
+  // ── API ────────────────────────────────────────────────────────
   // ← FILL THIS: your production Azure Function / App Service URL
   apiUrl: 'https://admin-api.heyjivu.com/api',
   authApiUrl: 'https://api.heyjivu.com/api',
-  hubUrl: 'https://admin-api.heyjivu.com/hubs/dashboard',
 
   // ── Storage — R2 direct playback ──────────────────────────────
   // ← FILL THIS (optional): your production R2 public domain

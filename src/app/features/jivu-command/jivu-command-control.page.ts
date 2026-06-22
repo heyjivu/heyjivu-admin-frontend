@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, ParamMap, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { finalize } from 'rxjs';
 import { AuthStore } from '../../core/auth/state/auth.store';
@@ -15,6 +16,7 @@ import {
   AdminJivuCommandTempUsageDto
 } from './models/jivu-command-admin.model';
 import { AdminJivuCommandService } from './services/admin-jivu-command.service';
+import { JivuCommandAdminStore } from './state/jivu-command-admin.store';
 
 type R2FileRef = {
   role: string;
@@ -29,6 +31,7 @@ type FilterOption = {
 };
 
 const ALL_FILTER_VALUE = '__all__';
+const POLL_INTERVAL_MS = 60_000;
 
 @Component({
   selector: 'app-jivu-command-control',
@@ -37,9 +40,16 @@ const ALL_FILTER_VALUE = '__all__';
   templateUrl: './jivu-command-control.page.html',
   styleUrl: './jivu-command-control.page.scss'
 })
-export class JivuCommandControlPage implements OnInit {
+export class JivuCommandControlPage implements OnInit, OnDestroy {
   private readonly api = inject(AdminJivuCommandService);
   private readonly authStore = inject(AuthStore);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly summaryStore = inject(JivuCommandAdminStore);
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private commandsInFlight = false;
+  private statsInFlight = false;
+  private devicesInFlight = false;
 
   Math = Math;
   Rights = Rights;
@@ -112,19 +122,42 @@ export class JivuCommandControlPage implements OnInit {
     this.selectedTempUsageRows().reduce((total, row) => total + Math.max(0, row.activeBytes || 0), 0));
 
   ngOnInit(): void {
-    this.refresh();
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        this.applyQueryParams(params);
+        this.refresh();
+      });
+    this.startPolling();
   }
 
-  refresh(): void {
-    this.loadFilterOptions();
+  ngOnDestroy(): void {
+    this.stopPolling();
+  }
+
+  refresh(silent = false, includeFilterOptions = true): void {
+    if (!silent) {
+      this.summaryStore.refresh(true);
+    }
+
+    if (includeFilterOptions) {
+      this.loadFilterOptions();
+    }
     this.loadStats();
     this.loadDevices();
-    this.loadCommands();
+    this.loadCommands(silent);
   }
 
-  loadCommands(): void {
-    this.loading.set(true);
-    this.error.set(null);
+  loadCommands(silent = false): void {
+    if (this.commandsInFlight) {
+      return;
+    }
+
+    this.commandsInFlight = true;
+    if (!silent) {
+      this.loading.set(true);
+      this.error.set(null);
+    }
     this.api.listCommands({
       userIds: this.selectedFilterIds(this.selectedUserIds),
       roleIds: this.selectedFilterIds(this.selectedRoleIds),
@@ -136,22 +169,38 @@ export class JivuCommandControlPage implements OnInit {
       page: this.page(),
       pageSize: this.pageSize()
     })
-      .pipe(finalize(() => this.loading.set(false)))
+      .pipe(finalize(() => {
+        this.commandsInFlight = false;
+        if (!silent) {
+          this.loading.set(false);
+        }
+      }))
       .subscribe({
         next: response => {
           this.commands.set(response.commands ?? []);
           this.totalCount.set(response.totalCount ?? 0);
           this.totalPages.set(Math.max(1, response.totalPages ?? 1));
         },
-        error: err => this.error.set(this.readError(err, 'Could not load Jivu Commands.'))
+        error: err => {
+          if (!silent) {
+            this.error.set(this.readError(err, 'Could not load Jivu Commands.'));
+          }
+        }
       });
   }
 
   loadStats(): void {
-    this.api.getStats().subscribe({
-      next: stats => this.stats.set(stats),
-      error: () => {}
-    });
+    if (this.statsInFlight) {
+      return;
+    }
+
+    this.statsInFlight = true;
+    this.api.getStats()
+      .pipe(finalize(() => this.statsInFlight = false))
+      .subscribe({
+        next: stats => this.stats.set(stats),
+        error: () => {}
+      });
   }
 
   loadFilterOptions(): void {
@@ -165,18 +214,24 @@ export class JivuCommandControlPage implements OnInit {
   }
 
   loadDevices(): void {
+    if (this.devicesInFlight) {
+      return;
+    }
+
+    this.devicesInFlight = true;
     const userIds = this.selectedFilterIds(this.selectedUserIds);
     const singleUserId = userIds.length === 1 ? userIds[0] : undefined;
-    this.api.listDevices(singleUserId, this.search || undefined).subscribe({
-      next: devices => this.devices.set(devices ?? []),
-      error: () => {}
-    });
+    this.api.listDevices(singleUserId, this.search || undefined)
+      .pipe(finalize(() => this.devicesInFlight = false))
+      .subscribe({
+        next: devices => this.devices.set(devices ?? []),
+        error: () => {}
+      });
   }
 
   applyFilters(): void {
     this.page.set(1);
-    this.loadCommands();
-    this.loadDevices();
+    this.refresh(false, false);
   }
 
   clearFilters(): void {
@@ -370,7 +425,7 @@ export class JivuCommandControlPage implements OnInit {
       .subscribe({
         next: result => {
           this.notice.set(result.message || 'Maintenance completed.');
-          this.refresh();
+          this.refresh(false, false);
           this.loadTempUsage();
           const selected = this.selectedCommand();
           if (selected) {
@@ -405,7 +460,7 @@ export class JivuCommandControlPage implements OnInit {
       .subscribe({
         next: result => {
           this.notice.set(result.message || 'Temp files removed.');
-          this.refresh();
+          this.refresh(false, false);
           this.loadTempUsage();
         },
         error: err => this.error.set(this.readError(err, 'Could not remove temp files.'))
@@ -465,6 +520,34 @@ export class JivuCommandControlPage implements OnInit {
     } catch {
       return String(value);
     }
+  }
+
+  private startPolling(): void {
+    if (this.pollTimer) {
+      return;
+    }
+
+    this.pollTimer = setInterval(() => this.refresh(true, false), POLL_INTERVAL_MS);
+  }
+
+  private stopPolling(): void {
+    if (!this.pollTimer) {
+      return;
+    }
+
+    clearInterval(this.pollTimer);
+    this.pollTimer = null;
+  }
+
+  private applyQueryParams(params: ParamMap): void {
+    this.search = params.get('search') ?? '';
+    this.status = params.get('status') ?? '';
+    this.commandType = params.get('commandType') ?? params.get('type') ?? '';
+    this.targetDeviceInstanceId = params.get('targetDeviceInstanceId') ?? '';
+    this.date = params.get('date') ?? '';
+
+    const page = Number(params.get('page') ?? '1');
+    this.page.set(Number.isFinite(page) && page > 0 ? Math.floor(page) : 1);
   }
 
   private loadTempFiles(command: AdminJivuCommandDto): void {
@@ -539,7 +622,7 @@ export class JivuCommandControlPage implements OnInit {
         next: result => {
           if (result.success) {
             this.notice.set(result.message || 'Command updated.');
-            this.refresh();
+            this.refresh(false, false);
             const selected = this.selectedCommand();
             if (selected) {
               this.openDetail(selected);

@@ -412,9 +412,9 @@
             <div><span>Updated</span><strong>{{ command.updatedAtUtc | date:'MMM d, y, HH:mm:ss' }}</strong></div>
           </div>
           @if (command.linkedJobId) {
-            <a class="linked-job" routerLink="/admin/pipeline" [queryParams]="{ search: command.linkedJobId }">
+            <a class="linked-job" routerLink="/admin/jivu-command" [queryParams]="{ search: command.linkedJobId }">
               <i class="fas fa-arrow-up-right-from-square"></i>
-              Linked pipeline job {{ command.linkedJobId }}
+              Linked job {{ command.linkedJobId }}
             </a>
           }
           @if (command.errorMessage) {

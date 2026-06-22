@@ -7,7 +7,7 @@ import { UIStore } from '../../core/services/ui.store';
 import { AuthStore } from '../../core/auth/state/auth.store';
 import { Rights } from '../../core/constants/rights.constants';
 import { AppIcons } from '../../core/constants/icons.constants';
-import { PipelineStore } from '../../features/pipeline/state/pipeline.store';
+import { JivuCommandAdminStore } from '../../features/jivu-command/state/jivu-command-admin.store';
 
 type NavItem = {
   label: string;
@@ -30,7 +30,7 @@ type NavItem = {
 export class Sidebar {
   uiStore = inject(UIStore);
   authStore = inject(AuthStore);
-  pipelineStore = inject(PipelineStore);
+  jivuCommandStore = inject(JivuCommandAdminStore);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
   readonly Rights = Rights;
@@ -120,16 +120,8 @@ export class Sidebar {
 
   getBadge(item: NavItem): string | null {
     if (item.section !== 'pipeline') return null;
-    const counts = this.pipelineStore.pipelineCounts();
-    if (item.isParent) {
-      const total = this.pipelineStore.globalStats().totalJobs;
-      return total > 0 ? total.toString() : null;
-    }
-    const type = item.queryParams?.['type'];
-    if (type && counts[type]) {
-      return counts[type].toString();
-    }
-    return null;
+    const activeCount = this.jivuCommandStore.activeCount();
+    return activeCount > 0 ? activeCount.toString() : null;
   }
 
   get currentModuleTitle(): string {
@@ -138,7 +130,7 @@ export class Sidebar {
     if (section === 'users') return 'User Management';
     if (section === 'payments') return 'Payment Settings';
     if (section === 'ai-keys') return 'AI Keys';
-    if (section === 'pipeline') return 'Pipeline';
+    if (section === 'pipeline') return 'Jivu Command';
     if (section === 'radars') return 'Radars';
     if (section === 'config') return 'Processing Config';
     if (section === 'templates') return 'Assets Studio';

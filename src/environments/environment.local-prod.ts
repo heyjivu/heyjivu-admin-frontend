@@ -7,10 +7,9 @@ export const environment = {
   production: true,
   envName: 'local-prod',
 
-  // ── API & SignalR ──────────────────────────────────────────────
+  // ── API ────────────────────────────────────────────────────────
   apiUrl: 'http://localhost:5100/api',          // Admin API — admin data endpoints
   authApiUrl: 'http://localhost:5000/api',      // Main API — auth endpoints (login, me, etc.)
-  hubUrl: 'http://localhost:5100/hubs/dashboard',
 
   // ── Storage — R2 direct playback ──────────────────────────────
   r2PublicDomain: '',

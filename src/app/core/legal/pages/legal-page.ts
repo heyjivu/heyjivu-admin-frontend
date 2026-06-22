@@ -44,16 +44,10 @@ export class LegalPageComponent {
       data: 'Basic Google account identity from the ID token, including email, name, and profile image when provided.',
     },
     {
-      scope: 'https://www.googleapis.com/auth/drive.file',
-      feature: 'Optional Google Drive storage',
-      why: 'Let users store, organize, and process HeyJivu-created files in their own Google Drive.',
-      data: 'Only files and folders created by HeyJivu or explicitly selected for use with HeyJivu.',
-    },
-    {
-      scope: 'YouTube publishing scopes, only when enabled',
+      scope: 'https://www.googleapis.com/auth/youtube.upload, https://www.googleapis.com/auth/youtube.readonly',
       feature: 'Optional YouTube publishing',
-      why: 'Publish videos the user creates in HeyJivu to the connected YouTube channel after explicit authorization.',
-      data: 'Only the connected channel and the videos or metadata the user chooses to publish.',
+      why: 'Publish videos the user creates in HeyJivu and confirm the connected channel after explicit authorization.',
+      data: 'Only the connected channel details and the videos or metadata the user chooses to publish.',
     },
   ];
 
