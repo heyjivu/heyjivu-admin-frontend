@@ -33,25 +33,23 @@ export class JivuCommandAdminStore {
   private readonly _activeCommands = signal<AdminJivuCommandDto[]>([]);
   private readonly _loading = signal(false);
   private readonly _refreshing = signal(false);
+  private readonly _hasLoaded = signal(false);
   private readonly _error = signal<string | null>(null);
 
   readonly stats = computed(() => this._stats());
   readonly activeCommands = computed(() => this._activeCommands());
   readonly loading = computed(() => this._loading());
   readonly refreshing = computed(() => this._refreshing());
+  readonly hasLoaded = computed(() => this._hasLoaded());
   readonly error = computed(() => this._error());
   readonly activeCount = computed(() => this._stats().activeCommands ?? 0);
   readonly hasActiveCommands = computed(() => this.activeCount() > 0);
 
   constructor() {
     effect(() => {
-      const canPoll = this.authStore.isAuthenticated()
-        && (this.authStore.isSuperAdmin() || this.authStore.hasRight()(Rights.Pipeline_View));
-
+      const canReadStatus = this.canReadStatus();
       queueMicrotask(() => {
-        if (canPoll) {
-          this.start();
-        } else {
+        if (!canReadStatus) {
           this.stop(true);
         }
       });
@@ -59,7 +57,7 @@ export class JivuCommandAdminStore {
   }
 
   start(): void {
-    if (this.pollTimer) {
+    if (this.pollTimer || !this.canReadStatus()) {
       return;
     }
 
@@ -81,12 +79,18 @@ export class JivuCommandAdminStore {
     if (clearState) {
       this._stats.set(emptyStats());
       this._activeCommands.set([]);
+      this._hasLoaded.set(false);
       this._error.set(null);
     }
   }
 
   refresh(silent = true): void {
     if (this.refreshInFlight) {
+      return;
+    }
+
+    if (!this.canReadStatus()) {
+      this.stop(true);
       return;
     }
 
@@ -122,6 +126,7 @@ export class JivuCommandAdminStore {
 
           this._stats.set(stats ?? emptyStats());
           this._activeCommands.set(active.commands ?? []);
+          this._hasLoaded.set(true);
         },
         error: err => {
           if (requestGeneration !== this.generation) {
@@ -129,8 +134,14 @@ export class JivuCommandAdminStore {
           }
 
           this._error.set(this.readError(err));
+          this._hasLoaded.set(true);
         }
       });
+  }
+
+  private canReadStatus(): boolean {
+    return this.authStore.isAuthenticated()
+      && (this.authStore.isSuperAdmin() || this.authStore.hasRight()(Rights.Pipeline_View));
   }
 
   private readError(err: unknown): string {

@@ -117,9 +117,12 @@
       <button
         class="icon-btn theme-btn relative"
         (click)="toggleCommandMenu($event)"
-        [title]="hasActiveCommands() ? 'Jivu Command Tasks Running' : 'Jivu Command Status'"
+        [title]="hasActiveCommands() ? 'Jivu Command Tasks Running' : (commandStatusLoaded() ? 'Jivu Command Status' : 'Check Jivu Command Status')"
       >
-        <i class="fas" [class.fa-sync-alt]="!hasActiveCommands()" [class.fa-spin]="hasActiveCommands()" [class.fa-spinner]="hasActiveCommands()"></i>
+        <i class="fas"
+           [class.fa-sync-alt]="!hasActiveCommands() && !commandStatusRefreshing()"
+           [class.fa-spin]="hasActiveCommands() || commandStatusRefreshing()"
+           [class.fa-spinner]="hasActiveCommands() || commandStatusRefreshing()"></i>
         <span *ngIf="hasActiveCommands()" class="badge-dot"></span>
       </button>
 
@@ -128,7 +131,9 @@
           <div>
             <p class="signed-in">Jivu Command</p>
             <p class="email text-xs font-semibold" *ngIf="hasActiveCommands()">{{ activeCommandCount() }} commands active</p>
-            <p class="email text-xs font-semibold" *ngIf="!hasActiveCommands()">All commands idle</p>
+            <p class="email text-xs font-semibold" *ngIf="!hasActiveCommands() && commandStatusRefreshing()">Checking status...</p>
+            <p class="email text-xs font-semibold" *ngIf="!hasActiveCommands() && !commandStatusRefreshing() && commandStatusLoaded()">All commands idle</p>
+            <p class="email text-xs font-semibold" *ngIf="!hasActiveCommands() && !commandStatusRefreshing() && !commandStatusLoaded()">Open to check status</p>
           </div>
           <button class="refresh-jobs-btn" (click)="refreshCommands()" title="Refresh Status">
             <i class="fas fa-sync-alt"></i>
@@ -138,9 +143,15 @@
 
         <div class="pipeline-jobs-list">
           <div *ngIf="!hasActiveCommands()" class="empty-pipeline-jobs">
-            <i class="fas fa-check-circle text-green-500 mb-2"></i>
-            <p class="empty-title">System Idle</p>
-            <p class="empty-desc">No active user command tasks in progress</p>
+            <i class="fas mb-2"
+               [class.fa-sync-alt]="commandStatusRefreshing() || !commandStatusLoaded()"
+               [class.fa-spin]="commandStatusRefreshing()"
+               [class.fa-check-circle]="commandStatusLoaded() && !commandStatusRefreshing()"
+               [class.text-green-500]="commandStatusLoaded() && !commandStatusRefreshing()"></i>
+            <p class="empty-title">{{ commandStatusLoaded() && !commandStatusRefreshing() ? 'System Idle' : 'Status Check' }}</p>
+            <p class="empty-desc" *ngIf="commandStatusRefreshing()">Loading active command tasks...</p>
+            <p class="empty-desc" *ngIf="!commandStatusRefreshing() && commandStatusLoaded()">No active user command tasks in progress</p>
+            <p class="empty-desc" *ngIf="!commandStatusRefreshing() && !commandStatusLoaded()">Open the widget or refresh to load current command status</p>
           </div>
 
           <div *ngFor="let command of activeCommands()" class="pipeline-job-item">

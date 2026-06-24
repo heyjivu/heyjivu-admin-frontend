@@ -7,7 +7,7 @@
       <p class="screen-sub">Global overview of usage metrics and provider activity.</p>
     </div>
     <div class="header-actions">
-      <button class="btn btn-soft" (click)="loadReports()">
+      <button class="btn btn-soft" type="button" (click)="loadReports()" [disabled]="reportsBusy()">
         <i class="pi pi-refresh" [class.pi-spin]="loading()"></i> Refresh Reports
       </button>
     </div>
@@ -36,20 +36,24 @@
 
         <ng-container>
           <!-- Filters -->
-          <div class="glass-card p-4 flex flex-column md:flex-row align-items-md-center gap-3 mb-4">
+          <div class="glass-card report-filter-panel p-4 flex flex-column md:flex-row align-items-md-center gap-3 mb-4" [class.is-loading]="reportsBusy()">
              <div class="flex align-items-center gap-2">
                <span class="text-xs text-color-secondary uppercase tracking-wider font-mono">Role:</span>
-               <p-select [options]="roles" [(ngModel)]="selectedRole" (ngModelChange)="selectedRole.set($event); loadReports()" styleClass="p-dropdown-sm w-12rem"></p-select>
+               <p-select [options]="roles()" optionLabel="label" optionValue="value" [disabled]="reportsBusy()" [ngModel]="selectedRole()" (ngModelChange)="selectedRole.set($event); loadReports()" styleClass="p-dropdown-sm w-12rem"></p-select>
              </div>
              <div class="flex align-items-center gap-2">
                <span class="text-xs text-color-secondary uppercase tracking-wider font-mono">User:</span>
-               <p-select [options]="users()" [(ngModel)]="selectedUser" (ngModelChange)="selectedUser.set($event); loadReports()" styleClass="p-dropdown-sm w-12rem"></p-select>
+               <p-select [options]="users()" optionLabel="label" optionValue="value" [disabled]="reportsBusy()" [ngModel]="selectedUser()" (ngModelChange)="selectedUser.set($event); loadReports()" styleClass="p-dropdown-sm w-12rem"></p-select>
              </div>
              <div class="flex align-items-center gap-2 ml-auto">
                <span class="text-xs text-color-secondary uppercase tracking-wider font-mono">From:</span>
-               <input type="date" [ngModel]="fromDate()" (ngModelChange)="fromDate.set($event); loadReports()" class="glass-input text-sm px-2.5 py-1.5 border-round border-1 surface-border">
+               <input type="date" [disabled]="reportsBusy()" [ngModel]="fromDate()" (ngModelChange)="fromDate.set($event); loadReports()" class="glass-input text-sm px-2.5 py-1.5 border-round border-1 surface-border">
                <span class="text-xs text-color-secondary uppercase tracking-wider font-mono ml-2">To:</span>
-               <input type="date" [ngModel]="toDate()" (ngModelChange)="toDate.set($event); loadReports()" class="glass-input text-sm px-2.5 py-1.5 border-round border-1 surface-border">
+               <input type="date" [disabled]="reportsBusy()" [ngModel]="toDate()" (ngModelChange)="toDate.set($event); loadReports()" class="glass-input text-sm px-2.5 py-1.5 border-round border-1 surface-border">
+             </div>
+             <div class="filter-status" *ngIf="reportsBusy()">
+               <i class="pi pi-spin pi-spinner"></i>
+               <span>{{ loadingFilters() ? 'Loading filters' : 'Updating reports' }}</span>
              </div>
           </div>
 
@@ -85,7 +89,7 @@
                    <div class="glass-card p-4 h-full">
                       <div class="text-md font-bold font-syne text-color-primary mb-3 flex align-items-center justify-content-between">
                          <div><i class="fas fa-chart-line text-blue-400 mr-2"></i> Provider Usage Timeline</div>
-                         <p-selectButton [options]="chartViewOptions" [(ngModel)]="chartView" (ngModelChange)="chartView.set($event)" optionLabel="label" optionValue="value" styleClass="p-button-sm"></p-selectButton>
+                         <p-selectButton [options]="chartViewOptions" [ngModel]="chartView()" (ngModelChange)="chartView.set($event)" optionLabel="label" optionValue="value" styleClass="p-button-sm"></p-selectButton>
                       </div>
                       <div class="chart-container">
                          <apx-chart [series]="adminTimelineChartOptions.series" [chart]="adminTimelineChartOptions.chart" [colors]="adminTimelineChartOptions.colors" [dataLabels]="adminTimelineChartOptions.dataLabels" [stroke]="adminTimelineChartOptions.stroke" [fill]="adminTimelineChartOptions.fill" [xaxis]="adminTimelineChartOptions.xaxis" [yaxis]="adminTimelineChartOptions.yaxis" [tooltip]="adminTimelineChartOptions.tooltip" [grid]="adminTimelineChartOptions.grid"></apx-chart>
@@ -97,7 +101,7 @@
                    <div class="glass-card p-4 h-full flex flex-column justify-content-between">
                       <div class="text-md font-bold font-syne text-color-primary mb-3 flex align-items-center justify-content-between">
                          <div><i class="fas fa-chart-pie text-pink-400 mr-2"></i> Usage Origin</div>
-                         <p-selectButton [options]="costBreakdownViewOptions" [(ngModel)]="costBreakdownView" (ngModelChange)="costBreakdownView.set($event)" optionLabel="label" optionValue="value" styleClass="p-button-sm"></p-selectButton>
+                         <p-selectButton [options]="costBreakdownViewOptions" [ngModel]="costBreakdownView()" (ngModelChange)="costBreakdownView.set($event)" optionLabel="label" optionValue="value" styleClass="p-button-sm"></p-selectButton>
                       </div>
                       <div class="chart-container flex align-items-center justify-content-center py-4">
                          <apx-chart [series]="adminBreakdownChartOptions.series" [labels]="adminBreakdownChartOptions.labels" [chart]="adminBreakdownChartOptions.chart" [colors]="adminBreakdownChartOptions.colors" [dataLabels]="adminBreakdownChartOptions.dataLabels" [legend]="adminBreakdownChartOptions.legend" [tooltip]="adminBreakdownChartOptions.tooltip" [stroke]="adminBreakdownChartOptions.stroke"></apx-chart>

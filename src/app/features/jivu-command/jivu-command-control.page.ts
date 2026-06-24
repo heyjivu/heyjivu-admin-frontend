@@ -47,9 +47,13 @@ export class JivuCommandControlPage implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly summaryStore = inject(JivuCommandAdminStore);
   private pollTimer: ReturnType<typeof setInterval> | null = null;
-  private commandsInFlight = false;
-  private statsInFlight = false;
-  private devicesInFlight = false;
+  private commandsRequestId = 0;
+  private statsRequestId = 0;
+  private devicesRequestId = 0;
+  private filterOptionsRequestId = 0;
+  private detailRequestId = 0;
+  private tempUsageRequestId = 0;
+  private tempFilesRequestId = 0;
 
   Math = Math;
   Rights = Rights;
@@ -149,11 +153,7 @@ export class JivuCommandControlPage implements OnInit, OnDestroy {
   }
 
   loadCommands(silent = false): void {
-    if (this.commandsInFlight) {
-      return;
-    }
-
-    this.commandsInFlight = true;
+    const requestId = ++this.commandsRequestId;
     if (!silent) {
       this.loading.set(true);
       this.error.set(null);
@@ -170,18 +170,25 @@ export class JivuCommandControlPage implements OnInit, OnDestroy {
       pageSize: this.pageSize()
     })
       .pipe(finalize(() => {
-        this.commandsInFlight = false;
-        if (!silent) {
+        if (requestId === this.commandsRequestId && !silent) {
           this.loading.set(false);
         }
-      }))
+      }), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: response => {
+          if (requestId !== this.commandsRequestId) {
+            return;
+          }
+
           this.commands.set(response.commands ?? []);
           this.totalCount.set(response.totalCount ?? 0);
           this.totalPages.set(Math.max(1, response.totalPages ?? 1));
         },
         error: err => {
+          if (requestId !== this.commandsRequestId) {
+            return;
+          }
+
           if (!silent) {
             this.error.set(this.readError(err, 'Could not load Jivu Commands.'));
           }
@@ -190,41 +197,52 @@ export class JivuCommandControlPage implements OnInit, OnDestroy {
   }
 
   loadStats(): void {
-    if (this.statsInFlight) {
-      return;
-    }
-
-    this.statsInFlight = true;
+    const requestId = ++this.statsRequestId;
     this.api.getStats()
-      .pipe(finalize(() => this.statsInFlight = false))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: stats => this.stats.set(stats),
+        next: stats => {
+          if (requestId === this.statsRequestId) {
+            this.stats.set(stats);
+          }
+        },
         error: () => {}
       });
   }
 
   loadFilterOptions(): void {
-    this.api.getFilterOptions().subscribe({
-      next: options => this.applyFilterOptions(options),
-      error: () => {
-        this.userFilterOptions.set([{ id: ALL_FILTER_VALUE, label: 'All users' }]);
-        this.roleFilterOptions.set([{ id: ALL_FILTER_VALUE, label: 'All roles' }]);
-      }
-    });
+    const requestId = ++this.filterOptionsRequestId;
+    this.api.getFilterOptions()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: options => {
+          if (requestId === this.filterOptionsRequestId) {
+            this.applyFilterOptions(options);
+          }
+        },
+        error: () => {
+          if (requestId !== this.filterOptionsRequestId) {
+            return;
+          }
+
+          this.userFilterOptions.set([{ id: ALL_FILTER_VALUE, label: 'All users' }]);
+          this.roleFilterOptions.set([{ id: ALL_FILTER_VALUE, label: 'All roles' }]);
+        }
+      });
   }
 
   loadDevices(): void {
-    if (this.devicesInFlight) {
-      return;
-    }
-
-    this.devicesInFlight = true;
+    const requestId = ++this.devicesRequestId;
     const userIds = this.selectedFilterIds(this.selectedUserIds);
     const singleUserId = userIds.length === 1 ? userIds[0] : undefined;
     this.api.listDevices(singleUserId, this.search || undefined)
-      .pipe(finalize(() => this.devicesInFlight = false))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: devices => this.devices.set(devices ?? []),
+        next: devices => {
+          if (requestId === this.devicesRequestId) {
+            this.devices.set(devices ?? []);
+          }
+        },
         error: () => {}
       });
   }
@@ -243,7 +261,27 @@ export class JivuCommandControlPage implements OnInit, OnDestroy {
     this.targetDeviceInstanceId = '';
     this.date = '';
     this.page.set(1);
-    this.refresh();
+    this.refresh(false, false);
+  }
+
+  hasActiveFilters(): boolean {
+    return Boolean(
+      this.search.trim() ||
+      this.selectedFilterIds(this.selectedUserIds).length ||
+      this.selectedFilterIds(this.selectedRoleIds).length ||
+      this.status ||
+      this.commandType ||
+      this.targetDeviceInstanceId ||
+      this.date
+    );
+  }
+
+  isCommandTableBusy(): boolean {
+    return this.loading() || this.actionBusy();
+  }
+
+  isMaintenanceInteractionBusy(): boolean {
+    return this.maintenanceLoading() || this.maintenanceBusy();
   }
 
   onRoleFilterChange(): void {
@@ -257,6 +295,10 @@ export class JivuCommandControlPage implements OnInit, OnDestroy {
   }
 
   goToPage(nextPage: number): void {
+    if (this.loading()) {
+      return;
+    }
+
     if (nextPage < 1 || nextPage > this.totalPages()) {
       return;
     }
@@ -266,24 +308,40 @@ export class JivuCommandControlPage implements OnInit, OnDestroy {
   }
 
   openDetail(command: AdminJivuCommandDto): void {
+    const requestId = ++this.detailRequestId;
     this.selectedCommand.set(command);
     this.selectedMoveDevice.set(command.targetDeviceInstanceId);
     this.detailLoading.set(true);
     this.tempFiles.set([]);
 
     this.api.getCommand(command.id)
-      .pipe(finalize(() => this.detailLoading.set(false)))
+      .pipe(finalize(() => {
+        if (requestId === this.detailRequestId) {
+          this.detailLoading.set(false);
+        }
+      }), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: full => {
+          if (requestId !== this.detailRequestId) {
+            return;
+          }
+
           this.selectedCommand.set(full);
           this.selectedMoveDevice.set(full.targetDeviceInstanceId);
           this.loadTempFiles(full);
         },
-        error: err => this.error.set(this.readError(err, 'Could not load command details.'))
+        error: err => {
+          if (requestId === this.detailRequestId) {
+            this.error.set(this.readError(err, 'Could not load command details.'));
+          }
+        }
       });
   }
 
   closeDetail(): void {
+    this.detailRequestId++;
+    this.tempFilesRequestId++;
+    this.detailLoading.set(false);
     this.selectedCommand.set(null);
     this.tempFiles.set([]);
     this.selectedMoveDevice.set('');
@@ -356,6 +414,7 @@ export class JivuCommandControlPage implements OnInit, OnDestroy {
   }
 
   loadTempUsage(): void {
+    const requestId = ++this.tempUsageRequestId;
     this.maintenanceLoading.set(true);
     this.api.listTempUsage({
       userIds: this.selectedFilterIds(this.selectedMaintenanceUserIds),
@@ -363,14 +422,26 @@ export class JivuCommandControlPage implements OnInit, OnDestroy {
       search: this.maintenanceSearch,
       take: 200
     })
-      .pipe(finalize(() => this.maintenanceLoading.set(false)))
+      .pipe(finalize(() => {
+        if (requestId === this.tempUsageRequestId) {
+          this.maintenanceLoading.set(false);
+        }
+      }), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: rows => {
+          if (requestId !== this.tempUsageRequestId) {
+            return;
+          }
+
           const sorted = [...(rows ?? [])].sort((a, b) => (b.activeBytes || 0) - (a.activeBytes || 0));
           this.tempUsage.set(sorted);
           this.selectedTempUsageUserIds.set(new Set(sorted.map(row => row.userId)));
         },
-        error: err => this.error.set(this.readError(err, 'Could not load temp usage.'))
+        error: err => {
+          if (requestId === this.tempUsageRequestId) {
+            this.error.set(this.readError(err, 'Could not load temp usage.'));
+          }
+        }
       });
   }
 
@@ -417,6 +488,11 @@ export class JivuCommandControlPage implements OnInit, OnDestroy {
     }
 
     const userIds = this.selectedTempUsageRows().map(row => row.userId);
+    if (userIds.length === 0) {
+      this.error.set('Select at least one user temp folder first.');
+      return;
+    }
+
     this.maintenanceBusy.set(true);
     this.notice.set(null);
     this.error.set(null);
@@ -551,10 +627,21 @@ export class JivuCommandControlPage implements OnInit, OnDestroy {
   }
 
   private loadTempFiles(command: AdminJivuCommandDto): void {
-    this.api.listTempFiles(command.id, command.userId, undefined, 100).subscribe({
-      next: files => this.tempFiles.set(files ?? []),
-      error: () => this.tempFiles.set([])
-    });
+    const requestId = ++this.tempFilesRequestId;
+    this.api.listTempFiles(command.id, command.userId, undefined, 100)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: files => {
+          if (requestId === this.tempFilesRequestId) {
+            this.tempFiles.set(files ?? []);
+          }
+        },
+        error: () => {
+          if (requestId === this.tempFilesRequestId) {
+            this.tempFiles.set([]);
+          }
+        }
+      });
   }
 
   private applyFilterOptions(options: AdminJivuCommandFilterOptions): void {

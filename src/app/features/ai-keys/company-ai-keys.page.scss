@@ -133,6 +133,20 @@
 .byok-loading-title { font-size: 14px; font-weight: 700; color: var(--text); margin: 0 0 4px; }
 .byok-loading-sub   { font-size: 12px; color: var(--text3); margin: 0; }
 
+.byok-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--danger-alpha-20);
+  background: var(--danger-alpha-12);
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 // ── Category Accordion Card ──────────────────────────────────
 .byok-cat-card {
   border: 1px solid var(--border);
@@ -565,6 +579,12 @@
   }
 
   &.action-delete:hover {
+    background: var(--danger-alpha-12);
+    color: var(--danger);
+    border-color: var(--danger-alpha-25);
+  }
+
+  &.action-delete--confirm {
     background: var(--danger-alpha-12);
     color: var(--danger);
     border-color: var(--danger-alpha-25);

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription, catchError, finalize, of } from 'rxjs';
+import { Subscription, catchError, finalize, forkJoin, of } from 'rxjs';
 import { ToastService } from '../../core/services/toast.service';
 import {
   AdminRadarsService,
@@ -245,16 +245,25 @@ export class AdminRadarsPage implements OnInit, OnDestroy {
   private loadTargets(): void {
     this.isLoadingTargets.set(true);
     this.subscriptions.add(
-      this.admin.getRoles().pipe(
-        catchError(() => of([] as RoleDto[]))
-      ).subscribe((roles) => this.roles.set(roles))
-    );
-    this.subscriptions.add(
-      this.admin.getUsers({ pageNumber: 1, pageSize: 500, isActive: true }).pipe(
-        catchError(() => of({ items: [], totalCount: 0, pageNumber: 1, pageSize: 500 }))
-      ).pipe(
+      forkJoin({
+        roles: this.admin.getRoles().pipe(
+          catchError(() => of([] as RoleDto[]))
+        ),
+        users: this.admin.getUsers({
+          pageNumber: 1,
+          pageSize: 500,
+          isActive: true,
+          includeQuotaSummary: false
+        }).pipe(
+          catchError(() => of({ items: [], totalCount: 0, pageNumber: 1, pageSize: 500 }))
+        )
+      }).pipe(
         finalize(() => this.isLoadingTargets.set(false))
-      ).subscribe((users) => this.users.set(users.items || []))
+      ).subscribe(({ roles, users }) => {
+        this.roles.set(roles);
+        this.users.set(users.items || []);
+        this.pruneSelectedUsers();
+      })
     );
   }
 

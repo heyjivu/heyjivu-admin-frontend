@@ -1,7 +1,8 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { catchError, of } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, finalize, of } from 'rxjs';
 import { AdminService, PlanQuotaOverviewDto } from '../users/services/admin.service';
 
 type AdminPlanCode = 'free' | 'student' | 'merchant' | 'premium' | 'byok';
@@ -17,7 +18,7 @@ interface QuotaStackItem {
 }
 
 interface QuotaCard {
-  label: 'Creation Wallet' | 'Processing / Whisper Minutes' | 'Voice Minutes' | 'AI Video Clips' | 'Storage';
+  label: 'Creation Wallet' | 'Processing / Whisper Minutes' | 'Voice Minutes' | 'AI Video Clips' | 'Storage' | 'Platform Features';
   icon: string;
   lines: QuotaLine[];
   stack: QuotaStackItem[];
@@ -262,6 +263,8 @@ export class PlanUsersPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private adminService = inject(AdminService);
+  private destroyRef = inject(DestroyRef);
+  private overviewRequestId = 0;
 
   readonly plans = FINAL_PLANS;
   activePlan = signal<AdminPlanCode>('free');
@@ -287,10 +290,12 @@ export class PlanUsersPage implements OnInit {
   });
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
-      this.activePlan.set(this.normalizePlanCode(params['plan']));
-      this.fetchPlanStats();
-    });
+    this.route.queryParams
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        this.activePlan.set(this.normalizePlanCode(params['plan']));
+        this.fetchPlanStats();
+      });
   }
 
   selectPlan(planCode: AdminPlanCode) {
@@ -302,6 +307,7 @@ export class PlanUsersPage implements OnInit {
   }
 
   fetchPlanStats() {
+    const requestId = ++this.overviewRequestId;
     this.loading.set(true);
     this.apiUnavailable.set(false);
 
@@ -309,10 +315,18 @@ export class PlanUsersPage implements OnInit {
       catchError(() => {
         this.apiUnavailable.set(true);
         return of(null);
+      }),
+      finalize(() => {
+        if (requestId === this.overviewRequestId) {
+          this.loading.set(false);
+        }
       })
     ).subscribe((overview) => {
+      if (requestId !== this.overviewRequestId) {
+        return;
+      }
+
       this.overview.set(overview);
-      this.loading.set(false);
     });
   }
 
@@ -342,15 +356,21 @@ export class PlanUsersPage implements OnInit {
     const buckets = this.extractBuckets(source);
     if (buckets.length === 0) return [];
 
-    return buckets.map(bucket => {
+    const cards = new Map<QuotaCard['label'], QuotaCard>();
+
+    for (const bucket of buckets) {
       const label = this.normalizeQuotaLabel(this.firstString(bucket, ['label', 'name', 'displayName', 'key', 'bucket', 'type']));
-      return {
-        label,
-        icon: this.quotaIcon(label),
-        lines: [{ label: this.normalizeQuotaDetailLabel(bucket, label), value: this.formatQuotaValue(bucket) }],
-        stack: this.extractStack(bucket)
-      };
-    });
+      const card = cards.get(label) ?? { label, icon: this.quotaIcon(label), lines: [], stack: [] };
+
+      card.lines.push({
+        label: this.normalizeQuotaDetailLabel(bucket, label),
+        value: this.formatQuotaValue(bucket)
+      });
+      card.stack.push(...this.extractStack(bucket));
+      cards.set(label, card);
+    }
+
+    return Array.from(cards.values());
   }
 
   private extractBuckets(source: unknown): Array<Record<string, unknown>> {
@@ -385,6 +405,7 @@ export class PlanUsersPage implements OnInit {
     if (text.includes('image') && text.includes('motion')) return 'Creation Wallet';
     if ((text.includes('ai') && text.includes('video')) || text.includes('providerclip')) return 'AI Video Clips';
     if (text.includes('processing') || text.includes('whisper') || text.includes('pipeline') || text.includes('videocreation')) return 'Processing / Whisper Minutes';
+    if (text.includes('manualscan') || text.includes('template') || text.includes('soundtrack') || text.includes('ecommerce') || text.includes('runtime') || text.includes('maxseconds')) return 'Platform Features';
     return 'Creation Wallet';
   }
 
@@ -395,6 +416,14 @@ export class PlanUsersPage implements OnInit {
     if (text.includes('stockimage')) return 'Stock images';
     if (text.includes('aiimage')) return 'AI images';
     if (fallback === 'AI Video Clips') return 'Provider clips';
+    if (text.includes('manualscan')) return 'Manual scans';
+    if (text.includes('template')) return 'Templates';
+    if (text.includes('soundtrack')) return 'Soundtracks';
+    if (text.includes('ecommerce')) return 'Ecommerce stores';
+    if (text.includes('socialpost') && text.includes('seconds')) return 'Social video max seconds';
+    if (text.includes('browser') && text.includes('runtime')) return 'Browser runtime max seconds';
+    if (text.includes('mobile') && text.includes('runtime')) return 'Mobile runtime max seconds';
+    if (text.includes('desktop') && text.includes('runtime')) return 'Desktop runtime max seconds';
     return 'Allowance';
   }
 
@@ -404,7 +433,8 @@ export class PlanUsersPage implements OnInit {
       'Processing / Whisper Minutes': 'fas fa-clock',
       'Voice Minutes': 'fas fa-microphone',
       'AI Video Clips': 'fas fa-film',
-      Storage: 'fas fa-database'
+      Storage: 'fas fa-database',
+      'Platform Features': 'fas fa-cubes'
     };
     return icons[label];
   }

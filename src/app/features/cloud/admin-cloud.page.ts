@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { AdminService, UserManagementDto } from '../users/services/admin.service';
 import {
@@ -30,7 +31,13 @@ type FolderSection = {
 export class AdminCloudPage implements OnInit, OnDestroy {
   private readonly api = inject(AdminCloudApiService);
   private readonly adminService = inject(AdminService);
+  private readonly destroyRef = inject(DestroyRef);
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  private userRequestId = 0;
+  private storageRequestId = 0;
+  private fileRequestId = 0;
+  private previewRequestId = 0;
+  private downloadRequestId = 0;
 
   readonly users = signal<UserManagementDto[]>([]);
   readonly selectedUser = signal<UserManagementDto | null>(null);
@@ -40,6 +47,8 @@ export class AdminCloudPage implements OnInit, OnDestroy {
   readonly files = signal<AdminCloudFileEntry[]>([]);
   readonly loadingFiles = signal(false);
   readonly storageInfo = signal<AdminCloudStorageInfo | null>(null);
+  readonly loadingStorage = signal(false);
+  readonly storageLoaded = signal(false);
   readonly currentFolder = signal('root');
   readonly history = signal<{ name: string; id: string }[]>([{ name: 'Root', id: 'root' }]);
 
@@ -48,6 +57,8 @@ export class AdminCloudPage implements OnInit, OnDestroy {
   readonly previewFile = signal<AdminCloudFileEntry | null>(null);
   readonly previewUrl = signal('');
   readonly previewLoading = signal(false);
+  readonly downloadPath = signal('');
+  readonly fileActionError = signal('');
 
   readonly folderSections: FolderSection[] = [
     {
@@ -105,6 +116,7 @@ export class AdminCloudPage implements OnInit, OnDestroy {
     if (!info || info.totalSpace <= 0) return 0;
     return Math.max(0, Math.min(100, (info.usedSpace / info.totalSpace) * 100));
   });
+  readonly storagePercentLabel = computed(() => this.storageInfo() ? `${Math.round(this.storagePercent())}%` : '--');
 
   ngOnInit(): void {
     this.loadUsers();
@@ -125,22 +137,34 @@ export class AdminCloudPage implements OnInit, OnDestroy {
   }
 
   loadUsers(searchTerm = this.userSearch()): void {
+    const requestId = ++this.userRequestId;
     this.loadingUsers.set(true);
     this.adminService.getUsers({
       pageNumber: 1,
       pageSize: 50,
       searchTerm: searchTerm.trim() || undefined,
-      sortBy: 'email'
+      sortBy: 'email',
+      includeQuotaSummary: false
     }).pipe(
-      finalize(() => this.loadingUsers.set(false))
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        if (requestId === this.userRequestId) {
+          this.loadingUsers.set(false);
+        }
+      })
     ).subscribe({
       next: result => {
+        if (requestId !== this.userRequestId) return;
         this.users.set(result.items || []);
         if (!this.selectedUser() && result.items?.length) {
           this.selectUser(result.items[0]);
         }
       },
-      error: () => this.users.set([])
+      error: () => {
+        if (requestId === this.userRequestId) {
+          this.users.set([]);
+        }
+      }
     });
   }
 
@@ -149,42 +173,88 @@ export class AdminCloudPage implements OnInit, OnDestroy {
     this.currentFolder.set('root');
     this.history.set([{ name: 'Root', id: 'root' }]);
     this.searchQuery.set('');
-    this.loadStorageInfo();
+    this.files.set([]);
+    this.storageInfo.set(null);
+    this.storageLoaded.set(false);
+    this.loadingStorage.set(false);
+    this.downloadRequestId++;
+    this.downloadPath.set('');
+    this.fileActionError.set('');
+    this.closePreview();
     this.loadFiles('root');
   }
 
   loadStorageInfo(): void {
     const user = this.selectedUser();
     if (!user) return;
+    const userId = user.id;
+    const requestId = ++this.storageRequestId;
+    this.storageLoaded.set(true);
+    this.loadingStorage.set(true);
 
-    this.api.getStorageInfo(user.id).subscribe({
-      next: info => this.storageInfo.set(info),
-      error: () => this.storageInfo.set(null)
+    this.api.getStorageInfo(userId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        if (requestId === this.storageRequestId) {
+          this.loadingStorage.set(false);
+        }
+      })
+    ).subscribe({
+      next: info => {
+        if (requestId === this.storageRequestId && this.selectedUser()?.id === userId) {
+          this.storageInfo.set(info);
+        }
+      },
+      error: () => {
+        if (requestId === this.storageRequestId && this.selectedUser()?.id === userId) {
+          this.storageInfo.set(null);
+        }
+      }
     });
   }
 
   loadFiles(folder = this.currentFolder(), folderName?: string): void {
     const user = this.selectedUser();
     if (!user) {
+      this.fileRequestId++;
       this.files.set([]);
+      this.loadingFiles.set(false);
       return;
     }
+    const userId = user.id;
 
     const normalizedFolder = (folder || 'root').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '') || 'root';
+    const requestId = ++this.fileRequestId;
     this.currentFolder.set(normalizedFolder);
     this.updateHistory(normalizedFolder, folderName);
     this.loadingFiles.set(true);
+    this.fileActionError.set('');
 
-    this.api.getFiles(user.id, normalizedFolder).pipe(
-      finalize(() => this.loadingFiles.set(false))
+    this.api.getFiles(userId, normalizedFolder).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        if (requestId === this.fileRequestId) {
+          this.loadingFiles.set(false);
+        }
+      })
     ).subscribe({
-      next: files => this.files.set(files || []),
-      error: () => this.files.set([])
+      next: files => {
+        if (requestId === this.fileRequestId && this.selectedUser()?.id === userId) {
+          this.files.set(files || []);
+        }
+      },
+      error: () => {
+        if (requestId === this.fileRequestId && this.selectedUser()?.id === userId) {
+          this.files.set([]);
+        }
+      }
     });
   }
 
   refresh(): void {
-    this.loadStorageInfo();
+    if (this.storageLoaded()) {
+      this.loadStorageInfo();
+    }
     this.loadFiles(this.currentFolder());
   }
 
@@ -201,19 +271,38 @@ export class AdminCloudPage implements OnInit, OnDestroy {
   openPreview(file: AdminCloudFileEntry): void {
     const user = this.selectedUser();
     if (!user || file.isDirectory) return;
+    const userId = user.id;
+    const filePath = file.path;
+    const requestId = ++this.previewRequestId;
 
     this.previewFile.set(file);
     this.previewUrl.set('');
     this.previewLoading.set(true);
-    this.api.getDirectUrl(user.id, file.path).pipe(
-      finalize(() => this.previewLoading.set(false))
+    this.fileActionError.set('');
+    this.api.getDirectUrl(userId, filePath).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        if (requestId === this.previewRequestId) {
+          this.previewLoading.set(false);
+        }
+      })
     ).subscribe({
-      next: result => this.previewUrl.set(result.url),
-      error: () => this.previewUrl.set('')
+      next: result => {
+        if (requestId === this.previewRequestId && this.selectedUser()?.id === userId && this.previewFile()?.path === filePath) {
+          this.previewUrl.set(result.url);
+        }
+      },
+      error: () => {
+        if (requestId === this.previewRequestId) {
+          this.previewUrl.set('');
+          this.fileActionError.set('Preview link could not be prepared. Please retry this file.');
+        }
+      }
     });
   }
 
   closePreview(): void {
+    this.previewRequestId++;
     this.previewFile.set(null);
     this.previewUrl.set('');
     this.previewLoading.set(false);
@@ -222,18 +311,40 @@ export class AdminCloudPage implements OnInit, OnDestroy {
   download(file: AdminCloudFileEntry, event?: Event): void {
     event?.stopPropagation();
     const user = this.selectedUser();
-    if (!user || file.isDirectory) return;
+    if (!user || file.isDirectory || this.downloadPath()) return;
+    const requestId = ++this.downloadRequestId;
+    const userId = user.id;
+    const filePath = file.path;
 
-    this.api.getDirectUrl(user.id, file.path).subscribe({
+    this.downloadPath.set(filePath);
+    this.fileActionError.set('');
+    this.api.getDirectUrl(userId, filePath).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        if (requestId === this.downloadRequestId) {
+          this.downloadPath.set('');
+        }
+      })
+    ).subscribe({
       next: result => {
+        if (requestId !== this.downloadRequestId || this.selectedUser()?.id !== userId) return;
         const anchor = document.createElement('a');
         anchor.href = result.url;
         anchor.download = file.name;
         anchor.target = '_blank';
         anchor.rel = 'noopener';
         anchor.click();
+      },
+      error: () => {
+        if (requestId === this.downloadRequestId) {
+          this.fileActionError.set('Download link could not be prepared. Please retry this file.');
+        }
       }
     });
+  }
+
+  isDownloading(file: AdminCloudFileEntry): boolean {
+    return this.downloadPath() === file.path;
   }
 
   isActiveFolder(folder: string): boolean {

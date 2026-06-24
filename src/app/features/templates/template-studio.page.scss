@@ -350,10 +350,20 @@
     background: var(--border-subtle);
   }
 
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.48;
+  }
+
+  &--pending {
+    color: var(--warning);
+    background: var(--warning-alpha-16);
+  }
+
   &--danger {
     color: var(--danger);
 
-    &:hover {
+    &:hover:not(:disabled) {
       color: var(--danger);
       background: var(--danger-alpha-12);
     }
@@ -451,6 +461,11 @@
     color: var(--text);
     background: var(--border-subtle);
   }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
 }
 
 .studio-modal__body {
@@ -462,6 +477,13 @@
   justify-content: flex-end;
   border-top: 1px solid var(--border-subtle);
   background: var(--scrim-soft);
+
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.54;
+    transform: none;
+    box-shadow: none;
+  }
 }
 
 .studio-form-grid {

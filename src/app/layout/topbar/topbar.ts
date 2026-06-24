@@ -28,6 +28,8 @@ export class Topbar implements OnInit {
 
   activeCommands = computed(() => this.jivuCommandStore.activeCommands());
   activeCommandCount = computed(() => this.jivuCommandStore.activeCount());
+  commandStatusLoaded = computed(() => this.jivuCommandStore.hasLoaded());
+  commandStatusRefreshing = computed(() => this.jivuCommandStore.refreshing() || this.jivuCommandStore.loading());
   hasActiveCommands = computed(() => this.activeCommandCount() > 0);
 
   @HostListener('window:resize')
@@ -57,8 +59,12 @@ export class Topbar implements OnInit {
 
   toggleCommandMenu(event: Event) {
     event.stopPropagation();
-    this.showCommandMenu.update(v => !v);
+    const nextOpen = !this.showCommandMenu();
+    this.showCommandMenu.set(nextOpen);
     this.showUserMenu.set(false);
+    if (nextOpen) {
+      this.jivuCommandStore.refresh(false);
+    }
   }
 
   @HostListener('document:click')

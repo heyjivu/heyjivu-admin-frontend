@@ -61,7 +61,7 @@ select.select-input {
 }
 
 .users-table {
-  min-width: 1370px;
+  min-width: 1490px;
   table-layout: fixed;
 
   th,
@@ -82,32 +82,32 @@ select.select-input {
 
   th:nth-child(3),
   td:nth-child(3) {
-    width: 150px;
+    width: 160px;
   }
 
   th:nth-child(4),
   td:nth-child(4) {
-    width: 132px;
+    width: 140px;
   }
 
   th:nth-child(5),
   td:nth-child(5) {
-    width: 94px;
+    width: 132px;
   }
 
   th:nth-child(6),
   td:nth-child(6) {
-    width: 96px;
+    width: 118px;
   }
 
   th:nth-child(7),
   td:nth-child(7) {
-    width: 288px;
+    width: 210px;
   }
 
   th:nth-child(8),
   td:nth-child(8) {
-    width: 150px;
+    width: 190px;
   }
 
   th:nth-child(9),
@@ -117,7 +117,7 @@ select.select-input {
 
   th:nth-child(10),
   td:nth-child(10) {
-    width: 98px;
+    width: 112px;
   }
 
   .user-info {
@@ -139,12 +139,13 @@ select.select-input {
 .usage-cell {
   .usage-badges {
     display: grid;
-    grid-template-columns: repeat(3, 26px);
+    grid-template-columns: repeat(3, 30px);
     gap: 5px;
   }
 
   .badge {
     justify-content: center;
+    min-height: 28px;
     min-width: 0;
     padding: 4px 5px;
     gap: 4px;
@@ -196,7 +197,7 @@ select.select-input {
 
   span {
     overflow: hidden;
-    color: var(--surface-glass);
+    color: var(--text2);
     font-size: 10px;
     line-height: 1.2;
     text-overflow: ellipsis;
@@ -213,7 +214,7 @@ select.select-input {
   border-radius: 6px;
   background: var(--accent-alpha-08);
   border: 1px solid var(--accent-alpha-18);
-  color: var(--surface-glass);
+  color: var(--text2);
   font-size: 10px;
   font-weight: 700;
   white-space: nowrap;
@@ -223,7 +224,7 @@ select.select-input {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 5px;
-  width: 132px;
+  width: 176px;
 }
 
 .byok-toggle {
@@ -235,6 +236,7 @@ select.select-input {
     min-height: 24px;
     padding: 4px 6px;
     gap: 5px;
+    font-size: 10px;
     white-space: nowrap;
 
     i {
@@ -254,11 +256,11 @@ select.select-input {
 }
 
 .role-select {
-  width: 122px;
+  width: 136px;
 }
 
 .account-type-select {
-  width: 118px;
+  width: 132px;
 }
 
 .status-pill {
@@ -291,7 +293,7 @@ select.select-input {
 
 @media (max-width: 900px) {
   .users-table {
-    min-width: 1280px;
+    min-width: 1420px;
   }
 
   .quota-preview-row {
@@ -301,7 +303,7 @@ select.select-input {
 
 @media (max-width: 760px) {
   .users-table {
-    min-width: 1220px;
+    min-width: 1360px;
   }
 
   .users-table th,
@@ -310,7 +312,7 @@ select.select-input {
   }
 
   .byok-toggles {
-    width: 124px;
+    width: 168px;
   }
 }
 
@@ -319,8 +321,16 @@ select.select-input {
 }
 
 .quota-empty {
-  color: var(--surface-glass-light);
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--border-subtle);
+  color: var(--text3);
   font-size: 12px;
+  font-weight: 700;
   white-space: nowrap;
 }
 

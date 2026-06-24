@@ -98,6 +98,11 @@
   cursor: pointer;
   text-align: left;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+  }
 }
 
 .cloud-user-option {
@@ -195,6 +200,34 @@
     color: var(--accent);
     font-family: var(--font-mono);
     font-size: 11px;
+  }
+}
+
+.cloud-storage-heading-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cloud-storage-action {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: var(--accent-alpha-20);
+    color: var(--accent);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
   }
 }
 
@@ -395,7 +428,26 @@
     &.active {
       color: var(--accent);
     }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
   }
+}
+
+.cloud-action-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 18px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--danger-alpha-25, rgba(239, 68, 68, 0.25));
+  border-radius: 8px;
+  background: var(--danger-alpha-12, rgba(239, 68, 68, 0.12));
+  color: var(--danger, #ef4444);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .cloud-files-panel {
@@ -488,6 +540,11 @@
     &:hover {
       color: var(--accent);
       background: var(--accent-alpha-10);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.52;
     }
   }
 }

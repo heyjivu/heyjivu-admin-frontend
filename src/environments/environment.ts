@@ -14,7 +14,7 @@ export const environment = {
 
   // ── API ────────────────────────────────────────────────────────
   apiUrl: `http://${localApiHost}:5100/api`,          // Admin API — admin data endpoints
-  authApiUrl: `http://${localApiHost}:5000/api`,      // Main API — auth endpoints (login, me, etc.)
+  authApiUrl: `http://${localApiHost}:5100/api`,      // Admin API — admin auth endpoints
 
   // ── Storage — R2 direct playback (staging bucket, shared with local) ──
   // When a file is in R2, the frontend can play it directly using presigned URLs.

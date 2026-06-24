@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
@@ -200,19 +200,23 @@ export class AdminService {
     sortBy?: string, 
     isDescending?: boolean, 
     roleId?: string, 
-    isActive?: boolean 
+    isActive?: boolean,
+    includeQuotaSummary?: boolean
   }): Observable<PagedResult<UserManagementDto>> {
-    let url = `${this.apiUrl}?`;
+    let httpParams = new HttpParams();
     if (params) {
-      if (params.pageNumber) url += `PageNumber=${params.pageNumber}&`;
-      if (params.pageSize) url += `PageSize=${params.pageSize}&`;
-      if (params.searchTerm) url += `SearchTerm=${params.searchTerm}&`;
-      if (params.sortBy) url += `SortBy=${params.sortBy}&`;
-      if (params.isDescending !== undefined) url += `IsDescending=${params.isDescending}&`;
-      if (params.roleId) url += `roleId=${params.roleId}&`;
-      if (params.isActive !== undefined) url += `isActive=${params.isActive}&`;
+      if (params.pageNumber) httpParams = httpParams.set('PageNumber', String(params.pageNumber));
+      if (params.pageSize) httpParams = httpParams.set('PageSize', String(params.pageSize));
+      if (params.searchTerm) httpParams = httpParams.set('SearchTerm', params.searchTerm);
+      if (params.sortBy) httpParams = httpParams.set('SortBy', params.sortBy);
+      if (params.isDescending !== undefined) httpParams = httpParams.set('IsDescending', String(params.isDescending));
+      if (params.roleId) httpParams = httpParams.set('roleId', params.roleId);
+      if (params.isActive !== undefined) httpParams = httpParams.set('isActive', String(params.isActive));
+      if (params.includeQuotaSummary !== undefined) {
+        httpParams = httpParams.set('includeQuotaSummary', String(params.includeQuotaSummary));
+      }
     }
-    return this.http.get<PagedResult<UserManagementDto>>(url);
+    return this.http.get<PagedResult<UserManagementDto>>(this.apiUrl, { params: httpParams });
   }
 
   getRoles(): Observable<RoleDto[]> {

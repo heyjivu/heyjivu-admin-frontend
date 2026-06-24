@@ -1,7 +1,9 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { finalize } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   AdminCompanyAIKeysApiService,
   ByocActionResponse,
@@ -25,16 +27,21 @@ import type { AIProviderInfo, CategoryInfo, KeySaveStatus, KeyRowState, ModalByo
   templateUrl: './company-ai-keys.page.html',
   styleUrl: './company-ai-keys.page.scss'
 })
-export class CompanyAIKeysPage implements OnInit {
+export class CompanyAIKeysPage implements OnInit, OnDestroy {
   private api = inject(AdminCompanyAIKeysApiService);
   private toast = inject(ToastService);
   private dialogService = inject(DialogService);
+  private destroyRef = inject(DestroyRef);
+  private loadRequestId = 0;
+  private pendingRemoveTimer: ReturnType<typeof setTimeout> | null = null;
 
   loading = signal(false);
+  loadError = signal(false);
   settings = signal<CompanyAIKeySettingsDto[]>([]);
   openCategories = signal<Record<string, boolean>>({});
   keyRowStates = signal<Record<string, KeyRowState>>({});
   pendingRemoveKeyId = signal<string | null>(null);
+  deletingKeyId = signal<string | null>(null);
   private virtualKeyDrafts: Record<string, CompanyAIKeyDto> = {};
   modalDrafts: Record<string, ModalByocDraft> = {};
   modalConfigs: Record<string, ByocConfigurationDto> = {};
@@ -154,10 +161,24 @@ export class CompanyAIKeysPage implements OnInit {
     this.load();
   }
 
+  ngOnDestroy() {
+    this.clearPendingRemoveTimer();
+  }
+
   load() {
+    const requestId = ++this.loadRequestId;
     this.loading.set(true);
-    this.api.getCompanyAIKeySettings().subscribe({
+    this.loadError.set(false);
+    this.api.getCompanyAIKeySettings().pipe(
+      finalize(() => {
+        if (requestId === this.loadRequestId) {
+          this.loading.set(false);
+        }
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (data) => {
+        if (requestId !== this.loadRequestId) return;
         this.settings.set(data);
         // Init key row states
         const previousStates = this.keyRowStates();
@@ -172,8 +193,17 @@ export class CompanyAIKeysPage implements OnInit {
         }));
         this.keyRowStates.set(states);
         this.pendingRemoveKeyId.set(null);
+        this.clearPendingRemoveTimer();
       },
-      complete: () => this.loading.set(false)
+      error: () => {
+        if (requestId !== this.loadRequestId) return;
+        this.settings.set([]);
+        this.keyRowStates.set({});
+        this.pendingRemoveKeyId.set(null);
+        this.clearPendingRemoveTimer();
+        this.loadError.set(true);
+        this.toast.error('Failed to load company AI keys.');
+      }
     });
   }
 
@@ -277,11 +307,16 @@ export class CompanyAIKeysPage implements OnInit {
   }
 
   removeKey(setting: CompanyAIKeySettingsDto, key: CompanyAIKeyDto) {
+    if (this.loading() || this.deletingKeyId() || this.getRowState(key.id).isSaving || this.getRowState(key.id).isTesting) {
+      return;
+    }
+
     const provider = key.provider || setting.provider || 'this provider';
     if (this.pendingRemoveKeyId() !== key.id) {
       this.pendingRemoveKeyId.set(key.id);
       this.toast.show(`Click remove again to delete the ${provider} key.`, 'warning', 5000);
-      setTimeout(() => {
+      this.clearPendingRemoveTimer();
+      this.pendingRemoveTimer = setTimeout(() => {
         if (this.pendingRemoveKeyId() === key.id) {
           this.pendingRemoveKeyId.set(null);
         }
@@ -290,13 +325,22 @@ export class CompanyAIKeysPage implements OnInit {
     }
 
     this.pendingRemoveKeyId.set(null);
+    this.clearPendingRemoveTimer();
 
     if (this.isVirtualKey(key.id)) {
       setting.apiKeys = setting.apiKeys.filter(k => k !== key);
       return;
     }
 
-    this.api.deleteKey(key.id).subscribe({
+    this.deletingKeyId.set(key.id);
+    this.api.deleteKey(key.id).pipe(
+      finalize(() => {
+        if (this.deletingKeyId() === key.id) {
+          this.deletingKeyId.set(null);
+        }
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: () => {
         setting.apiKeys = setting.apiKeys.filter(k => k.id !== key.id);
         this.toast.success(`${provider} key removed.`);
@@ -413,7 +457,9 @@ export class CompanyAIKeysPage implements OnInit {
         customLabel: this.nullableText(k.customLabel)
       }))
     };
-    this.api.saveCompanyAIKeySettings(payload).subscribe({
+    this.api.saveCompanyAIKeySettings(payload).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: () => {
         afterSuccess?.();
         this.toast.success(successMessage);
@@ -433,8 +479,11 @@ export class CompanyAIKeysPage implements OnInit {
 
   testKey(keyId: string, event: Event) {
     event.stopPropagation();
+    if (this.loading() || this.deletingKeyId() || this.getRowState(keyId).isTesting) return;
     this.updateRowState(keyId, { isTesting: true, testResult: null });
-    this.api.testKey(keyId).subscribe({
+    this.api.testKey(keyId).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (res) => this.updateRowState(keyId, { isTesting: false, testResult: res }),
       error: () => this.updateRowState(keyId, { isTesting: false, testResult: { success: false, message: 'Connection failed' } })
     });
@@ -496,7 +545,9 @@ export class CompanyAIKeysPage implements OnInit {
 
   loadModalConfig(key: CompanyAIKeyDto) {
     if (this.isVirtualKey(key.id)) return;
-    this.api.getByocConfiguration(key.id).subscribe({
+    this.api.getByocConfiguration(key.id).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (res) => this.applyModalResponse(res),
       error: () => undefined
     });
@@ -505,7 +556,9 @@ export class CompanyAIKeysPage implements OnInit {
   saveModalKey(setting: CompanyAIKeySettingsDto, key: CompanyAIKeyDto) {
     const draft = this.getModalDraft(setting, key);
     this.updateRowState(key.id, { isSaving: true, saveStatus: 'idle', saveMessage: null });
-    this.api.upsertModalByoc(this.buildModalRequest(setting, key, draft)).subscribe({
+    this.api.upsertModalByoc(this.buildModalRequest(setting, key, draft)).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (res) => {
         this.applyModalResponse(res);
         this.toast.success('Modal BYOC settings saved.');
@@ -527,10 +580,14 @@ export class CompanyAIKeysPage implements OnInit {
     }
 
     this.updateRowState(key.id, { isTesting: true, testResult: null });
-    this.api.upsertModalByoc(this.buildModalRequest(setting, key, draft)).subscribe({
+    this.api.upsertModalByoc(this.buildModalRequest(setting, key, draft)).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (saved) => {
         this.applyModalResponse(saved);
-        this.api.validateModalByoc(saved.key.id!).subscribe({
+        this.api.validateModalByoc(saved.key.id!).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
           next: (validated) => {
             this.applyModalResponse(validated);
             this.updateRowState(key.id, {
@@ -567,7 +624,9 @@ export class CompanyAIKeysPage implements OnInit {
       preset: null,
       gpu: null,
       model: null
-    }).subscribe({
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (deployed) => {
         this.applyModalResponse(deployed);
         this.updateRowState(key.id, {
@@ -590,7 +649,9 @@ export class CompanyAIKeysPage implements OnInit {
     });
 
     if (this.hasPendingModalSecrets(draft)) {
-      this.api.upsertModalByoc(this.buildModalRequest(setting, key, draft)).subscribe({
+      this.api.upsertModalByoc(this.buildModalRequest(setting, key, draft)).pipe(
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe({
         next: (saved) => {
           this.applyModalResponse(saved);
           deploy(saved.key.id!);
@@ -739,7 +800,9 @@ export class CompanyAIKeysPage implements OnInit {
       .filter((key): key is CompanyAIKeyDto => !!key)
       .map((key, priority) => ({ ...key, priority }));
 
-    this.api.reorderKeys(setting.type, orderedRealIds).subscribe({
+    this.api.reorderKeys(setting.type, orderedRealIds).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: () => {
         this.toast.success('Company AI key priority updated.');
         this.load();
@@ -851,6 +914,13 @@ export class CompanyAIKeysPage implements OnInit {
     }
 
     return this.virtualKeyDrafts[id];
+  }
+
+  private clearPendingRemoveTimer() {
+    if (this.pendingRemoveTimer) {
+      clearTimeout(this.pendingRemoveTimer);
+      this.pendingRemoveTimer = null;
+    }
   }
 
   canSaveKey(key: CompanyAIKeyDto): boolean {

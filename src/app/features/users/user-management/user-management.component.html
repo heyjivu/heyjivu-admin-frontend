@@ -16,8 +16,8 @@
         <button class="btn btn-primary btn-sm" type="button" (click)="openAddUserModal()" *ngIf="activeTab() === 'users'">
           <i class="fas fa-user-plus"></i> Add User
         </button>
-        <button class="btn btn-soft btn-sm" (click)="loadData()">
-          <i class="fas fa-sync" [class.fa-spin]="loading()"></i> Refresh
+        <button class="btn btn-soft btn-sm" (click)="refreshAll()">
+          <i class="fas fa-sync" [class.fa-spin]="loading() || loadingLookups()"></i> Refresh
         </button>
       </div>
     </div>
@@ -146,7 +146,7 @@
                 </ng-container>
               </div>
               <ng-template #quotaUnavailable>
-                <span class="quota-empty">Not exposed by API</span>
+                <span class="quota-empty">Open defaults</span>
               </ng-template>
             </td>
             <td>

@@ -138,6 +138,35 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-alpha-12);
   }
+
+  &:disabled {
+    opacity: 0.68;
+    cursor: not-allowed;
+  }
+
+  &--invalid {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px var(--danger-alpha-12);
+  }
+}
+
+.pm-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--danger-alpha-20);
+  background: var(--danger-alpha-12);
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pm-field-error {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--danger);
 }
 
 // ── Radio Group ──────────────────────────────────────────────────────
@@ -179,6 +208,11 @@
     background: var(--accent-alpha-10);
     color: var(--accent);
   }
+
+  &--disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
 }
 
 // ── Toggle Row ───────────────────────────────────────────────────────
@@ -208,6 +242,11 @@
   cursor: pointer;
 
   input { display: none; }
+
+  &--disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
 }
 
 .pm-switch-track {

@@ -1,7 +1,8 @@
 import { computed, Injectable, OnDestroy, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { SUPPRESS_ERROR_TOAST } from '../interceptors/error.interceptor';
 import { APP_BUILD_INFO } from '../version/app-build-info';
 import { AppPlatform, AppReleaseManifest, resolveAppUpdateState } from './app-update.helpers';
 
@@ -39,7 +40,9 @@ export class AppUpdateService implements OnDestroy {
   refresh(): void {
     const releaseApiUrl = (environment as { apiUrl: string; authApiUrl?: string }).authApiUrl || environment.apiUrl;
     const manifestUrl = `${trimTrailingSlash(releaseApiUrl)}/downloads/manifest`;
-    this.http.get<AppReleaseManifest>(manifestUrl).pipe(
+    this.http.get<AppReleaseManifest>(manifestUrl, {
+      context: new HttpContext().set(SUPPRESS_ERROR_TOAST, true)
+    }).pipe(
       catchError(() => of(null))
     ).subscribe((manifest) => {
       this.manifest.set(manifest);

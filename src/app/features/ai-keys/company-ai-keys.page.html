@@ -7,7 +7,7 @@
       <div class="screen-sub">Manage company AI keys, models &amp; provider categories</div>
     </div>
     <div class="header-actions">
-      <button class="btn btn-primary btn-sm" [disabled]="totalKeys() === 0" (click)="openTestAllDialog()">
+      <button class="btn btn-primary btn-sm" [disabled]="loading() || totalKeys() === 0" (click)="openTestAllDialog()">
         <i class="fas fa-check-double"></i> Validate All Keys
       </button>
       <button class="btn btn-soft btn-sm" (click)="load()" [disabled]="loading()">
@@ -36,7 +36,7 @@
           </div>
         </div>
         <div class="header-actions">
-          <button class="btn btn-primary btn-sm" [disabled]="totalKeys() === 0" (click)="openTestAllDialog()">
+          <button class="btn btn-primary btn-sm" [disabled]="loading() || totalKeys() === 0" (click)="openTestAllDialog()">
             <i class="fas fa-check-double"></i> Validate All Keys
           </button>
           <button class="btn btn-soft btn-sm" (click)="load()" [disabled]="loading()">
@@ -74,6 +74,11 @@
       <div class="byok-loading-ring"><i class="fas fa-spinner fa-spin"></i></div>
       <p class="byok-loading-title">Loading Company AI Keys</p>
       <p class="byok-loading-sub">Fetching AI provider key settings…</p>
+    </div>
+
+    <div class="byok-error" *ngIf="!loading() && loadError()">
+      <i class="fas fa-triangle-exclamation"></i>
+      Company AI keys could not be loaded. Check the admin API and refresh.
     </div>
 
     <!-- ══ Accordion List ══════════════════════════════════════════════ -->
@@ -120,7 +125,7 @@
                 {{ setting.isEnabled ? 'Enabled' : 'Disabled' }}
               </span>
               <label class="ai-key-switch ai-key-switch--sm">
-                <input type="checkbox" [checked]="setting.isEnabled" (change)="toggleEnabled(setting, $event)" />
+                <input type="checkbox" [checked]="setting.isEnabled" [disabled]="loading()" (change)="toggleEnabled(setting, $event)" />
                 <span class="ai-key-switch__track"></span>
               </label>
             </div>
@@ -141,7 +146,7 @@
               API Keys Configuration
               <span class="badge">{{ getCategoryKeysForDisplay(setting).length }}</span>
             </span>
-            <button class="btn btn-soft btn-xs" (click)="addKey(setting)">
+            <button class="btn btn-soft btn-xs" (click)="addKey(setting)" [disabled]="loading() || !!deletingKeyId()">
               <i class="fas fa-plus"></i> Add API Key
             </button>
           </div>
@@ -245,9 +250,12 @@
         <!-- Delete Key Button -->
         <button class="icon-btn action-delete"
                 *ngIf="!isVirtualKey(key.id)"
+                [disabled]="loading() || !!deletingKeyId() || getRowState(key.id).isSaving || getRowState(key.id).isTesting"
+                [class.action-delete--confirm]="pendingRemoveKeyId() === key.id"
                 (click)="removeKey(setting, key); $event.stopPropagation()"
                 title="Remove Key">
-          <i class="fas fa-trash-alt"></i>
+          <i class="fas"
+             [ngClass]="deletingKeyId() === key.id ? 'fa-spinner fa-spin' : 'fa-trash-alt'"></i>
         </button>
 
         <!-- Chevron Collapse Indicator -->

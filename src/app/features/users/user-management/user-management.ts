@@ -89,6 +89,8 @@ export class UserManagementComponent implements OnInit {
   availableRights = signal<RightDto[]>([]);
   organizations = signal<OrganizationDto[]>([]);
   loading = signal(false);
+  loadingLookups = signal(false);
+  private lookupsLoaded = false;
   
   selectedRole = signal<RoleDto | null>(null);
   editorTab = signal<'basic' | 'rights' | 'processing' | 'quotas'>('basic');
@@ -182,6 +184,7 @@ export class UserManagementComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.loadLookups();
     this.loadData();
     this.route.queryParams.subscribe(params => {
       const tab = params['tab'];
@@ -206,32 +209,76 @@ export class UserManagementComponent implements OnInit {
       pageSize: this.pageSize(),
       searchTerm: this.searchQuery(),
       roleId: this.selectedRoleFilter() || undefined,
-      isActive: isActive
-    }).subscribe((res: any) => {
-      // Handle both pure array or PagedResult format if the backend returns it
-      const usersArray = Array.isArray(res) ? res : (res.items || []);
-      const totalCount = Array.isArray(res) ? res.length : (res.totalCount || usersArray.length);
-      this.users.set(usersArray);
-      this.totalItems.set(totalCount);
-      this.calculateStats(usersArray);
-      this.loading.set(false);
-    });
-
-    // Load Roles
-    this.adminService.getRoles().subscribe(roles => this.roles.set(roles));
-
-    // Load Organizations
-    this.adminService.getOrganizations().subscribe(orgs => this.organizations.set(orgs));
-  }
-
-  loadRolesAndRights() {
-    this.adminService.getRights().subscribe(rights => {
-      this.availableRights.set(rights);
-      if (rights.length > 0 && !this.activeCategory()) {
-        this.activeCategory.set(rights[0].category);
+      isActive: isActive,
+      includeQuotaSummary: false
+    }).subscribe({
+      next: (res: any) => {
+        // Handle both pure array or PagedResult format if the backend returns it
+        const usersArray = Array.isArray(res) ? res : (res.items || []);
+        const totalCount = Array.isArray(res) ? res.length : (res.totalCount || usersArray.length);
+        this.users.set(usersArray);
+        this.totalItems.set(totalCount);
+        this.calculateStats(usersArray);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load users', err);
+        this.users.set([]);
+        this.totalItems.set(0);
+        this.calculateStats([]);
+        this.loading.set(false);
+        this.toast.error(this.readApiError(err, 'Failed to load users.'));
       }
     });
-    this.adminService.getRoles().subscribe(roles => this.roles.set(roles));
+  }
+
+  refreshAll() {
+    this.loadLookups(true);
+    this.loadData();
+  }
+
+  loadLookups(force = false) {
+    if (this.lookupsLoaded && !force) return;
+
+    this.loadingLookups.set(true);
+    forkJoin({
+      roles: this.adminService.getRoles(),
+      organizations: this.adminService.getOrganizations()
+    }).subscribe({
+      next: ({ roles, organizations }) => {
+        this.roles.set(roles);
+        this.organizations.set(organizations);
+        this.lookupsLoaded = true;
+        this.loadingLookups.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load user-management lookups', err);
+        this.loadingLookups.set(false);
+        this.toast.error(this.readApiError(err, 'Failed to load user filters.'));
+      }
+    });
+  }
+
+  loadRolesAndRights(force = false) {
+    if (!force && this.availableRights().length > 0 && this.roles().length > 0) return;
+
+    forkJoin({
+      rights: this.adminService.getRights(),
+      roles: this.adminService.getRoles()
+    }).subscribe({
+      next: ({ rights, roles }) => {
+        this.availableRights.set(rights);
+        this.roles.set(roles);
+        this.lookupsLoaded = true;
+        if (rights.length > 0 && !this.activeCategory()) {
+          this.activeCategory.set(rights[0].category);
+        }
+      },
+      error: (err) => {
+        console.error('Failed to load roles and rights', err);
+        this.toast.error(this.readApiError(err, 'Failed to load roles and rights.'));
+      }
+    });
   }
 
   private calculateStats(users: UserManagementDto[]) {

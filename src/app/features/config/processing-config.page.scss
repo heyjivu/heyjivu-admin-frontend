@@ -29,6 +29,24 @@
   i { font-size: 16px; }
 }
 
+.proc-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  margin-bottom: 10px;
+  border: 1px solid var(--danger-alpha-25, rgba(239, 68, 68, 0.25));
+  border-radius: 8px;
+  background: var(--danger-alpha-12, rgba(239, 68, 68, 0.12));
+  color: var(--danger, #ef4444);
+  font-size: 13px;
+  font-weight: 600;
+
+  &--compact {
+    margin-bottom: 12px;
+  }
+}
+
 // ── Section Card ──────────────────────────────────────────────────────
 .proc-section {
   background: var(--border-subtle);
@@ -125,6 +143,20 @@
   @media (max-width: 760px) {
     grid-template-columns: 1fr;
   }
+}
+
+.cap-loading-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  margin: -2px 0 12px;
+  border: 1px solid var(--accent-alpha-20);
+  border-radius: 8px;
+  background: var(--accent-alpha-12);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .cap-table-wrap {
@@ -247,6 +279,11 @@
   &:hover {
     border-color: var(--accent);
     color: var(--accent);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.48;
   }
 
   &--danger:hover {
