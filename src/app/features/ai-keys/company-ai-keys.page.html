@@ -3,8 +3,8 @@
   <!-- ══ Screen Header ════════════════════════════════════════════════ -->
   <div class="screen-header">
     <div class="header-content">
-      <div class="screen-title">Company AI Keys</div>
-      <div class="screen-sub">Manage company AI keys, models &amp; provider categories</div>
+      <div class="screen-title">{{ poolTitle() }}</div>
+      <div class="screen-sub">{{ poolSubtitle() }}</div>
     </div>
     <div class="header-actions">
       <button class="btn btn-primary btn-sm" [disabled]="loading() || totalKeys() === 0" (click)="openTestAllDialog()">
@@ -29,9 +29,9 @@
             <i class="fas fa-key"></i>
           </div>
           <div>
-            <h2 class="byok-title">Company AI Keys <span class="byok-tag">ADMIN</span></h2>
+            <h2 class="byok-title">{{ poolTitle() }} <span class="byok-tag">ADMIN</span></h2>
             <p class="byok-sub">
-              Global AI API keys for each provider category. Used by all users unless overridden by individual BYOK configs.
+              {{ authStore.isTenantAdmin() ? 'Organization AI API keys for Non-BYOK users in your tenant. BYOK users still use only their own keys.' : 'Global AI API keys for each provider category. Used by company users unless overridden by individual BYOK configs.' }}
             </p>
           </div>
         </div>
@@ -72,13 +72,13 @@
     <!-- ══ Loading State ═══════════════════════════════════════════════ -->
     <div class="byok-loading" *ngIf="loading()">
       <div class="byok-loading-ring"><i class="fas fa-spinner fa-spin"></i></div>
-      <p class="byok-loading-title">Loading Company AI Keys</p>
+      <p class="byok-loading-title">Loading {{ poolTitle() }}</p>
       <p class="byok-loading-sub">Fetching AI provider key settings…</p>
     </div>
 
     <div class="byok-error" *ngIf="!loading() && loadError()">
       <i class="fas fa-triangle-exclamation"></i>
-      Company AI keys could not be loaded. Check the admin API and refresh.
+      {{ poolTitle() }} could not be loaded. Check the admin API and refresh.
     </div>
 
     <!-- ══ Accordion List ══════════════════════════════════════════════ -->
@@ -178,8 +178,8 @@
     <!-- Empty state -->
     <div class="key-empty key-empty--lg" *ngIf="!loading() && settings().length === 0">
       <div class="empty-ring"><i class="fas fa-key"></i></div>
-      <div class="byok-loading-title">No Company AI Keys Loaded</div>
-      <div class="byok-loading-sub">Click Refresh to load the company AI key configuration from the server.</div>
+      <div class="byok-loading-title">No {{ poolTitle() }} Loaded</div>
+      <div class="byok-loading-sub">Click Refresh to load this AI key configuration from the server.</div>
     </div>
 
   </div><!-- /screen-container -->
@@ -267,7 +267,7 @@
 
     <!-- Row Body (expanded) -->
     <div class="key-row__body" *ngIf="getRowState(key.id).isOpen">
-      <ng-container *ngIf="isModalProvider(key.provider || setting.provider); else standardCompanyKeyForm">
+      <ng-container *ngIf="authStore.isSuperAdmin() && isModalProvider(key.provider || setting.provider); else standardCompanyKeyForm">
         <ng-container *ngIf="getModalDraft(setting, key) as modalDraft">
           <div class="modal-byoc-grid">
             <div class="form-group">

@@ -17,6 +17,7 @@ import { getProviderModels, AIModelOption } from '../../core/constants/ai-models
 import { ToastService } from '../../core/services/toast.service';
 import { DialogService } from '../../core/dialogs/dialog.service';
 import { TestAllCompanyKeysDialogComponent } from './components/test-all-company-keys-dialog/test-all-company-keys-dialog.component';
+import { AuthStore } from '../../core/auth/state/auth.store';
 
 import type { AIProviderInfo, CategoryInfo, KeySaveStatus, KeyRowState, ModalByocDraft } from './company-ai-keys.page.models';
 
@@ -32,6 +33,7 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
   private toast = inject(ToastService);
   private dialogService = inject(DialogService);
   private destroyRef = inject(DestroyRef);
+  readonly authStore = inject(AuthStore);
   private loadRequestId = 0;
   private pendingRemoveTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -53,6 +55,10 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
   activeKeys = computed(() => this.settings().reduce((acc, s) => acc + s.apiKeys.filter(k => !k.isBlocked && !this.isInCooldown(k)).length, 0));
   cooldownKeys = computed(() => this.settings().reduce((acc, s) => acc + s.apiKeys.filter(k => k.isBlocked || this.isInCooldown(k)).length, 0));
   categoriesConfigured = computed(() => this.settings().filter(s => s.isEnabled && s.apiKeys.length > 0).length);
+  poolTitle = computed(() => this.authStore.isTenantAdmin() ? 'Organization AI Keys' : 'Company AI Keys');
+  poolSubtitle = computed(() => this.authStore.isTenantAdmin()
+    ? 'Manage the Non-BYOK AI key pool for your organization.'
+    : 'Manage company AI keys, models and provider categories.');
 
   readonly categories: CategoryInfo[] = [
     {
@@ -202,7 +208,7 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
         this.pendingRemoveKeyId.set(null);
         this.clearPendingRemoveTimer();
         this.loadError.set(true);
-        this.toast.error('Failed to load company AI keys.');
+        this.toast.error(`Failed to load ${this.poolTitle().toLowerCase()}.`);
       }
     });
   }
@@ -273,7 +279,7 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
   toggleRow(keyId: string, key?: CompanyAIKeyDto) {
     const current = this.getRowState(keyId);
     this.updateRowState(keyId, { isOpen: !current.isOpen, testResult: null, saveStatus: 'idle', saveMessage: null });
-    if (!current.isOpen && key && this.isModalProvider(key.provider) && !this.isVirtualKey(key.id)) {
+    if (!current.isOpen && key && this.authStore.isSuperAdmin() && this.isModalProvider(key.provider) && !this.isVirtualKey(key.id)) {
       this.loadModalConfig(key);
     }
   }
@@ -346,7 +352,7 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
         this.toast.success(`${provider} key removed.`);
         this.load();
       },
-      error: () => this.toast.error('Failed to delete company AI key.')
+      error: () => this.toast.error(`Failed to delete ${this.poolTitle().toLowerCase().slice(0, -1)}.`)
     });
   }
 
@@ -415,7 +421,7 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
 
   saveAll(
     setting: CompanyAIKeySettingsDto,
-    successMessage = 'Company AI keys saved.',
+    successMessage = `${this.poolTitle()} saved.`,
     afterSuccess?: () => void,
     afterError?: () => void,
     preferredKey?: CompanyAIKeyDto
@@ -467,7 +473,7 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       },
       error: () => {
         afterError?.();
-        this.toast.error('Failed to save company AI keys.');
+        this.toast.error(`Failed to save ${this.poolTitle().toLowerCase()}.`);
       }
     });
   }
@@ -544,7 +550,7 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
   }
 
   loadModalConfig(key: CompanyAIKeyDto) {
-    if (this.isVirtualKey(key.id)) return;
+    if (this.isVirtualKey(key.id) || !this.authStore.isSuperAdmin()) return;
     this.api.getByocConfiguration(key.id).pipe(
       takeUntilDestroyed(this.destroyRef)
     ).subscribe({
@@ -554,6 +560,11 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
   }
 
   saveModalKey(setting: CompanyAIKeySettingsDto, key: CompanyAIKeyDto) {
+    if (!this.authStore.isSuperAdmin()) {
+      this.toast.show('Modal BYOC controls are available to super admins only.', 'warning');
+      return;
+    }
+
     const draft = this.getModalDraft(setting, key);
     this.updateRowState(key.id, { isSaving: true, saveStatus: 'idle', saveMessage: null });
     this.api.upsertModalByoc(this.buildModalRequest(setting, key, draft)).pipe(
@@ -573,6 +584,11 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
   }
 
   validateModalKey(setting: CompanyAIKeySettingsDto, key: CompanyAIKeyDto) {
+    if (!this.authStore.isSuperAdmin()) {
+      this.toast.show('Modal BYOC controls are available to super admins only.', 'warning');
+      return;
+    }
+
     const draft = this.getModalDraft(setting, key);
     if (!this.canValidateModal(key, draft)) {
       this.toast.show('Modal token id, token secret, preset, GPU, and model are required.', 'warning');
@@ -616,6 +632,11 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
   }
 
   deployModalKey(setting: CompanyAIKeySettingsDto, key: CompanyAIKeyDto) {
+    if (!this.authStore.isSuperAdmin()) {
+      this.toast.show('Modal BYOC controls are available to super admins only.', 'warning');
+      return;
+    }
+
     if (this.isVirtualKey(key.id)) return;
     const draft = this.getModalDraft(setting, key);
     this.updateRowState(key.id, { isSaving: true, saveStatus: 'idle', saveMessage: null });
@@ -774,7 +795,7 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
 
   openTestAllDialog() {
     this.dialogService.open(TestAllCompanyKeysDialogComponent, {
-      header: 'Company AI Keys Validation Report',
+      header: `${this.poolTitle()} Validation Report`,
       width: '680px',
       closable: true,
       dismissableMask: true
@@ -804,11 +825,11 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: () => {
-        this.toast.success('Company AI key priority updated.');
+        this.toast.success(`${this.poolTitle()} priority updated.`);
         this.load();
       },
       error: () => {
-        this.toast.error('Failed to reorder company AI keys.');
+        this.toast.error(`Failed to reorder ${this.poolTitle().toLowerCase()}.`);
         this.load();
       }
     });

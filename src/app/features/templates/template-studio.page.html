@@ -7,7 +7,7 @@
         </div>
         <div>
           <div class="screen-title">Assets Studio</div>
-          <div class="screen-sub">Manage admin templates and soundtracks available in user creation flows</div>
+          <div class="screen-sub">Manage admin templates, soundtracks, and assets available in user creation flows</div>
         </div>
       </div>
       <div class="header-actions">
@@ -20,6 +20,7 @@
   </div>
 
   <div class="screen-container studio-container">
+    @if (activeSection() === 'templates') {
     <section class="studio-section">
       <div class="studio-section__header">
         <div class="studio-title-block">
@@ -189,7 +190,9 @@
         </table>
       </div>
     </section>
+    }
 
+    @if (activeSection() === 'soundtracks') {
     <section class="studio-section">
       <div class="studio-section__header">
         <div class="studio-title-block">
@@ -363,170 +366,33 @@
         </table>
       </div>
     </section>
+    }
+
+    @if (activeSection() === 'assets') {
+      <app-asset-management></app-asset-management>
+    }
   </div>
 
   @if (showForm()) {
-    <div class="studio-modal-backdrop" (click)="cancelForm()">
-      <div class="studio-modal" (click)="$event.stopPropagation()">
-        <div class="studio-modal__header">
-          <div class="studio-modal__icon">
-            <i class="fas" [class.fa-clone]="formKind === 'template'" [class.fa-music]="formKind === 'soundtrack'"></i>
-          </div>
-          <div>
-            <div class="studio-modal__title">{{ dialogTitle() }}</div>
-            <div class="studio-modal__sub">Admin scope item visible to selected plans and roles</div>
-          </div>
-          <button class="studio-modal__close" type="button" (click)="cancelForm()" aria-label="Close dialog" [disabled]="saving()">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-
-        <div class="studio-modal__body">
-          <div class="studio-form-grid">
-            <div class="studio-field">
-              <label>Name</label>
-              <input class="studio-input" [(ngModel)]="formName" placeholder="Name" />
-            </div>
-            <div class="studio-field">
-              <label>Status</label>
-              <label class="studio-toggle-row">
-                <span>{{ formIsActive ? 'Active' : 'Inactive' }}</span>
-                <span class="studio-switch">
-                  <input type="checkbox" [(ngModel)]="formIsActive" />
-                  <span class="studio-switch__track"></span>
-                </span>
-              </label>
-            </div>
-            <div class="studio-field studio-field--full">
-              <label>Description</label>
-              <textarea class="studio-input studio-input--textarea" [(ngModel)]="formDescription" rows="2" placeholder="Short description"></textarea>
-            </div>
-
-            @if (formKind === 'template') {
-              <div class="studio-field">
-                <label>Format</label>
-                <select class="studio-input" [(ngModel)]="formTemplateType">
-                  @for (option of templateTypeOptions; track option) {
-                    <option [value]="option">{{ option }}</option>
-                  }
-                </select>
-              </div>
-              <div class="studio-field">
-                <label>Category</label>
-                <input class="studio-input" [(ngModel)]="formCategory" placeholder="e.g. Commerce" />
-              </div>
-              <div class="studio-field">
-                <label>Thumbnail URL</label>
-                <input class="studio-input" [(ngModel)]="formThumbnailUrl" placeholder="https://..." />
-              </div>
-              <div class="studio-field">
-                <label>Preview URL</label>
-                <input class="studio-input" [(ngModel)]="formPreviewUrl" placeholder="https://..." />
-              </div>
-              <div class="studio-field studio-field--full">
-                <label>Payload JSON</label>
-                <textarea class="studio-input studio-input--textarea studio-input--code" [(ngModel)]="formTemplatePayload" rows="4" placeholder="{ }"></textarea>
-              </div>
-            } @else {
-              <div class="studio-field">
-                <label>Genre</label>
-                <input class="studio-input" [(ngModel)]="formSoundtrackGenre" placeholder="e.g. Ambient pop" />
-              </div>
-              <div class="studio-field">
-                <label>Mood</label>
-                <select class="studio-input" [(ngModel)]="formSoundtrackMood">
-                  @for (option of soundtrackMoodOptions; track option) {
-                    <option [value]="option">{{ option }}</option>
-                  }
-                </select>
-              </div>
-              <div class="studio-field studio-field--full">
-                <label>Audio URL</label>
-                <input class="studio-input" [(ngModel)]="formSoundtrackUrl" placeholder="https://..." />
-              </div>
-              <div class="studio-field">
-                <label>Duration Seconds</label>
-                <input
-                  class="studio-input"
-                  type="number"
-                  min="0"
-                  [ngModel]="formDurationSeconds"
-                  (ngModelChange)="formDurationSeconds = toNullableNumber($event)"
-                  placeholder="120" />
-              </div>
-              <div class="studio-field">
-                <label>BPM</label>
-                <input
-                  class="studio-input"
-                  type="number"
-                  min="0"
-                  [ngModel]="formBpm"
-                  (ngModelChange)="formBpm = toNullableNumber($event)"
-                  placeholder="96" />
-              </div>
-            }
-
-            <div class="studio-field studio-field--full">
-              <label>Tags</label>
-              <input class="studio-input" [(ngModel)]="formTags" placeholder="commerce, launch, upbeat" />
-            </div>
-
-            <div class="studio-field studio-field--full">
-              <div class="studio-visibility-heading">
-                <label>Plan Visibility</label>
-                <button type="button" class="studio-link-btn" (click)="selectAllPlans()" [class.active]="allPlansSelected()">All plans</button>
-              </div>
-              <div class="studio-chip-row">
-                @for (plan of planOptions; track plan.code) {
-                  <button
-                    type="button"
-                    class="studio-select-chip"
-                    [class.active]="isPlanSelected(plan.code)"
-                    (click)="togglePlan(plan.code)">
-                    <i [class]="plan.icon"></i>
-                    {{ plan.label }}
-                  </button>
-                }
-              </div>
-            </div>
-
-            <div class="studio-field studio-field--full">
-              <div class="studio-visibility-heading">
-                <label>Role Visibility</label>
-                <button type="button" class="studio-link-btn" (click)="selectAllRoles()" [class.active]="allRolesSelected()" [disabled]="roles().length === 0">
-                  All roles
-                </button>
-              </div>
-              @if (roles().length > 0) {
-                <div class="studio-chip-row">
-                  @for (role of roles(); track role.id) {
-                    <button
-                      type="button"
-                      class="studio-select-chip"
-                      [class.active]="isRoleSelected(role.id)"
-                      (click)="toggleRole(role.id)">
-                      <i class="fas fa-shield-alt"></i>
-                      {{ role.name }}
-                    </button>
-                  }
-                </div>
-              } @else {
-                <div class="studio-inline-note">
-                  {{ loadingRoles() ? 'Loading roles...' : 'No role restrictions loaded.' }}
-                </div>
-              }
-            </div>
-          </div>
-        </div>
-
-        <div class="studio-modal__footer">
-          <button class="btn btn-ghost" type="button" (click)="cancelForm()" [disabled]="saving()">Cancel</button>
-          <button class="btn btn-primary" type="button" (click)="saveItem()" [disabled]="saving() || !formName.trim()">
-            <i class="fas" [class.fa-save]="!saving()" [class.fa-spinner]="saving()" [class.fa-spin]="saving()"></i>
-            {{ saving() ? 'Saving' : 'Save' }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <app-template-studio-dialog
+      [kind]="formKind"
+      [editing]="!!editingItemId()"
+      [saving]="saving()"
+      [loadingRoles]="loadingRoles()"
+      [(itemName)]="formName"
+      [category]="formKind === 'template' ? formCategory : formSoundtrackGenre"
+      (categoryChange)="setDialogCategory($event)"
+      [(isActive)]="formIsActive"
+      [(attachmentName)]="formAttachmentName"
+      [(attachmentFile)]="formAttachmentFile"
+      [planOptions]="planOptions"
+      [roles]="roles()"
+      [allowedPlanCodes]="formAllowedPlanCodes"
+      (allowedPlanCodesChange)="formAllowedPlanCodes = $event"
+      [allowedRoleIds]="formAllowedRoleIds"
+      (allowedRoleIdsChange)="formAllowedRoleIds = $event"
+      (save)="saveItem()"
+      (cancel)="cancelForm()">
+    </app-template-studio-dialog>
   }
 </div>

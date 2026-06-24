@@ -1,5 +1,6 @@
 import { Component, inject, computed, signal, DestroyRef } from '@angular/core';
 import { NgFor, CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, NavigationEnd } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
@@ -8,6 +9,8 @@ import { AuthStore } from '../../core/auth/state/auth.store';
 import { Rights } from '../../core/constants/rights.constants';
 import { AppIcons } from '../../core/constants/icons.constants';
 import { JivuCommandAdminStore } from '../../features/jivu-command/state/jivu-command-admin.store';
+import { AdminCloudUserStore } from '../../features/cloud/state/admin-cloud-user.store';
+import { UserManagementDto } from '../../features/users/services/admin.service';
 
 type NavItem = {
   label: string;
@@ -18,12 +21,13 @@ type NavItem = {
   right?: string;
   section?: string;
   isParent?: boolean;
+  superAdminOnly?: boolean;
 };
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [NgFor, CommonModule, RouterLink],
+  imports: [NgFor, CommonModule, FormsModule, RouterLink],
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.scss',
 })
@@ -31,6 +35,7 @@ export class Sidebar {
   uiStore = inject(UIStore);
   authStore = inject(AuthStore);
   jivuCommandStore = inject(JivuCommandAdminStore);
+  cloudUsers = inject(AdminCloudUserStore);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
   readonly Rights = Rights;
@@ -40,37 +45,41 @@ export class Sidebar {
   readonly currentPath = computed(() => this.currentPathSignal().split(/[?#]/)[0]);
 
   constructor() {
+    this.ensureCloudUsersForUrl(this.router.url);
     this.router.events.pipe(
       filter(e => e instanceof NavigationEnd),
       takeUntilDestroyed(this.destroyRef)
     ).subscribe((e: any) => {
-      this.currentPathSignal.set(e.urlAfterRedirects || e.url);
+      const url = e.urlAfterRedirects || e.url;
+      this.currentPathSignal.set(url);
+      this.ensureCloudUsersForUrl(url);
     });
   }
 
   readonly allNav: NavItem[] = [
     { label: 'User Management', icon: 'fas fa-users-cog', route: '/admin/users', queryParams: { tab: 'users' }, section: 'users' },
-    { label: 'Roles & Rights', icon: 'fas fa-shield-alt', route: '/admin/users', queryParams: { tab: 'roles' }, section: 'users' },
-    { label: 'Organizations', icon: 'fas fa-building', route: '/admin/users', queryParams: { tab: 'orgs' }, section: 'users' },
+    { label: 'Roles & Rights', icon: 'fas fa-shield-alt', route: '/admin/users', queryParams: { tab: 'roles' }, section: 'users', superAdminOnly: true },
+    { label: 'Organizations', icon: 'fas fa-building', route: '/admin/users', queryParams: { tab: 'orgs' }, section: 'users', superAdminOnly: true },
     { label: 'Global Combined', icon: 'fas fa-globe', route: '/admin/metrics', queryParams: { view: 'combined' }, section: 'metrics' },
     { label: 'Audit Report', icon: 'fas fa-list-check', route: '/admin/metrics/audit', section: 'metrics' },
     { label: 'BYOK Usage', icon: 'fas fa-key', route: '/admin/metrics/byok', section: 'metrics' },
-    { label: 'Payment Settings', icon: 'fas fa-credit-card', route: '/admin/payments', section: 'payments' },
+    { label: 'Payment Settings', icon: 'fas fa-credit-card', route: '/admin/payments', section: 'payments', superAdminOnly: true },
     { label: 'Company AI Keys', icon: 'fas fa-key', route: '/admin/ai-keys', right: Rights.Admin_AIKeys_View, section: 'ai-keys' },
     { label: 'Jivu Command', icon: 'fas fa-terminal', route: '/admin/jivu-command', section: 'pipeline' },
     { label: 'Trend Radar', icon: 'fas fa-share-nodes', route: '/admin/radars', queryParams: { radar: 'trend' }, section: 'radars' },
     { label: 'Dashboard Radar', icon: 'fas fa-chart-line', route: '/admin/radars', queryParams: { radar: 'dashboard' }, section: 'radars' },
     { label: 'Store Radar', icon: 'fas fa-store', route: '/admin/radars', queryParams: { radar: 'store' }, section: 'radars' },
-    { label: 'Processing Config', icon: 'fas fa-cog', route: '/admin/processing', right: Rights.Admin_Config_View, section: 'config' },
-    { label: 'Model Configuration', icon: 'fas fa-sliders', route: '/admin/processing', queryParams: { tab: 'models' }, right: Rights.Admin_Config_View, section: 'config' },
-    { label: 'Assets Studio', icon: 'fas fa-wand-magic-sparkles', route: '/admin/templates', right: Rights.Admin_Config_View, section: 'templates' },
-    { label: 'Assets', icon: 'fas fa-photo-film', route: '/admin/assets', right: Rights.Admin_Config_View, section: 'assets' },
-    { label: 'User Cloud', icon: 'fas fa-cloud', route: '/admin/cloud', right: Rights.Admin_Config_View, section: 'cloud' },
-    { label: 'Free', icon: 'fas fa-user', route: '/admin/plan-users', queryParams: { plan: 'free' }, section: 'plan-users' },
-    { label: 'Student', icon: 'fas fa-graduation-cap', route: '/admin/plan-users', queryParams: { plan: 'student' }, section: 'plan-users' },
-    { label: 'Merchant', icon: 'fas fa-store', route: '/admin/plan-users', queryParams: { plan: 'merchant' }, section: 'plan-users' },
-    { label: 'Premium', icon: 'fas fa-crown', route: '/admin/plan-users', queryParams: { plan: 'premium' }, section: 'plan-users' },
-    { label: 'BYOK', icon: 'fas fa-key', route: '/admin/plan-users', queryParams: { plan: 'byok' }, section: 'plan-users' },
+    { label: 'Processing Config', icon: 'fas fa-cog', route: '/admin/processing', right: Rights.Admin_Config_View, section: 'config', superAdminOnly: true },
+    { label: 'Model Configuration', icon: 'fas fa-sliders', route: '/admin/processing', queryParams: { tab: 'models' }, right: Rights.Admin_Config_View, section: 'config', superAdminOnly: true },
+    { label: 'Templates', icon: 'fas fa-clone', route: '/admin/templates', queryParams: { section: 'templates' }, right: Rights.Admin_Config_View, section: 'templates', superAdminOnly: true },
+    { label: 'Soundtracks', icon: 'fas fa-music', route: '/admin/templates', queryParams: { section: 'soundtracks' }, right: Rights.Admin_Config_View, section: 'templates', superAdminOnly: true },
+    { label: 'Assets', icon: 'fas fa-photo-film', route: '/admin/templates', queryParams: { section: 'assets' }, right: Rights.Admin_Config_View, section: 'templates', superAdminOnly: true },
+    { label: 'User Cloud', icon: 'fas fa-cloud', route: '/admin/cloud', right: Rights.Admin_Config_View, section: 'cloud', superAdminOnly: true },
+    { label: 'Free', icon: 'fas fa-user', route: '/admin/plan-users', queryParams: { plan: 'free' }, section: 'plan-users', superAdminOnly: true },
+    { label: 'Student', icon: 'fas fa-graduation-cap', route: '/admin/plan-users', queryParams: { plan: 'student' }, section: 'plan-users', superAdminOnly: true },
+    { label: 'Merchant', icon: 'fas fa-store', route: '/admin/plan-users', queryParams: { plan: 'merchant' }, section: 'plan-users', superAdminOnly: true },
+    { label: 'Premium', icon: 'fas fa-crown', route: '/admin/plan-users', queryParams: { plan: 'premium' }, section: 'plan-users', superAdminOnly: true },
+    { label: 'BYOK', icon: 'fas fa-key', route: '/admin/plan-users', queryParams: { plan: 'byok' }, section: 'plan-users', superAdminOnly: true },
   ];
 
   readonly currentSection = computed(() => {
@@ -82,8 +91,7 @@ export class Sidebar {
     if (path.startsWith('/admin/pipeline') || path.startsWith('/admin/jivu-command')) return 'pipeline';
     if (path.startsWith('/admin/radars') || path.startsWith('/admin/run-jobs')) return 'radars';
     if (path.startsWith('/admin/processing')) return 'config';
-    if (path.startsWith('/admin/templates')) return 'templates';
-    if (path.startsWith('/admin/assets')) return 'assets';
+    if (path.startsWith('/admin/templates') || path.startsWith('/admin/assets')) return 'templates';
     if (path.startsWith('/admin/cloud')) return 'cloud';
     if (path.startsWith('/admin/plan-users')) return 'plan-users';
     return null;
@@ -98,19 +106,28 @@ export class Sidebar {
     return icon;
   }
 
+  displayLabel(item: NavItem): string {
+    return item.section === 'ai-keys' && this.authStore.isTenantAdmin()
+      ? 'Organization AI Keys'
+      : item.label;
+  }
+
   isActiveNavItem(item: NavItem): boolean {
     const url = this.router.url;
     const path = url.split('?')[0];
     if (path !== item.route) return false;
-    const query = url.includes('?') ? url.split('?')[1] : '';
+    const query = url.includes('?') ? url.split('?')[1].split('#')[0] : '';
     if (item.isParent) {
       return !query.includes('type=') && !query.includes('status=');
     }
     if (item.queryParams) {
+      const params = new URLSearchParams(query);
       for (const key of Object.keys(item.queryParams)) {
         const value = item.queryParams[key];
-        const paramStr = `${key}=${value}`;
-        if (!url.includes(paramStr)) return false;
+        const actual = params.get(key);
+        if (actual === value) continue;
+        if (item.route === '/admin/templates' && key === 'section' && value === 'templates' && !actual) continue;
+        return false;
       }
     } else if (query) {
       return false;
@@ -124,6 +141,23 @@ export class Sidebar {
     return activeCount > 0 ? activeCount.toString() : null;
   }
 
+  selectCloudUser(user: UserManagementDto): void {
+    this.cloudUsers.selectUser(user);
+    if (!this.currentPath().startsWith('/admin/cloud')) {
+      this.router.navigate(['/admin/cloud']);
+    }
+  }
+
+  cloudUserInitial(user: UserManagementDto): string {
+    return (user.email || user.username || '?').charAt(0).toUpperCase();
+  }
+
+  cloudUserSubtitle(user: UserManagementDto): string {
+    const name = user.displayName || user.username || 'User';
+    const plan = user.planName || user.planCode || 'No plan';
+    return `${name} - ${plan}`;
+  }
+
   get currentModuleTitle(): string {
     const section = this.currentSection();
     if (section === 'metrics') return 'Metrics & Reports';
@@ -134,14 +168,21 @@ export class Sidebar {
     if (section === 'radars') return 'Radars';
     if (section === 'config') return 'Processing Config';
     if (section === 'templates') return 'Assets Studio';
-    if (section === 'assets') return 'Asset Management';
     if (section === 'cloud') return 'User Cloud';
     if (section === 'plan-users') return 'Plan Users';
     return 'Admin Portal';
   }
 
   private canViewNavItem(item: NavItem): boolean {
+    if (item.superAdminOnly && !this.authStore.isSuperAdmin()) return false;
     return !item.right || this.authStore.isSuperAdmin() || this.authStore.hasRight()(item.right);
+  }
+
+  private ensureCloudUsersForUrl(url: string): void {
+    const path = url.split(/[?#]/)[0];
+    if (path.startsWith('/admin/cloud')) {
+      this.cloudUsers.ensureLoaded();
+    }
   }
 }
 

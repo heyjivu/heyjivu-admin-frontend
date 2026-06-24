@@ -50,6 +50,9 @@ export interface AuthResponse {
   byokRequested: boolean;
   accountType?: string;
   portal?: string;
+  organizationId?: string | null;
+  organizationName?: string | null;
+  isOrgAdmin?: boolean;
 }
 
 export interface AuthUser {
@@ -62,4 +65,7 @@ export interface AuthUser {
   byokRequested: boolean;
   accountType?: string;
   portal?: string;
+  organizationId?: string | null;
+  organizationName?: string | null;
+  isOrgAdmin?: boolean;
 }

@@ -59,7 +59,13 @@ export interface BypassFreeShellRoleResult {
 export interface OrganizationDto {
   id: string;
   name: string;
-  description: string;
+  description?: string | null;
+  isActive?: boolean;
+  blockedAt?: string | null;
+  blockedReason?: string | null;
+  userCount?: number;
+  activeUserCount?: number;
+  orgAdminName?: string | null;
 }
 
 export interface PagedResult<T> {
@@ -110,6 +116,8 @@ export interface AdminCreateUserRequest {
   accountType: 'user' | 'admin_only' | 'both';
   roleId?: string | null;
   planId?: string | null;
+  organizationId?: string | null;
+  isOrgAdmin?: boolean;
   contentProfile?: AdminCreateContentProfileRequest | null;
 }
 
@@ -229,6 +237,26 @@ export class AdminService {
 
   getOrganizations(): Observable<OrganizationDto[]> {
     return this.http.get<OrganizationDto[]>(`${environment.apiUrl}/admin/users/organizations`);
+  }
+
+  createOrganization(request: { name: string; description?: string | null }): Observable<string> {
+    return this.http.post<string>(`${this.apiUrl}/organizations`, request);
+  }
+
+  updateOrganization(organizationId: string, request: { name: string; description?: string | null }): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/organizations/${organizationId}`, request);
+  }
+
+  blockOrganization(organizationId: string, reason?: string | null): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/organizations/${organizationId}/block`, { reason: reason || null });
+  }
+
+  unblockOrganization(organizationId: string): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/organizations/${organizationId}/unblock`, {});
+  }
+
+  assignUserOrganization(userId: string, organizationId: string | null, isOrgAdmin = false): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${userId}/organization`, { organizationId, isOrgAdmin });
   }
 
   updateUserRole(userId: string, roleId: string): Observable<void> {

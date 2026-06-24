@@ -169,9 +169,10 @@
   min-width: 0;
 
   > span {
-    color: var(--surface-glass-light);
+    color: #e8dfcf;
     font-size: 12px;
     font-weight: 800;
+    letter-spacing: 0;
   }
 
   small {
@@ -180,7 +181,7 @@
   }
 
   .wizard-field__hint {
-    color: var(--surface-glass-light);
+    color: #b9af9f;
   }
 
   &.has-error .wizard-input-shell,
@@ -204,7 +205,7 @@
   background: var(--border-subtle);
 
   i {
-    color: var(--surface-glass-light);
+    color: #8f866f;
   }
 
   .field-input {
@@ -214,6 +215,11 @@
     background: transparent;
     color: var(--text);
     outline: none;
+
+    &::placeholder {
+      color: #908879;
+      opacity: 1;
+    }
   }
 
   select.field-input {

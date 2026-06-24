@@ -5,11 +5,12 @@ import { finalize } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AssetsApiService, AssetDto } from './services/assets-api.service';
 import { ToastService } from '../../core/services/toast.service';
+import { AssetDialogComponent } from './components/asset-dialog/asset-dialog.component';
 
 @Component({
   selector: 'app-asset-management',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AssetDialogComponent],
   templateUrl: './asset-management.page.html',
   styleUrl: './asset-management.page.scss'
 })
@@ -37,6 +38,8 @@ export class AssetManagementPage implements OnInit, OnDestroy {
   formFileUrl2k = '';
   formFileUrl1k = '';
   formIsActive = true;
+  formAttachmentFile: File | null = null;
+  formAttachmentName = '';
 
   ngOnInit() {
     this.loadAssets();
@@ -83,6 +86,8 @@ export class AssetManagementPage implements OnInit, OnDestroy {
     this.formFileUrl2k = '';
     this.formFileUrl1k = '';
     this.formIsActive = true;
+    this.formAttachmentFile = null;
+    this.formAttachmentName = '';
     this.formSubmitted.set(false);
     this.showForm.set(true);
   }
@@ -97,6 +102,8 @@ export class AssetManagementPage implements OnInit, OnDestroy {
     this.formFileUrl2k = asset.fileUrl2k;
     this.formFileUrl1k = asset.fileUrl1k;
     this.formIsActive = asset.isActive;
+    this.formAttachmentFile = null;
+    this.formAttachmentName = '';
     this.formSubmitted.set(false);
     this.showForm.set(true);
   }
@@ -117,6 +124,10 @@ export class AssetManagementPage implements OnInit, OnDestroy {
       this.toast.error('Name and type are required.');
       return;
     }
+    if (!this.editing() && !this.formAttachmentFile) {
+      this.toast.error('Attachment is required.');
+      return;
+    }
 
     const payload = {
       id: this.editing()?.id || null,
@@ -127,7 +138,8 @@ export class AssetManagementPage implements OnInit, OnDestroy {
       fileUrl2k: this.formFileUrl2k.trim(),
       fileUrl1k: this.formFileUrl1k.trim(),
       isActive: this.formIsActive,
-      allowedRoles: [] as string[]
+      allowedRoles: [] as string[],
+      file: this.formAttachmentFile
     };
 
     const isEditing = !!this.editing();
@@ -182,7 +194,7 @@ export class AssetManagementPage implements OnInit, OnDestroy {
   }
 
   canSaveAsset(): boolean {
-    return !this.saving() && !!this.formName.trim() && !!this.formType.trim();
+    return !this.saving() && !!this.formName.trim() && !!this.formType.trim() && (!!this.editing() || !!this.formAttachmentFile);
   }
 
   isNameInvalid(): boolean {

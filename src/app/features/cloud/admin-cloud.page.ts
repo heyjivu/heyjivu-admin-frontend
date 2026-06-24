@@ -1,14 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
-import { AdminService, UserManagementDto } from '../users/services/admin.service';
+import { UserManagementDto } from '../users/services/admin.service';
 import {
   AdminCloudApiService,
   AdminCloudFileEntry,
   AdminCloudStorageInfo
 } from './services/admin-cloud-api.service';
+import { AdminCloudUserStore } from './state/admin-cloud-user.store';
 
 type FolderShortcut = {
   label: string;
@@ -28,21 +29,17 @@ type FolderSection = {
   templateUrl: './admin-cloud.page.html',
   styleUrl: './admin-cloud.page.scss'
 })
-export class AdminCloudPage implements OnInit, OnDestroy {
+export class AdminCloudPage implements OnInit {
   private readonly api = inject(AdminCloudApiService);
-  private readonly adminService = inject(AdminService);
+  private readonly cloudUsers = inject(AdminCloudUserStore);
   private readonly destroyRef = inject(DestroyRef);
-  private searchTimer: ReturnType<typeof setTimeout> | null = null;
-  private userRequestId = 0;
   private storageRequestId = 0;
   private fileRequestId = 0;
   private previewRequestId = 0;
   private downloadRequestId = 0;
+  private lastSelectedUserId: string | null = null;
 
-  readonly users = signal<UserManagementDto[]>([]);
-  readonly selectedUser = signal<UserManagementDto | null>(null);
-  readonly userSearch = signal('');
-  readonly loadingUsers = signal(false);
+  readonly selectedUser = this.cloudUsers.selectedUser;
 
   readonly files = signal<AdminCloudFileEntry[]>([]);
   readonly loadingFiles = signal(false);
@@ -118,58 +115,33 @@ export class AdminCloudPage implements OnInit, OnDestroy {
   });
   readonly storagePercentLabel = computed(() => this.storageInfo() ? `${Math.round(this.storagePercent())}%` : '--');
 
+  private readonly selectedUserWatcher = effect(() => {
+    const user = this.selectedUser();
+    const userId = user?.id ?? null;
+    if (this.lastSelectedUserId === userId) return;
+    this.lastSelectedUserId = userId;
+    queueMicrotask(() => this.applySelectedUser(user));
+  });
+
   ngOnInit(): void {
-    this.loadUsers();
+    this.cloudUsers.ensureLoaded();
   }
 
-  ngOnDestroy(): void {
-    if (this.searchTimer) {
-      clearTimeout(this.searchTimer);
+  private applySelectedUser(user: UserManagementDto | null): void {
+    if (!user) {
+      this.currentFolder.set('root');
+      this.history.set([{ name: 'Root', id: 'root' }]);
+      this.searchQuery.set('');
+      this.files.set([]);
+      this.storageInfo.set(null);
+      this.storageLoaded.set(false);
+      this.loadingStorage.set(false);
+      this.downloadRequestId++;
+      this.downloadPath.set('');
+      this.fileActionError.set('');
+      this.closePreview();
+      return;
     }
-  }
-
-  onUserSearchChange(value: string): void {
-    this.userSearch.set(value);
-    if (this.searchTimer) {
-      clearTimeout(this.searchTimer);
-    }
-    this.searchTimer = setTimeout(() => this.loadUsers(value), 250);
-  }
-
-  loadUsers(searchTerm = this.userSearch()): void {
-    const requestId = ++this.userRequestId;
-    this.loadingUsers.set(true);
-    this.adminService.getUsers({
-      pageNumber: 1,
-      pageSize: 50,
-      searchTerm: searchTerm.trim() || undefined,
-      sortBy: 'email',
-      includeQuotaSummary: false
-    }).pipe(
-      takeUntilDestroyed(this.destroyRef),
-      finalize(() => {
-        if (requestId === this.userRequestId) {
-          this.loadingUsers.set(false);
-        }
-      })
-    ).subscribe({
-      next: result => {
-        if (requestId !== this.userRequestId) return;
-        this.users.set(result.items || []);
-        if (!this.selectedUser() && result.items?.length) {
-          this.selectUser(result.items[0]);
-        }
-      },
-      error: () => {
-        if (requestId === this.userRequestId) {
-          this.users.set([]);
-        }
-      }
-    });
-  }
-
-  selectUser(user: UserManagementDto): void {
-    this.selectedUser.set(user);
     this.currentFolder.set('root');
     this.history.set([{ name: 'Root', id: 'root' }]);
     this.searchQuery.set('');
@@ -408,4 +380,5 @@ export class AdminCloudPage implements OnInit, OnDestroy {
   private extension(name: string): string {
     return (name.split('.').pop() || '').toLowerCase();
   }
+
 }

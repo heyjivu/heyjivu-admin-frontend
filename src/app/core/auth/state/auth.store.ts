@@ -44,6 +44,9 @@ const userFromAuthResponse = (response: AuthResponse): AuthUser => ({
   byokRequested: response.byokRequested,
   accountType: response.accountType,
   portal: response.portal,
+  organizationId: response.organizationId ?? null,
+  organizationName: response.organizationName ?? null,
+  isOrgAdmin: response.isOrgAdmin ?? false,
 });
 
 export const AuthStore = signalStore(
@@ -52,6 +55,10 @@ export const AuthStore = signalStore(
   withComputed((state) => ({
     displayName: computed(() => state.user()?.displayName || state.user()?.username || 'User'),
     isSuperAdmin: computed(() => state.user()?.isSuperAdmin || false),
+    isOrgAdmin: computed(() => state.user()?.isOrgAdmin || false),
+    organizationId: computed(() => state.user()?.organizationId ?? null),
+    organizationName: computed(() => state.user()?.organizationName ?? null),
+    isTenantAdmin: computed(() => Boolean(state.user()?.isOrgAdmin) && !Boolean(state.user()?.isSuperAdmin)),
     rights: computed(() => state.user()?.rights || []),
     hasRight: computed(() => (right: string) => {
       if (state.user()?.isSuperAdmin) return true;

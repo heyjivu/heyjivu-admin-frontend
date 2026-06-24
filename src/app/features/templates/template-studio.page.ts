@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, catchError, finalize, of } from 'rxjs';
 import { ToastService } from '../../core/services/toast.service';
@@ -13,8 +14,11 @@ import {
   StudioStatusFilter,
   TemplateStudioApiService
 } from './services/template-studio-api.service';
+import { AssetManagementPage } from '../assets/asset-management.page';
+import { TemplateStudioDialogComponent } from './components/template-studio-dialog/template-studio-dialog.component';
 
 type StudioKind = 'template' | 'soundtrack';
+type StudioSection = 'templates' | 'soundtracks' | 'assets';
 type PlanCode = 'free' | 'student' | 'merchant' | 'premium' | 'byok';
 
 interface PlanOption {
@@ -32,7 +36,7 @@ interface VisibilityItem {
 @Component({
   selector: 'app-template-studio',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AssetManagementPage, TemplateStudioDialogComponent],
   templateUrl: './template-studio.page.html',
   styleUrl: './template-studio.page.scss'
 })
@@ -40,6 +44,8 @@ export class TemplateStudioPage implements OnInit, OnDestroy {
   private readonly api = inject(TemplateStudioApiService);
   private readonly adminService = inject(AdminService);
   private readonly toast = inject(ToastService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private templateLoadRequestId = 0;
   private soundtrackLoadRequestId = 0;
@@ -74,6 +80,7 @@ export class TemplateStudioPage implements OnInit, OnDestroy {
   deletingAction = signal<{ kind: StudioKind; id: string } | null>(null);
   templateError = signal(false);
   soundtrackError = signal(false);
+  activeSection = signal<StudioSection>('templates');
 
   templateSearch = signal('');
   soundtrackSearch = signal('');
@@ -106,6 +113,8 @@ export class TemplateStudioPage implements OnInit, OnDestroy {
   formSoundtrackUrl = '';
   formDurationSeconds: number | null = null;
   formBpm: number | null = null;
+  formAttachmentFile: File | null = null;
+  formAttachmentName = '';
 
   templateStats = computed(() => this.buildStats(this.templates()));
   soundtrackStats = computed(() => this.buildStats(this.soundtracks()));
@@ -133,6 +142,12 @@ export class TemplateStudioPage implements OnInit, OnDestroy {
   });
 
   ngOnInit() {
+    this.route.queryParamMap.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(params => {
+      this.activeSection.set(this.normalizeSection(params.get('section')));
+    });
+
     this.loadRoles();
     this.loadTemplates();
     this.loadSoundtracks();
@@ -145,6 +160,20 @@ export class TemplateStudioPage implements OnInit, OnDestroy {
   loadAll() {
     this.loadTemplates();
     this.loadSoundtracks();
+  }
+
+  setActiveSection(section: StudioSection) {
+    this.activeSection.set(section);
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { section },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
+  }
+
+  private normalizeSection(value: string | null): StudioSection {
+    return value === 'soundtracks' || value === 'assets' ? value : 'templates';
   }
 
   loadRoles() {
@@ -293,6 +322,10 @@ export class TemplateStudioPage implements OnInit, OnDestroy {
     if (this.saving()) return;
     if (!this.formName.trim()) {
       this.toast.error('Name is required.');
+      return;
+    }
+    if (!this.editingItemId() && !this.formAttachmentFile) {
+      this.toast.error('Attachment is required.');
       return;
     }
 
@@ -481,6 +514,35 @@ export class TemplateStudioPage implements OnInit, OnDestroy {
     return `${action} ${this.kindLabel()}`;
   }
 
+  onAttachmentSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.formAttachmentFile = file;
+    this.formAttachmentName = file?.name ?? '';
+  }
+
+  clearAttachment(input?: HTMLInputElement) {
+    this.formAttachmentFile = null;
+    this.formAttachmentName = '';
+    if (input) {
+      input.value = '';
+    }
+  }
+
+  attachmentAccept(): string {
+    return this.formKind === 'soundtrack'
+      ? 'audio/*'
+      : 'image/*,video/*,.json,.lottie,.riv';
+  }
+
+  setDialogCategory(value: string) {
+    if (this.formKind === 'template') {
+      this.formCategory = value;
+    } else {
+      this.formSoundtrackGenre = value;
+    }
+  }
+
   trackTemplate(_: number, item: AdminTemplateDto): string {
     return item.id;
   }
@@ -507,7 +569,8 @@ export class TemplateStudioPage implements OnInit, OnDestroy {
       allowedPlanCodes: [...this.formAllowedPlanCodes],
       allowedRoleIds: [...this.formAllowedRoleIds],
       allowedRoles: [],
-      tags: this.parseTags(this.formTags)
+      tags: this.parseTags(this.formTags),
+      file: this.formAttachmentFile
     };
 
     const id = this.editingItemId();
@@ -528,7 +591,8 @@ export class TemplateStudioPage implements OnInit, OnDestroy {
       allowedPlanCodes: [...this.formAllowedPlanCodes],
       allowedRoleIds: [...this.formAllowedRoleIds],
       allowedRoles: [],
-      tags: this.parseTags(this.formTags)
+      tags: this.parseTags(this.formTags),
+      file: this.formAttachmentFile
     };
 
     const id = this.editingItemId();
@@ -554,6 +618,8 @@ export class TemplateStudioPage implements OnInit, OnDestroy {
     this.formSoundtrackUrl = '';
     this.formDurationSeconds = null;
     this.formBpm = null;
+    this.formAttachmentFile = null;
+    this.formAttachmentName = '';
   }
 
   private buildStats(items: Array<{ isActive: boolean }>): { total: number; active: number; inactive: number } {

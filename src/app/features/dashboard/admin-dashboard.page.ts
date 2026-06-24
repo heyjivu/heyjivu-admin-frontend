@@ -10,6 +10,7 @@ import {
   AdminService
 } from '../users/services/admin.service';
 import { AdminPaymentService } from '../payments/services/admin-payment.service';
+import { AuthStore } from '../../core/auth/state/auth.store';
 
 interface StatCard {
   label: string;
@@ -29,6 +30,7 @@ interface StatCard {
 export class AdminDashboardPage implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly paymentService = inject(AdminPaymentService);
+  readonly authStore = inject(AuthStore);
   private readonly usdToPkrRate = 278;
 
   loading = signal(false);
@@ -50,7 +52,9 @@ export class AdminDashboardPage implements OnInit {
     forkJoin({
       stats: this.adminService.getStats().pipe(catchError(() => of(null))),
       recentUsers: this.adminService.getRecentUsers(5).pipe(catchError(() => of([]))),
-      recentPayments: this.paymentService.getRecentPayments(5).pipe(catchError(() => of([])))
+      recentPayments: this.authStore.isSuperAdmin()
+        ? this.paymentService.getRecentPayments(5).pipe(catchError(() => of([])))
+        : of([])
     }).pipe(
       finalize(() => this.loading.set(false))
     ).subscribe(({ stats, recentUsers, recentPayments }) => {
@@ -65,10 +69,9 @@ export class AdminDashboardPage implements OnInit {
     this.aiUsage.set(aiUsage);
     const totals = aiUsage.totals;
 
-    this.stats.set([
+    const cards: StatCard[] = [
       { label: 'Total Users', value: data?.totalUsers || 0, icon: 'fas fa-users', color: 'indigo' },
       { label: 'Active Users', value: data?.activeUsers || 0, icon: 'fas fa-user-check', color: 'emerald' },
-      { label: 'Total Revenue', value: `$${(data?.totalRevenue || 0).toLocaleString()}`, icon: 'fas fa-dollar-sign', color: 'amber' },
       { label: 'Pending Reviews', value: data?.pendingReviews || 0, icon: 'fas fa-clipboard-list', color: 'violet' },
       {
         label: 'Platform AI Cost',
@@ -98,7 +101,13 @@ export class AdminDashboardPage implements OnInit {
         icon: 'fas fa-stopwatch',
         color: 'indigo'
       }
-    ]);
+    ];
+
+    if (this.authStore.isSuperAdmin()) {
+      cards.splice(2, 0, { label: 'Total Revenue', value: `$${(data?.totalRevenue || 0).toLocaleString()}`, icon: 'fas fa-dollar-sign', color: 'amber' });
+    }
+
+    this.stats.set(cards);
   }
 
   formatPkr(amountUsd: number | null | undefined): string {

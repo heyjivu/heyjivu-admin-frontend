@@ -21,42 +21,6 @@
 
   <div class="cloud-layout">
     <aside class="cloud-sidebar">
-      <section class="cloud-user-panel">
-        <label class="cloud-label" for="cloud-user-search">Select user by email</label>
-        <div class="cloud-user-search">
-          <i class="fas fa-search"></i>
-          <input
-            id="cloud-user-search"
-            type="text"
-            [ngModel]="userSearch()"
-            (ngModelChange)="onUserSearchChange($event)"
-            placeholder="Search email or username"
-          />
-        </div>
-
-        <div class="cloud-user-list" [class.is-loading]="loadingUsers()">
-          @for (user of users(); track user.id) {
-            <button
-              type="button"
-              class="cloud-user-option"
-              [class.active]="selectedUser()?.id === user.id"
-              (click)="selectUser(user)"
-              [title]="user.email">
-              <span class="cloud-user-avatar">{{ (user.email || user.username).charAt(0).toUpperCase() }}</span>
-              <span class="cloud-user-text">
-                <strong>{{ user.email || user.username }}</strong>
-                <small>{{ user.displayName || user.username }} · {{ user.planName || user.planCode || 'No plan' }}</small>
-              </span>
-            </button>
-          } @empty {
-            <div class="cloud-empty-mini">
-              <i class="fas fa-user-slash"></i>
-              <span>No users found</span>
-            </div>
-          }
-        </div>
-      </section>
-
       <section class="cloud-storage-panel">
         <div class="cloud-storage-heading">
           <span>Storage</span>
@@ -94,11 +58,11 @@
             @for (item of section.items; track item.folder) {
               <button
                 type="button"
-              class="cloud-folder-button"
-              [class.active]="isActiveFolder(item.folder)"
-              (click)="loadFiles(item.folder, item.label)"
-              [disabled]="loadingFiles() || !!downloadPath()"
-              [title]="item.folder">
+                class="cloud-folder-button"
+                [class.active]="isActiveFolder(item.folder)"
+                (click)="loadFiles(item.folder, item.label)"
+                [disabled]="loadingFiles() || !!downloadPath()"
+                [title]="item.folder">
                 <i [class]="item.icon"></i>
                 <span>{{ item.label }}</span>
               </button>
@@ -131,7 +95,7 @@
         <div class="cloud-placeholder">
           <i class="fas fa-cloud"></i>
           <strong>Select a user</strong>
-          <span>Choose a user by email to inspect their storage folders.</span>
+          <span>Choose a user from the left menu to inspect their storage folders.</span>
         </div>
       } @else {
         <div class="cloud-workspace-toolbar">

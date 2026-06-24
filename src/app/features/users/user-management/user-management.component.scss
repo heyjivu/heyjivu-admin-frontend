@@ -691,6 +691,62 @@ select.select-input {
   }
 }
 
+.organization-modal {
+  width: min(520px, calc(100vw - 32px));
+}
+
+.organization-form {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.organization-field {
+  display: grid;
+  gap: 8px;
+
+  label {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+}
+
+.organization-input {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.16);
+  color: var(--text);
+  font: inherit;
+  outline: none;
+
+  &:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-alpha-08);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
+}
+
+.organization-textarea {
+  min-height: 104px;
+  resize: vertical;
+}
+
+.organization-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px 0;
+}
+
 @media (max-width: 760px) {
   .right-create-panel__grid {
     grid-template-columns: 1fr;
@@ -702,6 +758,14 @@ select.select-input {
   }
 
   .grid-confirm-footer {
+    flex-wrap: wrap;
+
+    .btn {
+      flex: 1 1 140px;
+    }
+  }
+
+  .organization-footer {
     flex-wrap: wrap;
 
     .btn {

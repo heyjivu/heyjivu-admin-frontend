@@ -45,11 +45,11 @@
       <i class="fas fa-users-cog"></i>
       <span class="tab-label">Users</span>
     </button>
-    <button class="tab-btn" routerLink="/admin/plan-users" routerLinkActive="active" title="Plan Users">
+    <button *ngIf="authStore.isSuperAdmin()" class="tab-btn" routerLink="/admin/plan-users" routerLinkActive="active" title="Plan Users">
       <i class="fas fa-layer-group"></i>
       <span class="tab-label">Plan Users</span>
     </button>
-    <button class="tab-btn" routerLink="/admin/payments" routerLinkActive="active" title="Payment Settings">
+    <button *ngIf="authStore.isSuperAdmin()" class="tab-btn" routerLink="/admin/payments" routerLinkActive="active" title="Payment Settings">
       <i class="fas fa-credit-card"></i>
       <span class="tab-label">Payments</span>
     </button>
@@ -58,7 +58,7 @@
       class="tab-btn"
       routerLink="/admin/ai-keys"
       routerLinkActive="active"
-      title="Company AI Keys"
+      [title]="authStore.isTenantAdmin() ? 'Organization AI Keys' : 'Company AI Keys'"
     >
       <i class="fas fa-key"></i>
       <span class="tab-label">AI Keys</span>
@@ -71,19 +71,15 @@
       <i class="fas fa-satellite-dish"></i>
       <span class="tab-label">Radars</span>
     </button>
-    <button class="tab-btn" routerLink="/admin/processing" routerLinkActive="active" title="Processing Configuration">
+    <button *ngIf="authStore.isSuperAdmin()" class="tab-btn" routerLink="/admin/processing" routerLinkActive="active" title="Processing Configuration">
       <i class="fas fa-cog"></i>
       <span class="tab-label">Config</span>
     </button>
-    <button class="tab-btn" routerLink="/admin/templates" routerLinkActive="active" title="Assets Studio">
+    <button *ngIf="authStore.isSuperAdmin()" class="tab-btn" routerLink="/admin/templates" routerLinkActive="active" title="Assets Studio">
       <i class="fas fa-wand-magic-sparkles"></i>
       <span class="tab-label">Assets Studio</span>
     </button>
-    <button class="tab-btn" routerLink="/admin/assets" routerLinkActive="active" title="Asset Management">
-      <i class="fas fa-photo-film"></i>
-      <span class="tab-label">Assets</span>
-    </button>
-    <button class="tab-btn" routerLink="/admin/cloud" routerLinkActive="active" title="User Cloud">
+    <button *ngIf="authStore.isSuperAdmin()" class="tab-btn" routerLink="/admin/cloud" routerLinkActive="active" title="User Cloud">
       <i class="fas fa-cloud"></i>
       <span class="tab-label">Cloud</span>
     </button>

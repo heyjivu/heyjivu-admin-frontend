@@ -43,3 +43,38 @@ export const hasRight = (requiredRight: string): CanActivateFn => {
     );
   };
 };
+
+export const superAdminOnly: CanActivateFn = () => {
+  const authStore = inject(AuthStore);
+  const router = inject(Router);
+
+  const checkSuperAdmin = (): boolean => {
+    if (authStore.isSuperAdmin()) {
+      return true;
+    }
+
+    router.navigate(['/admin/dashboard']);
+    return false;
+  };
+
+  if (authStore.isAuthenticated()) {
+    return checkSuperAdmin();
+  }
+
+  authStore.initializeFromStorage();
+
+  return authStore.refreshSession().pipe(
+    map((restored) => {
+      if (!restored || !authStore.isAuthenticated()) {
+        router.navigate(['/login']);
+        return false;
+      }
+
+      return checkSuperAdmin();
+    }),
+    catchError(() => {
+      router.navigate(['/login']);
+      return of(false);
+    })
+  );
+};

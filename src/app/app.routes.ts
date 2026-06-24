@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/auth/guards/auth.guard';
-import { hasRight } from './core/guards/admin.guard';
+import { hasRight, superAdminOnly } from './core/guards/admin.guard';
 import { Rights } from './core/constants/rights.constants';
 
 export const routes: Routes = [
@@ -96,7 +96,7 @@ export const routes: Routes = [
       },
       {
         path: 'payments',
-        canActivate: [authGuard, hasRight(Rights.Admin_Payments_View)],
+        canActivate: [authGuard, superAdminOnly, hasRight(Rights.Admin_Payments_View)],
         loadComponent: () => import('./features/payments/payment-management.page').then((m) => m.PaymentManagementPage),
       },
       {
@@ -111,22 +111,22 @@ export const routes: Routes = [
       },
       {
         path: 'processing',
-        canActivate: [authGuard, hasRight(Rights.Admin_Config_View)],
+        canActivate: [authGuard, superAdminOnly, hasRight(Rights.Admin_Config_View)],
         loadComponent: () => import('./features/config/processing-config.page').then((m) => m.ProcessingConfigPage),
       },
       {
         path: 'templates',
-        canActivate: [authGuard, hasRight(Rights.Admin_Config_View)],
+        canActivate: [authGuard, superAdminOnly, hasRight(Rights.Admin_Config_View)],
         loadComponent: () => import('./features/templates/template-studio.page').then((m) => m.TemplateStudioPage),
       },
       {
         path: 'assets',
-        canActivate: [authGuard, hasRight(Rights.Admin_Config_View)],
-        loadComponent: () => import('./features/assets/asset-management.page').then((m) => m.AssetManagementPage),
+        pathMatch: 'full',
+        redirectTo: 'templates',
       },
       {
         path: 'cloud',
-        canActivate: [authGuard, hasRight(Rights.Admin_Config_View)],
+        canActivate: [authGuard, superAdminOnly, hasRight(Rights.Admin_Config_View)],
         loadComponent: () => import('./features/cloud/admin-cloud.page').then((m) => m.AdminCloudPage),
       },
       {
@@ -151,7 +151,7 @@ export const routes: Routes = [
       },
       {
         path: 'plan-users',
-        canActivate: [authGuard, hasRight(Rights.Admin_PlanUsers_View)],
+        canActivate: [authGuard, superAdminOnly, hasRight(Rights.Admin_PlanUsers_View)],
         loadComponent: () => import('./features/plan-users/plan-users.page').then((m) => m.PlanUsersPage),
       }
     ]
