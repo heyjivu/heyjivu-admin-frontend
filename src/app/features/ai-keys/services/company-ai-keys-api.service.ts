@@ -125,6 +125,7 @@ export interface AdminCompanyAIKeyDto {
 
 const COMPANY_CATEGORIES: Array<{ id: string; providers: string[] }> = [
   { id: 'Text', providers: ['OpenAI', 'Gemini', 'DeepSeek', 'OpenRouter', 'Alibaba', 'Groq'] },
+  { id: 'Embedding', providers: ['OpenAI', 'Gemini'] },
   { id: 'Whisper', providers: ['Groq', 'OpenAI', 'OpenRouter'] },
   { id: 'ImageGen', providers: ['Gemini', 'OpenAI', 'TogetherAI', 'OpenRouter', 'StabilityAI', 'Modal'] },
   { id: 'Vision', providers: ['Gemini', 'OpenAI'] },

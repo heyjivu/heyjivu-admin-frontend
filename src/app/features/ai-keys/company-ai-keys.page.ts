@@ -76,6 +76,16 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       ]
     },
     {
+      id: 'Embedding',
+      name: 'Embedding',
+      icon: 'fas fa-project-diagram',
+      description: 'Semantic vectors for memory, recommendations, and similarity search',
+      providers: [
+        { name: 'OpenAI' },
+        { name: 'Gemini' }
+      ]
+    },
+    {
       id: 'Whisper',
       name: 'Whisper (STT)',
       icon: 'fas fa-volume-up',

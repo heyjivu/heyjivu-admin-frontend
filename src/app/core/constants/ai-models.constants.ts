@@ -72,6 +72,15 @@ export const AI_MODELS: Record<string, Record<string, AIModelOption[]>> = {
       { id: 'qwen2.5-72b-instruct', label: 'qwen2.5-72b-instruct | $0.50/1M' }
     ]
   },
+  embedding: {
+    openai: [
+      { id: 'text-embedding-3-small', label: 'text-embedding-3-small | $0.02/1M tokens' },
+      { id: 'text-embedding-3-large', label: 'text-embedding-3-large | $0.13/1M tokens' }
+    ],
+    gemini: [
+      { id: 'gemini-embedding-001', label: 'gemini-embedding-001 | $0.15/1M input tokens' }
+    ]
+  },
   imagegen: {
     openrouter: [
       { id: 'microsoft/mai-image-2.5', label: 'Microsoft MAI-Image-2.5 | OpenRouter' },
