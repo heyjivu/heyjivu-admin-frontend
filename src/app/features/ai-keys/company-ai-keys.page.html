@@ -481,6 +481,154 @@
 
       </div>
 
+      <div class="capability-group" *ngIf="showCapabilityCheckboxes(setting.type)">
+        <label class="field-label">
+          Capabilities
+          <span class="muted-label">(used for generation routing)</span>
+        </label>
+        <div class="capability-checks">
+          <ng-container *ngIf="setting.type.toLowerCase() === 'imagegen'">
+            <label class="cap-check">
+              <input
+                type="checkbox"
+                [checked]="hasCapability(key, setting, 'ImageReferenceToImage')"
+                (change)="setCapability(key, setting, 'ImageReferenceToImage', $event)"
+              />
+              <span>Reference images -> image</span>
+            </label>
+            <label class="cap-check">
+              <input
+                type="checkbox"
+                [checked]="hasCapability(key, setting, 'TextToImage')"
+                (change)="setCapability(key, setting, 'TextToImage', $event)"
+              />
+              <span>Text -> image</span>
+            </label>
+          </ng-container>
+          <ng-container *ngIf="setting.type.toLowerCase() === 'videogen'">
+            <label class="cap-check">
+              <input
+                type="checkbox"
+                [checked]="hasCapability(key, setting, 'ImageToVideo')"
+                (change)="setCapability(key, setting, 'ImageToVideo', $event)"
+              />
+              <span>Image -> video</span>
+            </label>
+            <label class="cap-check">
+              <input
+                type="checkbox"
+                [checked]="hasCapability(key, setting, 'TextToVideo')"
+                (change)="setCapability(key, setting, 'TextToVideo', $event)"
+              />
+              <span>Text -> video</span>
+            </label>
+            <label class="cap-check">
+              <input
+                type="checkbox"
+                [checked]="hasCapability(key, setting, 'ReferenceToVideo')"
+                (change)="setCapability(key, setting, 'ReferenceToVideo', $event)"
+              />
+              <span>Reference -> video</span>
+            </label>
+            <label class="cap-check">
+              <input
+                type="checkbox"
+                [checked]="hasCapability(key, setting, capNativeVideoAudio)"
+                (change)="setCapability(key, setting, capNativeVideoAudio, $event)"
+              />
+              <span>Native video audio</span>
+            </label>
+          </ng-container>
+        </div>
+      </div>
+
+      <div class="pricing-profile-panel" *ngIf="requiresPricingProfile(key)">
+        <div class="pricing-profile-head">
+          <div>
+            <label class="field-label">Pricing profile</label>
+            <span class="muted-label">Required for estimates and scoped runtime cost</span>
+          </div>
+          <select
+            class="field-input compact-select premium-input"
+            [ngModel]="ensurePricingProfile(key, setting).billingMode"
+            (ngModelChange)="setPricingField(key, setting, 'billingMode', $event)"
+          >
+            <option *ngFor="let option of pricingModeOptions(setting.type)" [ngValue]="option.value">{{ option.label }}</option>
+          </select>
+        </div>
+
+        <div class="pricing-fields">
+          <label class="mini-price-field" *ngIf="showInputTokenPrice(key, setting)">
+            <span>Input / 1M</span>
+            <input type="number" min="0" step="0.000001" [ngModel]="ensurePricingProfile(key, setting).inputPricePerMillion" (ngModelChange)="setPricingField(key, setting, 'inputPricePerMillion', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showOutputTokenPrice(key, setting)">
+            <span>Output / 1M</span>
+            <input type="number" min="0" step="0.000001" [ngModel]="ensurePricingProfile(key, setting).outputPricePerMillion" (ngModelChange)="setPricingField(key, setting, 'outputPricePerMillion', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showImageUnitPrice(key, setting)">
+            <span>Per image</span>
+            <input type="number" min="0" step="0.000001" [ngModel]="ensurePricingProfile(key, setting).imagePricePerUnit" (ngModelChange)="setPricingField(key, setting, 'imagePricePerUnit', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showVideoUnitPrice(key, setting)">
+            <span>Per video</span>
+            <input type="number" min="0" step="0.000001" [ngModel]="ensurePricingProfile(key, setting).videoPricePerUnit" (ngModelChange)="setPricingField(key, setting, 'videoPricePerUnit', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showVideoSecondPrice(key, setting)">
+            <span>Per second</span>
+            <input type="number" min="0" step="0.000001" [ngModel]="ensurePricingProfile(key, setting).videoPricePerSecond" (ngModelChange)="setPricingField(key, setting, 'videoPricePerSecond', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showCharacterPrice(key, setting)">
+            <span>Characters / 1M</span>
+            <input type="number" min="0" step="0.000001" [ngModel]="ensurePricingProfile(key, setting).characterPricePerMillion" (ngModelChange)="setPricingField(key, setting, 'characterPricePerMillion', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showAudioSecondPrice(key, setting)">
+            <span>Audio second</span>
+            <input type="number" min="0" step="0.000001" [ngModel]="ensurePricingProfile(key, setting).audioPricePerSecond" (ngModelChange)="setPricingField(key, setting, 'audioPricePerSecond', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showRequestPrice(key, setting)">
+            <span>{{ ensurePricingProfile(key, setting).billingMode === 'per_asset' ? 'Per asset' : 'Per request' }}</span>
+            <input type="number" min="0" step="0.000001" [ngModel]="ensurePricingProfile(key, setting).requestPricePerUnit" (ngModelChange)="setPricingField(key, setting, 'requestPricePerUnit', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showRequestPrice(key, setting)">
+            <span>Free quota</span>
+            <input type="number" min="0" step="1" [ngModel]="ensurePricingProfile(key, setting).freeQuota" (ngModelChange)="setPricingField(key, setting, 'freeQuota', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showRequestPrice(key, setting)">
+            <span>Reset</span>
+            <input type="text" [ngModel]="ensurePricingProfile(key, setting).freeQuotaResetPeriod" (ngModelChange)="setPricingField(key, setting, 'freeQuotaResetPeriod', $event)" placeholder="daily" />
+          </label>
+        </div>
+
+        <div class="duration-chip-row" *ngIf="showVideoDurations(setting.type)">
+          <span class="chip-row-label">Durations</span>
+          <button
+            type="button"
+            class="duration-chip"
+            *ngFor="let duration of videoDurationChoices"
+            [class.active]="durationSelected(key, setting, duration)"
+            (click)="toggleDuration(key, setting, duration)"
+          >
+            {{ duration }}s
+          </button>
+        </div>
+
+        <label class="voice-tags-field" *ngIf="showTtsVoices(setting.type)">
+          <span>Voice names</span>
+          <input
+            type="text"
+            [ngModel]="voicesText(key, setting)"
+            (ngModelChange)="setVoicesText(key, setting, $event)"
+            placeholder="Jenny, Adam, Sana"
+          />
+        </label>
+
+        <div class="pricing-error" *ngIf="pricingValidationError(key, setting) as priceError">
+          <i class="fas fa-exclamation-circle"></i>
+          {{ priceError }}
+        </div>
+      </div>
+
       <!-- Test result -->
       <div class="test-result-alert success mt-12"
            *ngIf="getRowState(key.id).testResult as tr"
@@ -505,8 +653,8 @@
           <button type="button"
                   class="btn btn-primary"
                   (click)="saveKey(setting, key)"
-                  [disabled]="getRowState(key.id).isSaving || !canSaveKey(key)"
-                  [attr.title]="!canSaveKey(key) ? 'Enter an API key before saving.' : null">
+                  [disabled]="getRowState(key.id).isSaving || !canSaveKey(key, setting)"
+                  [attr.title]="!canSaveKey(key, setting) ? (pricingValidationError(key, setting) || 'Enter an API key before saving.') : null">
             <i class="fas" [ngClass]="getRowState(key.id).isSaving ? 'fa-spinner fa-spin' : 'fa-save'"></i>
             {{ getRowState(key.id).isSaving ? 'Saving...' : (isVirtualKey(key.id) ? 'Save Key' : 'Save Changes') }}
           </button>

@@ -73,6 +73,10 @@ export const AI_MODELS: Record<string, Record<string, AIModelOption[]>> = {
     ]
   },
   embedding: {
+    openrouter: [
+      { id: 'openai/text-embedding-3-small', label: 'OpenAI text-embedding-3-small | OpenRouter' },
+      { id: 'openai/text-embedding-3-large', label: 'OpenAI text-embedding-3-large | OpenRouter' }
+    ],
     openai: [
       { id: 'text-embedding-3-small', label: 'text-embedding-3-small | $0.02/1M tokens' },
       { id: 'text-embedding-3-large', label: 'text-embedding-3-large | $0.13/1M tokens' }

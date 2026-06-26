@@ -6,10 +6,12 @@ import { finalize } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   AdminCompanyAIKeysApiService,
+  AIModelPricingProfileDto,
   ByocActionResponse,
   ByocConfigurationDto,
   CompanyAIKeySettingsDto,
   CompanyAIKeyDto,
+  ModelBillingMode,
   ModalByocUpsertRequest,
   TestKeyResult
 } from './services/company-ai-keys-api.service';
@@ -49,6 +51,25 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
   modalConfigs: Record<string, ByocConfigurationDto> = {};
   readonly modalTokenHelp = 'Use a Modal API service-user token, not the Modal Secrets tab. Go to https://modal.com/settings/tokens/service-users, click New Service User, copy MODAL_TOKEN_ID and MODAL_TOKEN_SECRET. The secret is shown only once.';
   readonly huggingFaceTokenHelp = 'Use a Hugging Face access token with read permission after accepting any gated model license, such as FLUX.1 Kontext.';
+  readonly videoDurationChoices = [5, 10, 15, 20];
+  private readonly capTextToImage = 'TextToImage';
+  private readonly capImageReferenceToImage = 'ImageReferenceToImage';
+  private readonly capMultiImageReferenceToImage = 'MultiImageReferenceToImage';
+  private readonly capTextToVideo = 'TextToVideo';
+  private readonly capImageToVideo = 'ImageToVideo';
+  private readonly capReferenceToVideo = 'ReferenceToVideo';
+  readonly capNativeVideoAudio = 'NativeVideoAudio';
+  private readonly numericPricingFields = new Set<keyof AIModelPricingProfileDto>([
+    'inputPricePerMillion',
+    'outputPricePerMillion',
+    'imagePricePerUnit',
+    'characterPricePerMillion',
+    'audioPricePerSecond',
+    'videoPricePerSecond',
+    'videoPricePerUnit',
+    'requestPricePerUnit',
+    'freeQuota'
+  ]);
 
   // Hero stats
   totalKeys = computed(() => this.settings().reduce((acc, s) => acc + s.apiKeys.length, 0));
@@ -82,7 +103,8 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       description: 'Semantic vectors for memory, recommendations, and similarity search',
       providers: [
         { name: 'OpenAI' },
-        { name: 'Gemini' }
+        { name: 'Gemini' },
+        { name: 'OpenRouter' }
       ]
     },
     {
@@ -372,12 +394,13 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
     const previousApiKeys = setting.apiKeys.map(existingKey => ({ ...existingKey }));
     let keyToSave = key;
 
-    if (!this.canSaveKey(key)) {
+    if (!this.canSaveKey(key, setting)) {
+      const pricingError = this.pricingValidationError(key, setting);
       this.updateRowState(rowId, {
         saveStatus: 'error',
-        saveMessage: 'API key required'
+        saveMessage: pricingError ?? 'API key required'
       });
-      this.toast.show('Enter an API key before saving this provider.', 'warning');
+      this.toast.show(pricingError ?? 'Enter an API key before saving this provider.', 'warning');
       return;
     }
 
@@ -391,7 +414,9 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
         modelName: this.nullableText(key.modelName),
         roleName: this.nullableText(key.roleName),
         priority: setting.apiKeys.length,
-        customLabel: this.nullableText(key.customLabel)
+        customLabel: this.nullableText(key.customLabel),
+        capabilities: key.capabilities ?? null,
+        pricingProfile: key.pricingProfile ?? null
       };
       setting.apiKeys = [...setting.apiKeys, newKey];
       keyToSave = newKey;
@@ -461,17 +486,27 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       model: setting.model,
       isEnabled: setting.isEnabled,
       type: setting.type,
-      apiKeys: setting.apiKeys.map(k => ({
-        id: k.id,
-        key: k.key,
-        isBlocked: k.isBlocked,
-        usageCount: k.usageCount,
-        provider: k.provider || setting.provider,
-        modelName: this.nullableText(k.modelName),
-        roleName: this.nullableText(k.roleName),
-        isFree: k.isFree,
-        customLabel: this.nullableText(k.customLabel)
-      }))
+      apiKeys: setting.apiKeys.map(k => {
+        const capabilities = this.showCapabilityCheckboxes(setting.type)
+          ? ((k.capabilities && k.capabilities.length > 0)
+              ? k.capabilities
+              : this.defaultCapabilities(setting.type, k.provider || setting.provider))
+          : (k.capabilities ?? null);
+
+        return {
+          id: k.id,
+          key: k.key,
+          isBlocked: k.isBlocked,
+          usageCount: k.usageCount,
+          provider: k.provider || setting.provider,
+          modelName: this.nullableText(k.modelName),
+          roleName: this.nullableText(k.roleName),
+          isFree: k.isFree,
+          customLabel: this.nullableText(k.customLabel),
+          capabilities,
+          pricingProfile: k.pricingProfile ?? null
+        };
+      })
     };
     this.api.saveCompanyAIKeySettings(payload).pipe(
       takeUntilDestroyed(this.destroyRef)
@@ -954,11 +989,296 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
     }
   }
 
-  canSaveKey(key: CompanyAIKeyDto): boolean {
+  pricingModeOptions(category: string): { value: ModelBillingMode; label: string }[] {
+    const normalized = this.normalizedCategory(category);
+    if (normalized === 'imagegen') {
+      return [
+        { value: 'per_image', label: 'Per image' },
+        { value: 'tokens', label: 'Tokens' }
+      ];
+    }
+    if (normalized === 'videogen') {
+      return [
+        { value: 'per_video', label: 'Per video' },
+        { value: 'per_second', label: 'Per second' }
+      ];
+    }
+    if (normalized === 'tts') {
+      return [
+        { value: 'per_character', label: 'Per character' },
+        { value: 'per_audio_second', label: 'Per audio second' },
+        { value: 'tokens', label: 'Tokens' }
+      ];
+    }
+    if (normalized === 'whisper') {
+      return [{ value: 'per_audio_second', label: 'Per audio second' }];
+    }
+    if (normalized === 'stockmedia' || normalized === 'websearch' || normalized === 'search') {
+      return [
+        { value: 'per_request', label: 'Per request' },
+        { value: 'per_asset', label: 'Per asset' }
+      ];
+    }
+    return [{ value: 'tokens', label: 'Tokens' }];
+  }
+
+  requiresPricingProfile(key: CompanyAIKeyDto): boolean {
+    return !key.isFree && !this.isModalProvider(key.provider);
+  }
+
+  ensurePricingProfile(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): AIModelPricingProfileDto {
+    const normalizedBillingMode = this.normalizeBillingMode(key.pricingProfile?.billingMode, setting.type);
+    key.pricingProfile = {
+      billingMode: normalizedBillingMode ?? this.defaultBillingMode(setting.type),
+      inputPricePerMillion: key.pricingProfile?.inputPricePerMillion ?? null,
+      outputPricePerMillion: key.pricingProfile?.outputPricePerMillion ?? null,
+      imagePricePerUnit: key.pricingProfile?.imagePricePerUnit ?? null,
+      characterPricePerMillion: key.pricingProfile?.characterPricePerMillion ?? null,
+      audioPricePerSecond: key.pricingProfile?.audioPricePerSecond ?? null,
+      videoPricePerSecond: key.pricingProfile?.videoPricePerSecond ?? null,
+      videoPricePerUnit: key.pricingProfile?.videoPricePerUnit ?? null,
+      requestPricePerUnit: key.pricingProfile?.requestPricePerUnit ?? null,
+      supportedDurationsSeconds: this.supportedDurationsFor(key, setting),
+      supportedVoices: key.pricingProfile?.supportedVoices ?? [],
+      freeQuota: key.pricingProfile?.freeQuota ?? null,
+      freeQuotaResetPeriod: key.pricingProfile?.freeQuotaResetPeriod ?? null,
+      pricingSource: key.pricingProfile?.pricingSource ?? null
+    };
+    return key.pricingProfile;
+  }
+
+  setPricingField(
+    key: CompanyAIKeyDto,
+    setting: CompanyAIKeySettingsDto,
+    field: keyof AIModelPricingProfileDto,
+    value: unknown
+  ): void {
+    const profile = this.ensurePricingProfile(key, setting) as Record<string, unknown>;
+    profile[field] = this.numericPricingFields.has(field) ? this.toNullableNumber(value) : value;
+  }
+
+  showInputTokenPrice(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): boolean {
+    const category = this.normalizedCategory(setting.type);
+    const mode = this.ensurePricingProfile(key, setting).billingMode;
+    return mode === 'tokens' || category === 'text' || category === 'embedding';
+  }
+
+  showOutputTokenPrice(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): boolean {
+    const category = this.normalizedCategory(setting.type);
+    return this.ensurePricingProfile(key, setting).billingMode === 'tokens' && category !== 'embedding';
+  }
+
+  showImageUnitPrice(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): boolean {
+    return this.normalizedCategory(setting.type) === 'imagegen' &&
+      this.ensurePricingProfile(key, setting).billingMode === 'per_image';
+  }
+
+  showVideoUnitPrice(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): boolean {
+    return this.normalizedCategory(setting.type) === 'videogen' &&
+      this.ensurePricingProfile(key, setting).billingMode === 'per_video';
+  }
+
+  showVideoSecondPrice(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): boolean {
+    return this.normalizedCategory(setting.type) === 'videogen' &&
+      this.ensurePricingProfile(key, setting).billingMode === 'per_second';
+  }
+
+  showCharacterPrice(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): boolean {
+    return this.normalizedCategory(setting.type) === 'tts' &&
+      this.ensurePricingProfile(key, setting).billingMode === 'per_character';
+  }
+
+  showAudioSecondPrice(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): boolean {
+    const category = this.normalizedCategory(setting.type);
+    return (category === 'tts' && this.ensurePricingProfile(key, setting).billingMode === 'per_audio_second') ||
+      category === 'whisper';
+  }
+
+  showRequestPrice(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): boolean {
+    const category = this.normalizedCategory(setting.type);
+    const mode = this.ensurePricingProfile(key, setting).billingMode;
+    return (category === 'websearch' || category === 'search' || category === 'stockmedia') &&
+      (mode === 'per_request' || mode === 'per_asset');
+  }
+
+  showVideoDurations(category: string): boolean {
+    return this.normalizedCategory(category) === 'videogen';
+  }
+
+  showTtsVoices(category: string): boolean {
+    return this.normalizedCategory(category) === 'tts';
+  }
+
+  durationSelected(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto, duration: number): boolean {
+    return this.ensurePricingProfile(key, setting).supportedDurationsSeconds?.includes(duration) ?? false;
+  }
+
+  toggleDuration(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto, duration: number): void {
+    const profile = this.ensurePricingProfile(key, setting);
+    const durations = profile.supportedDurationsSeconds ?? [];
+    profile.supportedDurationsSeconds = durations.includes(duration)
+      ? durations.filter(value => value !== duration)
+      : [...durations, duration].sort((a, b) => a - b);
+  }
+
+  voicesText(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): string {
+    return (this.ensurePricingProfile(key, setting).supportedVoices ?? []).join(', ');
+  }
+
+  setVoicesText(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto, value: string): void {
+    this.ensurePricingProfile(key, setting).supportedVoices = this.parseVoiceTags(value);
+  }
+
+  pricingValidationError(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): string | null {
+    if (!this.requiresPricingProfile(key)) return null;
+    if (!this.nullableText(key.modelName)) return 'Model name is required before saving pricing.';
+
+    const category = this.normalizedCategory(setting.type);
+    const profile = this.ensurePricingProfile(key, setting);
+    if (category === 'text' && (!this.hasPositive(profile.inputPricePerMillion) || !this.hasPositive(profile.outputPricePerMillion))) {
+      return 'Text pricing needs input and output price per 1M tokens.';
+    }
+    if (category === 'embedding' && !this.hasPositive(profile.inputPricePerMillion)) {
+      return 'Embedding pricing needs input price per 1M tokens.';
+    }
+    if (category === 'imagegen') {
+      if (profile.billingMode === 'per_image' && !this.hasPositive(profile.imagePricePerUnit)) {
+        return 'Image pricing needs price per image.';
+      }
+      if (profile.billingMode === 'tokens' && !this.hasPositive(profile.inputPricePerMillion) && !this.hasPositive(profile.outputPricePerMillion)) {
+        return 'Token image pricing needs an input or output token price.';
+      }
+    }
+    if (category === 'videogen') {
+      if (!profile.supportedDurationsSeconds?.length) return 'Video pricing needs at least one duration.';
+      if (profile.billingMode === 'per_video' && !this.hasPositive(profile.videoPricePerUnit)) {
+        return 'Video pricing needs price per video.';
+      }
+      if (profile.billingMode === 'per_second' && !this.hasPositive(profile.videoPricePerSecond)) {
+        return 'Video pricing needs price per second.';
+      }
+    }
+    if (category === 'tts') {
+      if (profile.billingMode === 'per_character' && !this.hasPositive(profile.characterPricePerMillion)) {
+        return 'TTS pricing needs price per 1M characters.';
+      }
+      if (profile.billingMode === 'per_audio_second' && !this.hasPositive(profile.audioPricePerSecond)) {
+        return 'TTS pricing needs price per audio second.';
+      }
+      if (profile.billingMode === 'tokens' && !this.hasPositive(profile.inputPricePerMillion) && !this.hasPositive(profile.outputPricePerMillion)) {
+        return 'Token TTS pricing needs an input or output token price.';
+      }
+      if (!profile.supportedVoices?.length) return 'Add at least one TTS voice name.';
+    }
+    if (category === 'whisper' && !this.hasPositive(profile.audioPricePerSecond)) {
+      return 'Whisper pricing needs price per audio second.';
+    }
+    if ((category === 'websearch' || category === 'search' || category === 'stockmedia') && !this.hasPositive(profile.requestPricePerUnit)) {
+      return 'Search and stock pricing needs request or asset price.';
+    }
+    return null;
+  }
+
+  showCapabilityCheckboxes(category: string): boolean {
+    const normalized = this.normalizedCategory(category);
+    return normalized === 'imagegen' || normalized === 'videogen';
+  }
+
+  hasCapability(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto, capability: string): boolean {
+    return this.capabilitiesForKey(key, setting).includes(capability);
+  }
+
+  setCapability(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto, capability: string, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    const current = this.capabilitiesForKey(key, setting);
+    const remove = new Set<string>([capability]);
+    const add = new Set<string>([capability]);
+
+    if (capability === this.capImageReferenceToImage) {
+      add.add(this.capMultiImageReferenceToImage);
+      remove.add(this.capMultiImageReferenceToImage);
+    }
+
+    key.capabilities = checked
+      ? [...new Set([...current, ...add])]
+      : current.filter(value => !remove.has(value));
+  }
+
+  private supportedDurationsFor(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): number[] {
+    if (this.normalizedCategory(setting.type) !== 'videogen') return [];
+    const durations = key.pricingProfile?.supportedDurationsSeconds ?? [5, 10];
+    return durations
+      .filter(value => this.videoDurationChoices.includes(value))
+      .filter((value, index, values) => values.indexOf(value) === index)
+      .sort((a, b) => a - b);
+  }
+
+  private defaultBillingMode(category: string): ModelBillingMode {
+    const normalized = this.normalizedCategory(category);
+    if (normalized === 'imagegen') return 'per_image';
+    if (normalized === 'videogen') return 'per_video';
+    if (normalized === 'tts') return 'per_character';
+    if (normalized === 'whisper') return 'per_audio_second';
+    if (normalized === 'websearch' || normalized === 'search' || normalized === 'stockmedia') return 'per_request';
+    return 'tokens';
+  }
+
+  private normalizeBillingMode(value: string | null | undefined, category: string): ModelBillingMode | null {
+    const normalized = (value ?? '').trim().toLowerCase().replace(/-/g, '_') as ModelBillingMode;
+    return this.pricingModeOptions(category).some(option => option.value === normalized) ? normalized : null;
+  }
+
+  private normalizedCategory(category: string | null | undefined): string {
+    return (category || '').trim().toLowerCase();
+  }
+
+  private parseVoiceTags(value: string): string[] {
+    return value
+      .split(',')
+      .map(voice => voice.trim())
+      .filter(Boolean)
+      .filter((voice, index, voices) => voices.findIndex(candidate => candidate.toLowerCase() === voice.toLowerCase()) === index);
+  }
+
+  private hasPositive(value: number | null | undefined): boolean {
+    return Number(value ?? 0) > 0;
+  }
+
+  private toNullableNumber(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private capabilitiesForKey(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): string[] {
+    if (key.capabilities && key.capabilities.length > 0) {
+      return key.capabilities;
+    }
+    return this.defaultCapabilities(setting.type, key.provider || setting.provider);
+  }
+
+  private defaultCapabilities(category: string, provider: string): string[] {
+    const normalized = this.normalizedCategory(category);
+    const p = (provider || '').toLowerCase();
+    if (normalized === 'imagegen') {
+      if (p.includes('stability')) return [this.capTextToImage];
+      return [this.capTextToImage, this.capImageReferenceToImage, this.capMultiImageReferenceToImage];
+    }
+    if (normalized === 'videogen') {
+      if (p.includes('luma') || p.includes('alibaba') || p.includes('dashscope') || p.includes('wanx')) {
+        return [this.capImageToVideo, this.capTextToVideo];
+      }
+      return [this.capImageToVideo, this.capTextToVideo, this.capReferenceToVideo];
+    }
+    return [];
+  }
+
+  canSaveKey(key: CompanyAIKeyDto, setting?: CompanyAIKeySettingsDto): boolean {
     if (this.isModalProvider(key.provider)) {
       return true;
     }
-    return !this.isVirtualKey(key.id) || key.isFree || !!key.key?.trim();
+    const keyReady = !this.isVirtualKey(key.id) || key.isFree || !!key.key?.trim();
+    return keyReady && (!setting || this.pricingValidationError(key, setting) === null);
   }
 
   isModalProvider(provider: string | null | undefined): boolean {
