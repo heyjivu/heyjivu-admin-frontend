@@ -35,10 +35,6 @@
         <span class="label">Total Users</span>
         <span class="value">{{ users().length }}</span>
       </div>
-      <div class="stat-card glass-card">
-        <span class="label">Total Jobs Processed</span>
-        <span class="value">{{ totalJobs() }}</span>
-      </div>
       <div class="stat-card glass-card" *ngIf="authStore.isSuperAdmin()">
         <span class="label">Active Organizations</span>
         <span class="value">{{ organizations().length }}</span>

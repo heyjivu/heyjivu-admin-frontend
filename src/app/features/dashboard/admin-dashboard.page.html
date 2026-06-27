@@ -217,7 +217,7 @@
 
     <!-- Recent Activity -->
     <div class="dash-section-title">Recent Activity</div>
-    <div class="dash-activity-grid">
+    <div class="dash-activity-grid" [class.dash-activity-grid--single]="!authStore.isSuperAdmin()">
 
       <!-- Recent Users -->
       <div class="dash-activity-card">
@@ -255,7 +255,7 @@
       </div>
 
       <!-- Recent Payments -->
-      <div class="dash-activity-card">
+      <div class="dash-activity-card" *ngIf="authStore.isSuperAdmin()">
         <div class="dash-activity-header">
           <div class="flex align-items-center gap-2">
             <i class="fas fa-receipt text-emerald-400" style="font-size:14px;"></i>
