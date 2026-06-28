@@ -8,15 +8,67 @@
 
     <div class="flex flex-column gap-1" *ngIf="navItems().length > 0">
       <ng-container *ngFor="let item of navItems()">
-        <a class="glass-nav-item" [class.glass-nav-item--sub]="!item.isParent" [routerLink]="item.route" [queryParams]="item.queryParams" [class.active]="isActiveNavItem(item)" [attr.aria-label]="item.label" [title]="item.label">
+        <a class="glass-nav-item" [class.glass-nav-item--sub]="!item.isParent" [routerLink]="item.route" [queryParams]="item.queryParams" [class.active]="isActiveNavItem(item)" [attr.aria-label]="displayLabel(item)" [title]="displayLabel(item)">
           <i [class]="getIconClass(item.icon) + ' text-sm'"></i>
-          <span class="icon-label">{{ item.label }}</span>
+          <span class="icon-label">{{ displayLabel(item) }}</span>
           @if (getBadge(item); as badge) {
             <span class="nav-badge">{{ badge }}</span>
           }
         </a>
       </ng-container>
     </div>
+
+    @if (currentSection() === 'cloud') {
+      <section class="side-cloud-users">
+        <label class="side-cloud-label" for="side-cloud-user-search">Users</label>
+        <div class="side-cloud-search">
+          <i class="fas fa-search"></i>
+          <input
+            id="side-cloud-user-search"
+            type="text"
+            [ngModel]="cloudUsers.userSearch()"
+            (ngModelChange)="cloudUsers.onUserSearchChange($event)"
+            placeholder="Search email or username"
+          />
+        </div>
+
+        <div class="side-cloud-user-list" [class.is-loading]="cloudUsers.loadingUsers()" (scroll)="cloudUsers.onUsersScroll($event)">
+          @for (user of cloudUsers.users(); track user.id) {
+            <button
+              type="button"
+              class="side-cloud-user"
+              [class.active]="cloudUsers.selectedUser()?.id === user.id"
+              (click)="selectCloudUser(user)"
+              [title]="user.email || user.username">
+              <span class="side-cloud-user__avatar">{{ cloudUserInitial(user) }}</span>
+              <span class="side-cloud-user__text">
+                <strong>{{ user.email || user.username }}</strong>
+                <small>{{ cloudUserSubtitle(user) }}</small>
+              </span>
+            </button>
+          } @empty {
+            <div class="side-cloud-empty">
+              <i class="fas fa-user-slash"></i>
+              <span>No users found</span>
+            </div>
+          }
+
+          @if (cloudUsers.loadingMoreUsers()) {
+            <div class="side-cloud-status">
+              <i class="fas fa-spinner fa-spin"></i>
+              <span>Loading more users...</span>
+            </div>
+          } @else if (cloudUsers.users().length > 0) {
+            <div class="side-cloud-status">
+              <span>{{ cloudUsers.users().length }} of {{ cloudUsers.totalUsers() || cloudUsers.users().length }} users</span>
+              @if (cloudUsers.hasMoreUsers()) {
+                <small>Scroll for more</small>
+              }
+            </div>
+          }
+        </div>
+      </section>
+    }
 
   </div>
 </nav>

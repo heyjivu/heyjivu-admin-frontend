@@ -3,11 +3,11 @@
   <!-- ══ Screen Header ════════════════════════════════════════════════ -->
   <div class="screen-header">
     <div class="header-content">
-      <div class="screen-title">Company AI Keys</div>
-      <div class="screen-sub">Manage company AI keys, models &amp; provider categories</div>
+      <div class="screen-title">{{ poolTitle() }}</div>
+      <div class="screen-sub">{{ poolSubtitle() }}</div>
     </div>
     <div class="header-actions">
-      <button class="btn btn-primary btn-sm" [disabled]="totalKeys() === 0" (click)="openTestAllDialog()">
+      <button class="btn btn-primary btn-sm" [disabled]="loading() || totalKeys() === 0" (click)="openTestAllDialog()">
         <i class="fas fa-check-double"></i> Validate All Keys
       </button>
       <button class="btn btn-soft btn-sm" (click)="load()" [disabled]="loading()">
@@ -29,14 +29,14 @@
             <i class="fas fa-key"></i>
           </div>
           <div>
-            <h2 class="byok-title">Company AI Keys <span class="byok-tag">ADMIN</span></h2>
+            <h2 class="byok-title">{{ poolTitle() }} <span class="byok-tag">ADMIN</span></h2>
             <p class="byok-sub">
-              Global AI API keys for each provider category. Used by all users unless overridden by individual BYOK configs.
+              {{ authStore.isTenantAdmin() ? 'Organization AI API keys for Non-BYOK users in your tenant. BYOK users still use only their own keys.' : 'Global AI API keys for each provider category. Used by company users unless overridden by individual BYOK configs.' }}
             </p>
           </div>
         </div>
         <div class="header-actions">
-          <button class="btn btn-primary btn-sm" [disabled]="totalKeys() === 0" (click)="openTestAllDialog()">
+          <button class="btn btn-primary btn-sm" [disabled]="loading() || totalKeys() === 0" (click)="openTestAllDialog()">
             <i class="fas fa-check-double"></i> Validate All Keys
           </button>
           <button class="btn btn-soft btn-sm" (click)="load()" [disabled]="loading()">
@@ -72,8 +72,13 @@
     <!-- ══ Loading State ═══════════════════════════════════════════════ -->
     <div class="byok-loading" *ngIf="loading()">
       <div class="byok-loading-ring"><i class="fas fa-spinner fa-spin"></i></div>
-      <p class="byok-loading-title">Loading Company AI Keys</p>
+      <p class="byok-loading-title">Loading {{ poolTitle() }}</p>
       <p class="byok-loading-sub">Fetching AI provider key settings…</p>
+    </div>
+
+    <div class="byok-error" *ngIf="!loading() && loadError()">
+      <i class="fas fa-triangle-exclamation"></i>
+      {{ poolTitle() }} could not be loaded. Check the admin API and refresh.
     </div>
 
     <!-- ══ Accordion List ══════════════════════════════════════════════ -->
@@ -120,7 +125,7 @@
                 {{ setting.isEnabled ? 'Enabled' : 'Disabled' }}
               </span>
               <label class="ai-key-switch ai-key-switch--sm">
-                <input type="checkbox" [checked]="setting.isEnabled" (change)="toggleEnabled(setting, $event)" />
+                <input type="checkbox" [checked]="setting.isEnabled" [disabled]="loading()" (change)="toggleEnabled(setting, $event)" />
                 <span class="ai-key-switch__track"></span>
               </label>
             </div>
@@ -141,7 +146,7 @@
               API Keys Configuration
               <span class="badge">{{ getCategoryKeysForDisplay(setting).length }}</span>
             </span>
-            <button class="btn btn-soft btn-xs" (click)="addKey(setting)">
+            <button class="btn btn-soft btn-xs" (click)="addKey(setting)" [disabled]="loading() || !!deletingKeyId()">
               <i class="fas fa-plus"></i> Add API Key
             </button>
           </div>
@@ -173,8 +178,8 @@
     <!-- Empty state -->
     <div class="key-empty key-empty--lg" *ngIf="!loading() && settings().length === 0">
       <div class="empty-ring"><i class="fas fa-key"></i></div>
-      <div class="byok-loading-title">No Company AI Keys Loaded</div>
-      <div class="byok-loading-sub">Click Refresh to load the company AI key configuration from the server.</div>
+      <div class="byok-loading-title">No {{ poolTitle() }} Loaded</div>
+      <div class="byok-loading-sub">Click Refresh to load this AI key configuration from the server.</div>
     </div>
 
   </div><!-- /screen-container -->
@@ -245,9 +250,12 @@
         <!-- Delete Key Button -->
         <button class="icon-btn action-delete"
                 *ngIf="!isVirtualKey(key.id)"
+                [disabled]="loading() || !!deletingKeyId() || getRowState(key.id).isSaving || getRowState(key.id).isTesting"
+                [class.action-delete--confirm]="pendingRemoveKeyId() === key.id"
                 (click)="removeKey(setting, key); $event.stopPropagation()"
                 title="Remove Key">
-          <i class="fas fa-trash-alt"></i>
+          <i class="fas"
+             [ngClass]="deletingKeyId() === key.id ? 'fa-spinner fa-spin' : 'fa-trash-alt'"></i>
         </button>
 
         <!-- Chevron Collapse Indicator -->
@@ -259,7 +267,7 @@
 
     <!-- Row Body (expanded) -->
     <div class="key-row__body" *ngIf="getRowState(key.id).isOpen">
-      <ng-container *ngIf="isModalProvider(key.provider || setting.provider); else standardCompanyKeyForm">
+      <ng-container *ngIf="authStore.isSuperAdmin() && isModalProvider(key.provider || setting.provider); else standardCompanyKeyForm">
         <ng-container *ngIf="getModalDraft(setting, key) as modalDraft">
           <div class="modal-byoc-grid">
             <div class="form-group">
@@ -473,6 +481,154 @@
 
       </div>
 
+      <div class="capability-group" *ngIf="showCapabilityCheckboxes(setting.type)">
+        <label class="field-label">
+          Capabilities
+          <span class="muted-label">(used for generation routing)</span>
+        </label>
+        <div class="capability-checks">
+          <ng-container *ngIf="setting.type.toLowerCase() === 'imagegen'">
+            <label class="cap-check">
+              <input
+                type="checkbox"
+                [checked]="hasCapability(key, setting, 'ImageReferenceToImage')"
+                (change)="setCapability(key, setting, 'ImageReferenceToImage', $event)"
+              />
+              <span>Reference images -> image</span>
+            </label>
+            <label class="cap-check">
+              <input
+                type="checkbox"
+                [checked]="hasCapability(key, setting, 'TextToImage')"
+                (change)="setCapability(key, setting, 'TextToImage', $event)"
+              />
+              <span>Text -> image</span>
+            </label>
+          </ng-container>
+          <ng-container *ngIf="setting.type.toLowerCase() === 'videogen'">
+            <label class="cap-check">
+              <input
+                type="checkbox"
+                [checked]="hasCapability(key, setting, 'ImageToVideo')"
+                (change)="setCapability(key, setting, 'ImageToVideo', $event)"
+              />
+              <span>Image -> video</span>
+            </label>
+            <label class="cap-check">
+              <input
+                type="checkbox"
+                [checked]="hasCapability(key, setting, 'TextToVideo')"
+                (change)="setCapability(key, setting, 'TextToVideo', $event)"
+              />
+              <span>Text -> video</span>
+            </label>
+            <label class="cap-check">
+              <input
+                type="checkbox"
+                [checked]="hasCapability(key, setting, 'ReferenceToVideo')"
+                (change)="setCapability(key, setting, 'ReferenceToVideo', $event)"
+              />
+              <span>Reference -> video</span>
+            </label>
+            <label class="cap-check">
+              <input
+                type="checkbox"
+                [checked]="hasCapability(key, setting, capNativeVideoAudio)"
+                (change)="setCapability(key, setting, capNativeVideoAudio, $event)"
+              />
+              <span>Native video audio</span>
+            </label>
+          </ng-container>
+        </div>
+      </div>
+
+      <div class="pricing-profile-panel" *ngIf="requiresPricingProfile(key)">
+        <div class="pricing-profile-head">
+          <div>
+            <label class="field-label">Pricing profile</label>
+            <span class="muted-label">Required for estimates and scoped runtime cost</span>
+          </div>
+          <select
+            class="field-input compact-select premium-input"
+            [ngModel]="ensurePricingProfile(key, setting).billingMode"
+            (ngModelChange)="setPricingField(key, setting, 'billingMode', $event)"
+          >
+            <option *ngFor="let option of pricingModeOptions(setting.type)" [ngValue]="option.value">{{ option.label }}</option>
+          </select>
+        </div>
+
+        <div class="pricing-fields">
+          <label class="mini-price-field" *ngIf="showInputTokenPrice(key, setting)">
+            <span>Input / 1M</span>
+            <input type="number" min="0" step="0.000001" [ngModel]="ensurePricingProfile(key, setting).inputPricePerMillion" (ngModelChange)="setPricingField(key, setting, 'inputPricePerMillion', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showOutputTokenPrice(key, setting)">
+            <span>Output / 1M</span>
+            <input type="number" min="0" step="0.000001" [ngModel]="ensurePricingProfile(key, setting).outputPricePerMillion" (ngModelChange)="setPricingField(key, setting, 'outputPricePerMillion', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showImageUnitPrice(key, setting)">
+            <span>Per image</span>
+            <input type="number" min="0" step="0.000001" [ngModel]="ensurePricingProfile(key, setting).imagePricePerUnit" (ngModelChange)="setPricingField(key, setting, 'imagePricePerUnit', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showVideoUnitPrice(key, setting)">
+            <span>Per video</span>
+            <input type="number" min="0" step="0.000001" [ngModel]="ensurePricingProfile(key, setting).videoPricePerUnit" (ngModelChange)="setPricingField(key, setting, 'videoPricePerUnit', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showVideoSecondPrice(key, setting)">
+            <span>Per second</span>
+            <input type="number" min="0" step="0.000001" [ngModel]="ensurePricingProfile(key, setting).videoPricePerSecond" (ngModelChange)="setPricingField(key, setting, 'videoPricePerSecond', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showCharacterPrice(key, setting)">
+            <span>Characters / 1M</span>
+            <input type="number" min="0" step="0.000001" [ngModel]="ensurePricingProfile(key, setting).characterPricePerMillion" (ngModelChange)="setPricingField(key, setting, 'characterPricePerMillion', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showAudioSecondPrice(key, setting)">
+            <span>Audio second</span>
+            <input type="number" min="0" step="0.000001" [ngModel]="ensurePricingProfile(key, setting).audioPricePerSecond" (ngModelChange)="setPricingField(key, setting, 'audioPricePerSecond', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showRequestPrice(key, setting)">
+            <span>{{ ensurePricingProfile(key, setting).billingMode === 'per_asset' ? 'Per asset' : 'Per request' }}</span>
+            <input type="number" min="0" step="0.000001" [ngModel]="ensurePricingProfile(key, setting).requestPricePerUnit" (ngModelChange)="setPricingField(key, setting, 'requestPricePerUnit', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showRequestPrice(key, setting)">
+            <span>Free quota</span>
+            <input type="number" min="0" step="1" [ngModel]="ensurePricingProfile(key, setting).freeQuota" (ngModelChange)="setPricingField(key, setting, 'freeQuota', $event)" />
+          </label>
+          <label class="mini-price-field" *ngIf="showRequestPrice(key, setting)">
+            <span>Reset</span>
+            <input type="text" [ngModel]="ensurePricingProfile(key, setting).freeQuotaResetPeriod" (ngModelChange)="setPricingField(key, setting, 'freeQuotaResetPeriod', $event)" placeholder="daily" />
+          </label>
+        </div>
+
+        <div class="duration-chip-row" *ngIf="showVideoDurations(setting.type)">
+          <span class="chip-row-label">Durations</span>
+          <button
+            type="button"
+            class="duration-chip"
+            *ngFor="let duration of videoDurationChoices"
+            [class.active]="durationSelected(key, setting, duration)"
+            (click)="toggleDuration(key, setting, duration)"
+          >
+            {{ duration }}s
+          </button>
+        </div>
+
+        <label class="voice-tags-field" *ngIf="showTtsVoices(setting.type)">
+          <span>Voice names</span>
+          <input
+            type="text"
+            [ngModel]="voicesText(key, setting)"
+            (ngModelChange)="setVoicesText(key, setting, $event)"
+            placeholder="Jenny, Adam, Sana"
+          />
+        </label>
+
+        <div class="pricing-error" *ngIf="pricingValidationError(key, setting) as priceError">
+          <i class="fas fa-exclamation-circle"></i>
+          {{ priceError }}
+        </div>
+      </div>
+
       <!-- Test result -->
       <div class="test-result-alert success mt-12"
            *ngIf="getRowState(key.id).testResult as tr"
@@ -497,8 +653,8 @@
           <button type="button"
                   class="btn btn-primary"
                   (click)="saveKey(setting, key)"
-                  [disabled]="getRowState(key.id).isSaving || !canSaveKey(key)"
-                  [attr.title]="!canSaveKey(key) ? 'Enter an API key before saving.' : null">
+                  [disabled]="getRowState(key.id).isSaving || !canSaveKey(key, setting)"
+                  [attr.title]="!canSaveKey(key, setting) ? (pricingValidationError(key, setting) || 'Enter an API key before saving.') : null">
             <i class="fas" [ngClass]="getRowState(key.id).isSaving ? 'fa-spinner fa-spin' : 'fa-save'"></i>
             {{ getRowState(key.id).isSaving ? 'Saving...' : (isVirtualKey(key.id) ? 'Save Key' : 'Save Changes') }}
           </button>

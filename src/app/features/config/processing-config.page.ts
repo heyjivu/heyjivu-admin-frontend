@@ -1,9 +1,10 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { finalize } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ModelCapabilityDto, ModelCapabilityPriceTierDto, PostGenApiService, SaveModelCapabilityRequest } from './services/post-gen-api.service';
-import { AdminService } from '../users/services/admin.service';
 
 @Component({
   selector: 'app-processing-config',
@@ -12,16 +13,26 @@ import { AdminService } from '../users/services/admin.service';
   templateUrl: './processing-config.page.html',
   styleUrl: './processing-config.page.scss'
 })
-export class ProcessingConfigPage implements OnInit {
+export class ProcessingConfigPage implements OnInit, OnDestroy {
   private api = inject(PostGenApiService);
-  private adminService = inject(AdminService);
   private route = inject(ActivatedRoute);
+  private destroyRef = inject(DestroyRef);
+  private processingLoadRequestId = 0;
+  private capabilityLoadRequestId = 0;
+  private routeReady = false;
 
   loading = signal(false);
+  savingCompanyOptions = signal(false);
   capabilitiesLoading = signal(false);
+  savingCapability = signal(false);
+  deletingCapabilityId = signal<string | null>(null);
   activeTab = signal<'processing' | 'models'>('processing');
   companyOptions = signal<any>(null);
   modelCapabilities = signal<ModelCapabilityDto[]>([]);
+  processingLoadError = signal('');
+  processingSaveError = signal('');
+  capabilitiesLoadError = signal('');
+  capabilitySaveError = signal('');
   capabilityProviderFilter = signal('');
   capabilityCategoryFilter = signal('');
   capabilitySearch = signal('');
@@ -32,63 +43,121 @@ export class ProcessingConfigPage implements OnInit {
   editingCapability = signal<SaveModelCapabilityRequest | null>(null);
   saved = signal(false);
   capabilitiesSaved = signal(false);
+  capabilityBusy = computed(() => this.capabilitiesLoading() || this.savingCapability() || !!this.deletingCapabilityId());
   capabilityTotalPages = computed(() => Math.max(1, Math.ceil(this.capabilityTotalItems() / this.capabilityPageSize())));
   capabilityPageStart = computed(() => this.capabilityTotalItems() === 0 ? 0 : ((this.capabilityPage() - 1) * this.capabilityPageSize()) + 1);
   capabilityPageEnd = computed(() => Math.min(this.capabilityPage() * this.capabilityPageSize(), this.capabilityTotalItems()));
   private capabilitySearchTimeout: ReturnType<typeof setTimeout> | null = null;
+  private savedToastTimeout: ReturnType<typeof setTimeout> | null = null;
+  private capabilitiesSavedToastTimeout: ReturnType<typeof setTimeout> | null = null;
 
   capabilityCategories = ['Text', 'ImageGen', 'TTS', 'VideoGen', 'Whisper', 'Vision', 'Embedding'];
   capabilityProviders = ['OpenRouter', 'TogetherAI', 'Gemini', 'OpenAI', 'StabilityAI', 'Azure', 'ElevenLabs', 'Cartesia', 'Runway', 'Luma', 'Kling', 'Alibaba', 'LiteLLM'];
 
   ngOnInit() {
-    this.route.queryParamMap.subscribe(params => {
-      this.activeTab.set(params.get('tab') === 'models' ? 'models' : 'processing');
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
+      const nextTab = params.get('tab') === 'models' ? 'models' : 'processing';
+      const previousTab = this.activeTab();
+      this.activeTab.set(nextTab);
+      if (this.routeReady && nextTab === 'models' && previousTab !== 'models') {
+        this.loadModelCapabilities();
+      }
     });
+    this.routeReady = true;
     this.load();
   }
 
+  ngOnDestroy() {
+    if (this.capabilitySearchTimeout) {
+      clearTimeout(this.capabilitySearchTimeout);
+    }
+    if (this.savedToastTimeout) {
+      clearTimeout(this.savedToastTimeout);
+    }
+    if (this.capabilitiesSavedToastTimeout) {
+      clearTimeout(this.capabilitiesSavedToastTimeout);
+    }
+  }
+
   load() {
+    const requestId = ++this.processingLoadRequestId;
     this.loading.set(true);
-    this.api.getCompanyProcessingOptions().subscribe({
-      next: (data) => this.companyOptions.set(data),
-      error: () => this.loading.set(false),
-      complete: () => this.loading.set(false)
+    this.processingLoadError.set('');
+    this.api.getCompanyProcessingOptions().pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        if (requestId === this.processingLoadRequestId) {
+          this.loading.set(false);
+        }
+      })
+    ).subscribe({
+      next: (data) => {
+        if (requestId !== this.processingLoadRequestId) return;
+        this.companyOptions.set(data);
+      },
+      error: () => {
+        if (requestId !== this.processingLoadRequestId) return;
+        this.companyOptions.set(null);
+        this.processingLoadError.set('Processing defaults could not be loaded. Try refreshing this tab.');
+      }
     });
-    this.loadModelCapabilities();
+    if (this.activeTab() === 'models') {
+      this.loadModelCapabilities();
+    }
   }
 
   save() {
     const opts = this.companyOptions();
-    if (!opts) return;
-    this.api.updateCompanyProcessingOptions(opts).subscribe({
+    if (!opts || this.savingCompanyOptions()) return;
+    this.savingCompanyOptions.set(true);
+    this.processingSaveError.set('');
+    this.api.updateCompanyProcessingOptions(opts).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.savingCompanyOptions.set(false))
+    ).subscribe({
       next: () => {
-        this.saved.set(true);
-        setTimeout(() => this.saved.set(false), 3000);
-      }
+        this.showSavedToast();
+      },
+      error: () => this.processingSaveError.set('Company defaults were not saved. Please retry after the current request finishes.')
     });
   }
 
   loadModelCapabilities() {
+    const requestId = ++this.capabilityLoadRequestId;
     this.capabilitiesLoading.set(true);
+    this.capabilitiesLoadError.set('');
     this.api.getModelCapabilities({
       provider: this.capabilityProviderFilter(),
       category: this.capabilityCategoryFilter(),
       search: this.capabilitySearch(),
       pageNumber: this.capabilityPage(),
       pageSize: this.capabilityPageSize()
-    }).subscribe({
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        if (requestId === this.capabilityLoadRequestId) {
+          this.capabilitiesLoading.set(false);
+        }
+      })
+    ).subscribe({
       next: (result) => {
+        if (requestId !== this.capabilityLoadRequestId) return;
         this.modelCapabilities.set(result.items ?? []);
         this.capabilityTotalItems.set(result.totalCount ?? 0);
         this.capabilityPage.set(result.pageNumber ?? this.capabilityPage());
         this.capabilityPageSize.set(result.pageSize ?? this.capabilityPageSize());
       },
-      error: () => this.capabilitiesLoading.set(false),
-      complete: () => this.capabilitiesLoading.set(false)
+      error: () => {
+        if (requestId !== this.capabilityLoadRequestId) return;
+        this.modelCapabilities.set([]);
+        this.capabilityTotalItems.set(0);
+        this.capabilitiesLoadError.set('Model capabilities could not be loaded. Filters were kept so you can retry.');
+      }
     });
   }
 
   applyCapabilityFilters() {
+    if (this.capabilityBusy()) return;
     this.capabilityPage.set(1);
     this.loadModelCapabilities();
   }
@@ -103,6 +172,7 @@ export class ProcessingConfigPage implements OnInit {
   }
 
   updateCapabilityPageSize(event: Event) {
+    if (this.capabilityBusy()) return;
     const value = Number((event.target as HTMLSelectElement).value);
     this.capabilityPageSize.set(Number.isFinite(value) && value > 0 ? value : 25);
     this.capabilityPage.set(1);
@@ -110,31 +180,37 @@ export class ProcessingConfigPage implements OnInit {
   }
 
   nextCapabilityPage() {
-    if (this.capabilityPage() >= this.capabilityTotalPages()) return;
+    if (this.capabilityBusy() || this.capabilityPage() >= this.capabilityTotalPages()) return;
     this.capabilityPage.set(this.capabilityPage() + 1);
     this.loadModelCapabilities();
   }
 
   prevCapabilityPage() {
-    if (this.capabilityPage() <= 1) return;
+    if (this.capabilityBusy() || this.capabilityPage() <= 1) return;
     this.capabilityPage.set(this.capabilityPage() - 1);
     this.loadModelCapabilities();
   }
 
   openCapabilityEditor(row?: ModelCapabilityDto) {
+    if (this.capabilityBusy()) return;
+    this.capabilitySaveError.set('');
     this.editingCapability.set(row ? this.toCapabilityForm(row) : this.newCapabilityForm());
     this.capabilityEditorOpen.set(true);
   }
 
-  closeCapabilityEditor() {
+  closeCapabilityEditor(force = false) {
+    if (this.savingCapability() && !force) return;
     this.capabilityEditorOpen.set(false);
     this.editingCapability.set(null);
+    this.capabilitySaveError.set('');
   }
 
   saveCapability() {
     const form = this.editingCapability();
-    if (!form || !form.provider.trim() || !form.modelName.trim() || !form.category.trim()) return;
+    if (!form || this.savingCapability() || !form.provider.trim() || !form.modelName.trim() || !form.category.trim()) return;
 
+    this.savingCapability.set(true);
+    this.capabilitySaveError.set('');
     this.api.saveModelCapability({
       ...form,
       provider: form.provider.trim(),
@@ -145,21 +221,38 @@ export class ProcessingConfigPage implements OnInit {
       supportedVoices: this.cleanList(form.supportedVoices),
       supportedLanguages: this.cleanList(form.supportedLanguages),
       priceTiers: this.cleanPriceTiers(form.priceTiers)
-    }).subscribe({
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.savingCapability.set(false))
+    ).subscribe({
       next: () => {
-        this.capabilitiesSaved.set(true);
-        this.closeCapabilityEditor();
+        this.showCapabilitiesSavedToast();
+        this.closeCapabilityEditor(true);
         this.loadModelCapabilities();
-        setTimeout(() => this.capabilitiesSaved.set(false), 3000);
-      }
+      },
+      error: () => this.capabilitySaveError.set('Model capability was not saved. Check the values and retry.')
     });
   }
 
   deleteCapability(row: ModelCapabilityDto) {
-    if (!confirm(`Delete ${row.provider} / ${row.modelName}?`)) return;
-    this.api.deleteModelCapability(row.id).subscribe({
-      next: () => this.loadModelCapabilities()
+    if (this.capabilityBusy() || !confirm(`Delete ${row.provider} / ${row.modelName}?`)) return;
+    this.deletingCapabilityId.set(row.id);
+    this.capabilitySaveError.set('');
+    this.api.deleteModelCapability(row.id).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        if (this.deletingCapabilityId() === row.id) {
+          this.deletingCapabilityId.set(null);
+        }
+      })
+    ).subscribe({
+      next: () => this.loadModelCapabilities(),
+      error: () => this.capabilitySaveError.set('Model capability was not deleted. Please retry.')
     });
+  }
+
+  isDeletingCapability(row: ModelCapabilityDto): boolean {
+    return this.deletingCapabilityId() === row.id;
   }
 
   updateCapabilityFilter(kind: 'provider' | 'category' | 'search', event: Event) {
@@ -386,6 +479,22 @@ export class ProcessingConfigPage implements OnInit {
 
   private isManualRecord(row: ModelCapabilityDto): boolean {
     return row.skipAutoSync || row.metadataSource?.toLowerCase() === 'manual';
+  }
+
+  private showSavedToast() {
+    this.saved.set(true);
+    if (this.savedToastTimeout) {
+      clearTimeout(this.savedToastTimeout);
+    }
+    this.savedToastTimeout = setTimeout(() => this.saved.set(false), 3000);
+  }
+
+  private showCapabilitiesSavedToast() {
+    this.capabilitiesSaved.set(true);
+    if (this.capabilitiesSavedToastTimeout) {
+      clearTimeout(this.capabilitiesSavedToastTimeout);
+    }
+    this.capabilitiesSavedToastTimeout = setTimeout(() => this.capabilitiesSaved.set(false), 3000);
   }
 }
 

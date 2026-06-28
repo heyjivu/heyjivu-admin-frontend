@@ -4,7 +4,7 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Rights } from '../../core/constants/rights.constants';
 import { UIStore } from '../../core/services/ui.store';
 import { AuthStore } from '../../core/auth/state/auth.store';
-import { PipelineStore } from '../../features/pipeline/state/pipeline.store';
+import { JivuCommandAdminStore } from '../../features/jivu-command/state/jivu-command-admin.store';
 import { AppUpdateService } from '../../core/services/app-update.service';
 
 @Component({
@@ -17,17 +17,20 @@ import { AppUpdateService } from '../../core/services/app-update.service';
 export class Topbar implements OnInit {
   uiStore = inject(UIStore);
   authStore = inject(AuthStore);
-  pipelineStore = inject(PipelineStore);
+  jivuCommandStore = inject(JivuCommandAdminStore);
   appUpdate = inject(AppUpdateService);
   private readonly router = inject(Router);
   readonly Rights = Rights;
 
   showUserMenu = signal(false);
-  showPipelineMenu = signal(false);
+  showCommandMenu = signal(false);
   private mobileWidth = 768;
 
-  activeJobs = computed(() => this.pipelineStore.activeJobs());
-  hasActiveJobs = computed(() => this.activeJobs().length > 0);
+  activeCommands = computed(() => this.jivuCommandStore.activeCommands());
+  activeCommandCount = computed(() => this.jivuCommandStore.activeCount());
+  commandStatusLoaded = computed(() => this.jivuCommandStore.hasLoaded());
+  commandStatusRefreshing = computed(() => this.jivuCommandStore.refreshing() || this.jivuCommandStore.loading());
+  hasActiveCommands = computed(() => this.activeCommandCount() > 0);
 
   @HostListener('window:resize')
   onResize() {
@@ -51,27 +54,31 @@ export class Topbar implements OnInit {
 
   toggleUserMenu() {
     this.showUserMenu.update(v => !v);
-    this.showPipelineMenu.set(false);
+    this.showCommandMenu.set(false);
   }
 
-  togglePipelineMenu(event: Event) {
+  toggleCommandMenu(event: Event) {
     event.stopPropagation();
-    this.showPipelineMenu.update(v => !v);
+    const nextOpen = !this.showCommandMenu();
+    this.showCommandMenu.set(nextOpen);
     this.showUserMenu.set(false);
+    if (nextOpen) {
+      this.jivuCommandStore.refresh(false);
+    }
   }
 
   @HostListener('document:click')
   closeMenus() {
     this.showUserMenu.set(false);
-    this.showPipelineMenu.set(false);
+    this.showCommandMenu.set(false);
   }
 
   logout() {
     this.authStore.logout();
   }
 
-  refreshJobs() {
-    this.pipelineStore.loadJobs();
+  refreshCommands() {
+    this.jivuCommandStore.refresh(false);
   }
 }
 

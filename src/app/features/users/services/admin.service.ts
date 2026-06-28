@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
@@ -59,7 +59,13 @@ export interface BypassFreeShellRoleResult {
 export interface OrganizationDto {
   id: string;
   name: string;
-  description: string;
+  description?: string | null;
+  isActive?: boolean;
+  blockedAt?: string | null;
+  blockedReason?: string | null;
+  userCount?: number;
+  activeUserCount?: number;
+  orgAdminName?: string | null;
 }
 
 export interface PagedResult<T> {
@@ -110,6 +116,8 @@ export interface AdminCreateUserRequest {
   accountType: 'user' | 'admin_only' | 'both';
   roleId?: string | null;
   planId?: string | null;
+  organizationId?: string | null;
+  isOrgAdmin?: boolean;
   contentProfile?: AdminCreateContentProfileRequest | null;
 }
 
@@ -200,19 +208,23 @@ export class AdminService {
     sortBy?: string, 
     isDescending?: boolean, 
     roleId?: string, 
-    isActive?: boolean 
+    isActive?: boolean,
+    includeQuotaSummary?: boolean
   }): Observable<PagedResult<UserManagementDto>> {
-    let url = `${this.apiUrl}?`;
+    let httpParams = new HttpParams();
     if (params) {
-      if (params.pageNumber) url += `PageNumber=${params.pageNumber}&`;
-      if (params.pageSize) url += `PageSize=${params.pageSize}&`;
-      if (params.searchTerm) url += `SearchTerm=${params.searchTerm}&`;
-      if (params.sortBy) url += `SortBy=${params.sortBy}&`;
-      if (params.isDescending !== undefined) url += `IsDescending=${params.isDescending}&`;
-      if (params.roleId) url += `roleId=${params.roleId}&`;
-      if (params.isActive !== undefined) url += `isActive=${params.isActive}&`;
+      if (params.pageNumber) httpParams = httpParams.set('PageNumber', String(params.pageNumber));
+      if (params.pageSize) httpParams = httpParams.set('PageSize', String(params.pageSize));
+      if (params.searchTerm) httpParams = httpParams.set('SearchTerm', params.searchTerm);
+      if (params.sortBy) httpParams = httpParams.set('SortBy', params.sortBy);
+      if (params.isDescending !== undefined) httpParams = httpParams.set('IsDescending', String(params.isDescending));
+      if (params.roleId) httpParams = httpParams.set('roleId', params.roleId);
+      if (params.isActive !== undefined) httpParams = httpParams.set('isActive', String(params.isActive));
+      if (params.includeQuotaSummary !== undefined) {
+        httpParams = httpParams.set('includeQuotaSummary', String(params.includeQuotaSummary));
+      }
     }
-    return this.http.get<PagedResult<UserManagementDto>>(url);
+    return this.http.get<PagedResult<UserManagementDto>>(this.apiUrl, { params: httpParams });
   }
 
   getRoles(): Observable<RoleDto[]> {
@@ -225,6 +237,26 @@ export class AdminService {
 
   getOrganizations(): Observable<OrganizationDto[]> {
     return this.http.get<OrganizationDto[]>(`${environment.apiUrl}/admin/users/organizations`);
+  }
+
+  createOrganization(request: { name: string; description?: string | null }): Observable<string> {
+    return this.http.post<string>(`${this.apiUrl}/organizations`, request);
+  }
+
+  updateOrganization(organizationId: string, request: { name: string; description?: string | null }): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/organizations/${organizationId}`, request);
+  }
+
+  blockOrganization(organizationId: string, reason?: string | null): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/organizations/${organizationId}/block`, { reason: reason || null });
+  }
+
+  unblockOrganization(organizationId: string): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/organizations/${organizationId}/unblock`, {});
+  }
+
+  assignUserOrganization(userId: string, organizationId: string | null, isOrgAdmin = false): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${userId}/organization`, { organizationId, isOrgAdmin });
   }
 
   updateUserRole(userId: string, roleId: string): Observable<void> {

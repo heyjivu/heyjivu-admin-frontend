@@ -48,9 +48,11 @@ export interface AuthResponse {
   rights: string[];
   onboardingStep: number;
   byokRequested: boolean;
-  useServerStorage: boolean;
   accountType?: string;
   portal?: string;
+  organizationId?: string | null;
+  organizationName?: string | null;
+  isOrgAdmin?: boolean;
 }
 
 export interface AuthUser {
@@ -61,7 +63,9 @@ export interface AuthUser {
   rights: string[];
   onboardingStep: number;
   byokRequested: boolean;
-  useServerStorage: boolean;
   accountType?: string;
   portal?: string;
+  organizationId?: string | null;
+  organizationName?: string | null;
+  isOrgAdmin?: boolean;
 }

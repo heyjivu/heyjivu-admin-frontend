@@ -19,6 +19,8 @@ export interface CompanyAIKeyDto {
   priority?: number;
   cooldownUntil?: string | null;
   customLabel?: string | null;
+  capabilities?: string[] | null;
+  pricingProfile?: AIModelPricingProfileDto | null;
 }
 
 export interface CompanyAIKeySettingsDto {
@@ -45,7 +47,36 @@ export interface SaveCompanyAIKeySettingsRequest {
     roleName: string | null;
     isFree: boolean;
     customLabel?: string | null;
+    capabilities?: string[] | null;
+    pricingProfile?: AIModelPricingProfileDto | null;
   }[];
+}
+
+export type ModelBillingMode =
+  | 'tokens'
+  | 'per_image'
+  | 'per_video'
+  | 'per_second'
+  | 'per_character'
+  | 'per_audio_second'
+  | 'per_request'
+  | 'per_asset';
+
+export interface AIModelPricingProfileDto {
+  billingMode?: ModelBillingMode | string | null;
+  inputPricePerMillion?: number | null;
+  outputPricePerMillion?: number | null;
+  imagePricePerUnit?: number | null;
+  characterPricePerMillion?: number | null;
+  audioPricePerSecond?: number | null;
+  videoPricePerSecond?: number | null;
+  videoPricePerUnit?: number | null;
+  requestPricePerUnit?: number | null;
+  supportedDurationsSeconds?: number[] | null;
+  supportedVoices?: string[] | null;
+  freeQuota?: number | null;
+  freeQuotaResetPeriod?: string | null;
+  pricingSource?: string | null;
 }
 
 export interface TestKeyResult {
@@ -121,10 +152,13 @@ export interface AdminCompanyAIKeyDto {
   cooldownUntil?: string | null;
   lastUsedAt?: string | null;
   usageCount?: number | null;
+  capabilities?: string[] | null;
+  pricingProfile?: AIModelPricingProfileDto | null;
 }
 
 const COMPANY_CATEGORIES: Array<{ id: string; providers: string[] }> = [
   { id: 'Text', providers: ['OpenAI', 'Gemini', 'DeepSeek', 'OpenRouter', 'Alibaba', 'Groq'] },
+  { id: 'Embedding', providers: ['OpenAI', 'Gemini', 'OpenRouter'] },
   { id: 'Whisper', providers: ['Groq', 'OpenAI', 'OpenRouter'] },
   { id: 'ImageGen', providers: ['Gemini', 'OpenAI', 'TogetherAI', 'OpenRouter', 'StabilityAI', 'Modal'] },
   { id: 'Vision', providers: ['Gemini', 'OpenAI'] },
@@ -153,7 +187,9 @@ export class AdminCompanyAIKeysApiService {
         modelOverride: key.modelName,
         label: key.customLabel,
         priority: index,
-        isActive: settings.isEnabled
+        isActive: settings.isEnabled,
+        capabilities: key.capabilities ?? null,
+        pricingProfile: key.pricingProfile ?? null
       })
     );
 
@@ -229,7 +265,9 @@ export class AdminCompanyAIKeysApiService {
           roleName: null,
           isFree: false,
           priority: key.priority ?? 0,
-          customLabel: key.label ?? null
+          customLabel: key.label ?? null,
+          capabilities: key.capabilities ?? null,
+          pricingProfile: key.pricingProfile ?? null
         }))
       };
     });

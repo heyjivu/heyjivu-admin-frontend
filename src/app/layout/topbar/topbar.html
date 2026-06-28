@@ -45,11 +45,11 @@
       <i class="fas fa-users-cog"></i>
       <span class="tab-label">Users</span>
     </button>
-    <button class="tab-btn" routerLink="/admin/plan-users" routerLinkActive="active" title="Plan Users">
+    <button *ngIf="authStore.isSuperAdmin()" class="tab-btn" routerLink="/admin/plan-users" routerLinkActive="active" title="Plan Users">
       <i class="fas fa-layer-group"></i>
       <span class="tab-label">Plan Users</span>
     </button>
-    <button class="tab-btn" routerLink="/admin/payments" routerLinkActive="active" title="Payment Settings">
+    <button *ngIf="authStore.isSuperAdmin()" class="tab-btn" routerLink="/admin/payments" routerLinkActive="active" title="Payment Settings">
       <i class="fas fa-credit-card"></i>
       <span class="tab-label">Payments</span>
     </button>
@@ -58,7 +58,7 @@
       class="tab-btn"
       routerLink="/admin/ai-keys"
       routerLinkActive="active"
-      title="Company AI Keys"
+      [title]="authStore.isTenantAdmin() ? 'Organization AI Keys' : 'Company AI Keys'"
     >
       <i class="fas fa-key"></i>
       <span class="tab-label">AI Keys</span>
@@ -71,19 +71,15 @@
       <i class="fas fa-satellite-dish"></i>
       <span class="tab-label">Radars</span>
     </button>
-    <button class="tab-btn" routerLink="/admin/processing" routerLinkActive="active" title="Processing Configuration">
+    <button *ngIf="authStore.isSuperAdmin()" class="tab-btn" routerLink="/admin/processing" routerLinkActive="active" title="Processing Configuration">
       <i class="fas fa-cog"></i>
       <span class="tab-label">Config</span>
     </button>
-    <button class="tab-btn" routerLink="/admin/templates" routerLinkActive="active" title="Assets Studio">
+    <button *ngIf="authStore.isSuperAdmin()" class="tab-btn" routerLink="/admin/templates" routerLinkActive="active" title="Assets Studio">
       <i class="fas fa-wand-magic-sparkles"></i>
       <span class="tab-label">Assets Studio</span>
     </button>
-    <button class="tab-btn" routerLink="/admin/assets" routerLinkActive="active" title="Asset Management">
-      <i class="fas fa-photo-film"></i>
-      <span class="tab-label">Assets</span>
-    </button>
-    <button class="tab-btn" routerLink="/admin/cloud" routerLinkActive="active" title="User Cloud">
+    <button *ngIf="authStore.isSuperAdmin()" class="tab-btn" routerLink="/admin/cloud" routerLinkActive="active" title="User Cloud">
       <i class="fas fa-cloud"></i>
       <span class="tab-label">Cloud</span>
     </button>
@@ -112,57 +108,68 @@
       <i [class]="uiStore.theme() === 'dark' ? 'fas fa-sun' : 'fas fa-moon'"></i>
     </button>
 
-    <!-- Pipeline Tracker Widget -->
+    <!-- Jivu Command status widget -->
     <div class="pipeline-widget" (click)="$event.stopPropagation()">
       <button
         class="icon-btn theme-btn relative"
-        (click)="togglePipelineMenu($event)"
-        [title]="hasActiveJobs() ? 'Active Pipelines Running' : 'Pipelines Status'"
+        (click)="toggleCommandMenu($event)"
+        [title]="hasActiveCommands() ? 'Jivu Command Tasks Running' : (commandStatusLoaded() ? 'Jivu Command Status' : 'Check Jivu Command Status')"
       >
-        <i class="fas" [class.fa-sync-alt]="!hasActiveJobs()" [class.fa-spin]="hasActiveJobs()" [class.fa-spinner]="hasActiveJobs()"></i>
-        <span *ngIf="hasActiveJobs()" class="badge-dot"></span>
+        <i class="fas"
+           [class.fa-sync-alt]="!hasActiveCommands() && !commandStatusRefreshing()"
+           [class.fa-spin]="hasActiveCommands() || commandStatusRefreshing()"
+           [class.fa-spinner]="hasActiveCommands() || commandStatusRefreshing()"></i>
+        <span *ngIf="hasActiveCommands()" class="badge-dot"></span>
       </button>
 
-      <div class="pipeline-dropdown glass" *ngIf="showPipelineMenu()">
+      <div class="pipeline-dropdown glass" *ngIf="showCommandMenu()">
         <div class="dropdown-header flex align-items-center justify-content-between">
           <div>
-            <p class="signed-in">Active Pipelines</p>
-            <p class="email text-xs font-semibold" *ngIf="hasActiveJobs()">{{ activeJobs().length }} jobs processing</p>
-            <p class="email text-xs font-semibold" *ngIf="!hasActiveJobs()">All pipelines idle</p>
+            <p class="signed-in">Jivu Command</p>
+            <p class="email text-xs font-semibold" *ngIf="hasActiveCommands()">{{ activeCommandCount() }} commands active</p>
+            <p class="email text-xs font-semibold" *ngIf="!hasActiveCommands() && commandStatusRefreshing()">Checking status...</p>
+            <p class="email text-xs font-semibold" *ngIf="!hasActiveCommands() && !commandStatusRefreshing() && commandStatusLoaded()">All commands idle</p>
+            <p class="email text-xs font-semibold" *ngIf="!hasActiveCommands() && !commandStatusRefreshing() && !commandStatusLoaded()">Open to check status</p>
           </div>
-          <button class="refresh-jobs-btn" (click)="refreshJobs()" title="Refresh Status">
+          <button class="refresh-jobs-btn" (click)="refreshCommands()" title="Refresh Status">
             <i class="fas fa-sync-alt"></i>
           </button>
         </div>
         <div class="dropdown-divider"></div>
 
         <div class="pipeline-jobs-list">
-          <div *ngIf="!hasActiveJobs()" class="empty-pipeline-jobs">
-            <i class="fas fa-check-circle text-green-500 mb-2"></i>
-            <p class="empty-title">System Idle</p>
-            <p class="empty-desc">No active video, trend, or post tasks in progress</p>
+          <div *ngIf="!hasActiveCommands()" class="empty-pipeline-jobs">
+            <i class="fas mb-2"
+               [class.fa-sync-alt]="commandStatusRefreshing() || !commandStatusLoaded()"
+               [class.fa-spin]="commandStatusRefreshing()"
+               [class.fa-check-circle]="commandStatusLoaded() && !commandStatusRefreshing()"
+               [class.text-green-500]="commandStatusLoaded() && !commandStatusRefreshing()"></i>
+            <p class="empty-title">{{ commandStatusLoaded() && !commandStatusRefreshing() ? 'System Idle' : 'Status Check' }}</p>
+            <p class="empty-desc" *ngIf="commandStatusRefreshing()">Loading active command tasks...</p>
+            <p class="empty-desc" *ngIf="!commandStatusRefreshing() && commandStatusLoaded()">No active user command tasks in progress</p>
+            <p class="empty-desc" *ngIf="!commandStatusRefreshing() && !commandStatusLoaded()">Open the widget or refresh to load current command status</p>
           </div>
 
-          <div *ngFor="let job of activeJobs()" class="pipeline-job-item">
+          <div *ngFor="let command of activeCommands()" class="pipeline-job-item">
             <div class="flex align-items-center justify-content-between mb-1">
-              <span class="job-title">{{ job.title }}</span>
-              <span class="job-percentage font-mono text-indigo-400">{{ job.progress }}%</span>
+              <span class="job-title">{{ command.title || command.commandType }}</span>
+              <span class="job-percentage font-mono text-indigo-400">{{ command.progress }}%</span>
             </div>
 
             <div class="job-progress-bg">
-              <div class="job-progress-bar" [style.width.%]="job.progress"></div>
+              <div class="job-progress-bar" [style.width.%]="command.progress"></div>
             </div>
 
             <div class="flex align-items-center gap-2 mt-1 text-4xs text-color-secondary">
-              <span>Status: <strong class="text-indigo-300">{{ job.status }}</strong></span>
-              <span>Type: {{ job.type }}</span>
-              <span *ngIf="job.userName" class="ml-auto">User: {{ job.userName }}</span>
+              <span>Status: <strong class="text-indigo-300">{{ command.status }}</strong></span>
+              <span>Type: {{ command.commandType }}</span>
+              <span *ngIf="command.userName" class="ml-auto">User: {{ command.userName }}</span>
             </div>
           </div>
         </div>
 
         <div class="dropdown-divider"></div>
-        <a class="dropdown-item text-center justify-content-center text-indigo-400 font-semibold" routerLink="/admin/jivu-command" (click)="showPipelineMenu.set(false)">
+        <a class="dropdown-item text-center justify-content-center text-indigo-400 font-semibold" routerLink="/admin/jivu-command" (click)="showCommandMenu.set(false)">
           <i class="fas fa-terminal mr-1"></i>
           View Jivu Command
         </a>

@@ -12,9 +12,10 @@ import {
 } from '../services/admin.service';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../../core/services/toast.service';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Observable } from 'rxjs';
 import { DialogService } from '../../../core/dialogs/dialog.service';
 import { AddUserDialogComponent } from '../dialogs/add-user-dialog/add-user-dialog.component';
+import { AuthStore } from '../../../core/auth/state/auth.store';
 
 import { Rights } from '../../../core/constants/rights.constants';
 import type {
@@ -42,6 +43,7 @@ export class UserManagementComponent implements OnInit {
   private router = inject(Router);
   private toast = inject(ToastService);
   private dialog = inject(DialogService);
+  readonly authStore = inject(AuthStore);
   public readonly Rights = Rights;
   
   activeTab = signal<'users' | 'orgs' | 'roles'>('users');
@@ -89,6 +91,8 @@ export class UserManagementComponent implements OnInit {
   availableRights = signal<RightDto[]>([]);
   organizations = signal<OrganizationDto[]>([]);
   loading = signal(false);
+  loadingLookups = signal(false);
+  private lookupsLoaded = false;
   
   selectedRole = signal<RoleDto | null>(null);
   editorTab = signal<'basic' | 'rights' | 'processing' | 'quotas'>('basic');
@@ -165,8 +169,19 @@ export class UserManagementComponent implements OnInit {
   accountOnboardingError = signal<string | null>(null);
   savingGridChange = signal(false);
   shellBypassUpdating = signal(false);
+  organizationDialog = signal<'create' | 'edit' | null>(null);
+  organizationForm = signal<{ id?: string; name: string; description: string }>({
+    name: '',
+    description: ''
+  });
+  savingOrganization = signal(false);
 
   setTab(tab: 'users' | 'orgs' | 'roles') {
+    if (this.authStore.isTenantAdmin() && tab !== 'users') {
+      this.activeTab.set('users');
+      return;
+    }
+
     this.activeTab.set(tab);
     if (tab === 'roles' && this.availableRights().length === 0) {
       this.loadRolesAndRights();
@@ -174,6 +189,8 @@ export class UserManagementComponent implements OnInit {
   }
 
   navigateTab(tab: 'users' | 'orgs' | 'roles') {
+    if (this.authStore.isTenantAdmin() && tab !== 'users') return;
+
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { tab },
@@ -182,6 +199,7 @@ export class UserManagementComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.loadLookups();
     this.loadData();
     this.route.queryParams.subscribe(params => {
       const tab = params['tab'];
@@ -206,32 +224,86 @@ export class UserManagementComponent implements OnInit {
       pageSize: this.pageSize(),
       searchTerm: this.searchQuery(),
       roleId: this.selectedRoleFilter() || undefined,
-      isActive: isActive
-    }).subscribe((res: any) => {
-      // Handle both pure array or PagedResult format if the backend returns it
-      const usersArray = Array.isArray(res) ? res : (res.items || []);
-      const totalCount = Array.isArray(res) ? res.length : (res.totalCount || usersArray.length);
-      this.users.set(usersArray);
-      this.totalItems.set(totalCount);
-      this.calculateStats(usersArray);
-      this.loading.set(false);
-    });
-
-    // Load Roles
-    this.adminService.getRoles().subscribe(roles => this.roles.set(roles));
-
-    // Load Organizations
-    this.adminService.getOrganizations().subscribe(orgs => this.organizations.set(orgs));
-  }
-
-  loadRolesAndRights() {
-    this.adminService.getRights().subscribe(rights => {
-      this.availableRights.set(rights);
-      if (rights.length > 0 && !this.activeCategory()) {
-        this.activeCategory.set(rights[0].category);
+      isActive: isActive,
+      includeQuotaSummary: false
+    }).subscribe({
+      next: (res: any) => {
+        // Handle both pure array or PagedResult format if the backend returns it
+        const usersArray = Array.isArray(res) ? res : (res.items || []);
+        const totalCount = Array.isArray(res) ? res.length : (res.totalCount || usersArray.length);
+        this.users.set(usersArray);
+        this.totalItems.set(totalCount);
+        this.calculateStats(usersArray);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load users', err);
+        this.users.set([]);
+        this.totalItems.set(0);
+        this.calculateStats([]);
+        this.loading.set(false);
+        this.toast.error(this.readApiError(err, 'Failed to load users.'));
       }
     });
-    this.adminService.getRoles().subscribe(roles => this.roles.set(roles));
+  }
+
+  refreshAll() {
+    this.loadLookups(true);
+    this.loadData();
+  }
+
+  loadLookups(force = false) {
+    if (this.lookupsLoaded && !force) return;
+
+    if (this.authStore.isTenantAdmin()) {
+      this.roles.set([]);
+      this.organizations.set([]);
+      this.lookupsLoaded = true;
+      this.loadingLookups.set(false);
+      return;
+    }
+
+    this.loadingLookups.set(true);
+    forkJoin({
+      roles: this.adminService.getRoles(),
+      organizations: this.adminService.getOrganizations()
+    }).subscribe({
+      next: ({ roles, organizations }) => {
+        this.roles.set(roles);
+        this.organizations.set(organizations);
+        this.lookupsLoaded = true;
+        this.loadingLookups.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load user-management lookups', err);
+        this.loadingLookups.set(false);
+        this.toast.error(this.readApiError(err, 'Failed to load user filters.'));
+      }
+    });
+  }
+
+  loadRolesAndRights(force = false) {
+    if (this.authStore.isTenantAdmin()) return;
+
+    if (!force && this.availableRights().length > 0 && this.roles().length > 0) return;
+
+    forkJoin({
+      rights: this.adminService.getRights(),
+      roles: this.adminService.getRoles()
+    }).subscribe({
+      next: ({ rights, roles }) => {
+        this.availableRights.set(rights);
+        this.roles.set(roles);
+        this.lookupsLoaded = true;
+        if (rights.length > 0 && !this.activeCategory()) {
+          this.activeCategory.set(rights[0].category);
+        }
+      },
+      error: (err) => {
+        console.error('Failed to load roles and rights', err);
+        this.toast.error(this.readApiError(err, 'Failed to load roles and rights.'));
+      }
+    });
   }
 
   private calculateStats(users: UserManagementDto[]) {
@@ -245,7 +317,12 @@ export class UserManagementComponent implements OnInit {
       width: '920px',
       closable: false,
       closeOnEscape: false,
-      dismissableMask: false
+      dismissableMask: false,
+      data: {
+        isTenantAdmin: this.authStore.isTenantAdmin(),
+        isSuperAdmin: this.authStore.isSuperAdmin(),
+        organizations: this.organizations()
+      }
     });
 
     ref.onClose.subscribe((created) => {
@@ -902,6 +979,79 @@ export class UserManagementComponent implements OnInit {
   toggleStatus(user: UserManagementDto) {
     this.adminService.updateUserStatus(user.id, !user.isActive).subscribe(() => {
       this.loadData();
+    });
+  }
+
+  createOrganization(): void {
+    this.organizationForm.set({ name: '', description: '' });
+    this.organizationDialog.set('create');
+  }
+
+  editOrganization(org: OrganizationDto): void {
+    this.organizationForm.set({
+      id: org.id,
+      name: org.name,
+      description: org.description || ''
+    });
+    this.organizationDialog.set('edit');
+  }
+
+  patchOrganizationForm(patch: Partial<{ name: string; description: string }>): void {
+    this.organizationForm.update(form => ({ ...form, ...patch }));
+  }
+
+  closeOrganizationDialog(): void {
+    if (this.savingOrganization()) return;
+    this.organizationDialog.set(null);
+    this.organizationForm.set({ name: '', description: '' });
+  }
+
+  saveOrganizationDialog(): void {
+    const mode = this.organizationDialog();
+    const form = this.organizationForm();
+    const name = form.name.trim();
+    const description = form.description.trim() || null;
+    if (!mode || !name || this.savingOrganization()) return;
+
+    this.savingOrganization.set(true);
+    const request: Observable<unknown> = mode === 'edit' && form.id
+      ? this.adminService.updateOrganization(form.id, { name, description })
+      : this.adminService.createOrganization({ name, description });
+
+    request.subscribe({
+      next: () => {
+        this.toast.success(mode === 'edit' ? 'Organization updated.' : 'Organization created.');
+        this.savingOrganization.set(false);
+        this.closeOrganizationDialog();
+        this.loadLookups(true);
+      },
+      error: (err: unknown) => {
+        this.savingOrganization.set(false);
+        this.toast.error(this.readApiError(err, mode === 'edit' ? 'Failed to update organization.' : 'Failed to create organization.'));
+      }
+    });
+  }
+
+  toggleOrganizationBlock(org: OrganizationDto): void {
+    const isActive = org.isActive !== false;
+    if (isActive) {
+      const reason = window.prompt('Block reason') || null;
+      this.adminService.blockOrganization(org.id, reason).subscribe({
+        next: () => {
+          this.toast.success('Organization blocked.');
+          this.loadLookups(true);
+        },
+        error: (err) => this.toast.error(this.readApiError(err, 'Failed to block organization.'))
+      });
+      return;
+    }
+
+    this.adminService.unblockOrganization(org.id).subscribe({
+      next: () => {
+        this.toast.success('Organization unblocked.');
+        this.loadLookups(true);
+      },
+      error: (err) => this.toast.error(this.readApiError(err, 'Failed to unblock organization.'))
     });
   }
 

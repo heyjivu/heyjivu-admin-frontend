@@ -1,24 +1,4 @@
 <section class="admin-radars-page">
-  <aside class="radar-side">
-    <div class="radar-side-title">
-      <span>Admin Radars</span>
-      <strong>Manual controls</strong>
-    </div>
-
-    <button
-      *ngFor="let radar of radarMenus; trackBy: trackById"
-      type="button"
-      class="radar-menu-btn"
-      [class.active]="activeRadar() === radar.id"
-      (click)="selectRadar(radar.id)">
-      <i [class]="radar.icon" aria-hidden="true"></i>
-      <span>
-        <strong>{{ radar.label }}</strong>
-        <small>{{ radar.description }}</small>
-      </span>
-    </button>
-  </aside>
-
   <main class="radar-main">
     <header class="radar-header">
       <div>

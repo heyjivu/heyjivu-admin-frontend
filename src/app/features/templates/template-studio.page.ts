@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, catchError, finalize, of } from 'rxjs';
 import { ToastService } from '../../core/services/toast.service';
 import { AdminService, RoleDto } from '../users/services/admin.service';
@@ -12,8 +14,11 @@ import {
   StudioStatusFilter,
   TemplateStudioApiService
 } from './services/template-studio-api.service';
+import { AssetManagementPage } from '../assets/asset-management.page';
+import { TemplateStudioDialogComponent } from './components/template-studio-dialog/template-studio-dialog.component';
 
 type StudioKind = 'template' | 'soundtrack';
+type StudioSection = 'templates' | 'soundtracks' | 'assets';
 type PlanCode = 'free' | 'student' | 'merchant' | 'premium' | 'byok';
 
 interface PlanOption {
@@ -31,14 +36,21 @@ interface VisibilityItem {
 @Component({
   selector: 'app-template-studio',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AssetManagementPage, TemplateStudioDialogComponent],
   templateUrl: './template-studio.page.html',
   styleUrl: './template-studio.page.scss'
 })
-export class TemplateStudioPage implements OnInit {
+export class TemplateStudioPage implements OnInit, OnDestroy {
   private readonly api = inject(TemplateStudioApiService);
   private readonly adminService = inject(AdminService);
   private readonly toast = inject(ToastService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+  private templateLoadRequestId = 0;
+  private soundtrackLoadRequestId = 0;
+  private roleLoadRequestId = 0;
+  private pendingDeleteTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly statusFilters: Array<{ code: StudioStatusFilter; label: string; icon: string }> = [
     { code: 'all', label: 'All', icon: 'fas fa-layer-group' },
@@ -64,8 +76,11 @@ export class TemplateStudioPage implements OnInit {
   loadingSoundtracks = signal(false);
   loadingRoles = signal(false);
   saving = signal(false);
+  statusUpdatingAction = signal<{ kind: StudioKind; id: string } | null>(null);
+  deletingAction = signal<{ kind: StudioKind; id: string } | null>(null);
   templateError = signal(false);
   soundtrackError = signal(false);
+  activeSection = signal<StudioSection>('templates');
 
   templateSearch = signal('');
   soundtrackSearch = signal('');
@@ -77,6 +92,7 @@ export class TemplateStudioPage implements OnInit {
   showForm = signal(false);
   editingItemId = signal<string | null>(null);
   pendingDelete = signal<{ kind: StudioKind; id: string } | null>(null);
+  actionBusy = computed(() => this.saving() || !!this.statusUpdatingAction() || !!this.deletingAction());
 
   formKind: StudioKind = 'template';
   formName = '';
@@ -97,6 +113,8 @@ export class TemplateStudioPage implements OnInit {
   formSoundtrackUrl = '';
   formDurationSeconds: number | null = null;
   formBpm: number | null = null;
+  formAttachmentFile: File | null = null;
+  formAttachmentName = '';
 
   templateStats = computed(() => this.buildStats(this.templates()));
   soundtrackStats = computed(() => this.buildStats(this.soundtracks()));
@@ -124,9 +142,19 @@ export class TemplateStudioPage implements OnInit {
   });
 
   ngOnInit() {
+    this.route.queryParamMap.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(params => {
+      this.activeSection.set(this.normalizeSection(params.get('section')));
+    });
+
     this.loadRoles();
     this.loadTemplates();
     this.loadSoundtracks();
+  }
+
+  ngOnDestroy() {
+    this.clearPendingDeleteTimer();
   }
 
   loadAll() {
@@ -134,74 +162,122 @@ export class TemplateStudioPage implements OnInit {
     this.loadSoundtracks();
   }
 
+  setActiveSection(section: StudioSection) {
+    this.activeSection.set(section);
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { section },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
+  }
+
+  private normalizeSection(value: string | null): StudioSection {
+    return value === 'soundtracks' || value === 'assets' ? value : 'templates';
+  }
+
   loadRoles() {
+    const requestId = ++this.roleLoadRequestId;
     this.loadingRoles.set(true);
     this.adminService.getRoles().pipe(
       catchError(() => of([] as RoleDto[])),
-      finalize(() => this.loadingRoles.set(false))
-    ).subscribe(roles => this.roles.set(roles));
+      finalize(() => {
+        if (requestId === this.roleLoadRequestId) {
+          this.loadingRoles.set(false);
+        }
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(roles => {
+      if (requestId === this.roleLoadRequestId) {
+        this.roles.set(roles);
+      }
+    });
   }
 
   loadTemplates() {
+    const requestId = ++this.templateLoadRequestId;
     this.loadingTemplates.set(true);
     this.templateError.set(false);
-    this.api.getTemplates({
-      status: this.templateStatusFilter(),
-      planCode: this.templatePlanFilter(),
-      search: this.templateSearch()
-    }).pipe(
+    this.api.getTemplates().pipe(
       catchError(() => {
-        this.templateError.set(true);
-        return of([] as AdminTemplateDto[]);
+        return of(null as AdminTemplateDto[] | null);
       }),
-      finalize(() => this.loadingTemplates.set(false))
-    ).subscribe(items => this.templates.set(items));
+      finalize(() => {
+        if (requestId === this.templateLoadRequestId) {
+          this.loadingTemplates.set(false);
+        }
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(items => {
+      if (requestId !== this.templateLoadRequestId) {
+        return;
+      }
+
+      if (items === null) {
+        this.templateError.set(true);
+        this.templates.set([]);
+        return;
+      }
+
+      this.templates.set(items);
+    });
   }
 
   loadSoundtracks() {
+    const requestId = ++this.soundtrackLoadRequestId;
     this.loadingSoundtracks.set(true);
     this.soundtrackError.set(false);
-    this.api.getSoundtracks({
-      status: this.soundtrackStatusFilter(),
-      planCode: this.soundtrackPlanFilter(),
-      search: this.soundtrackSearch()
-    }).pipe(
+    this.api.getSoundtracks().pipe(
       catchError(() => {
-        this.soundtrackError.set(true);
-        return of([] as AdminSoundtrackDto[]);
+        return of(null as AdminSoundtrackDto[] | null);
       }),
-      finalize(() => this.loadingSoundtracks.set(false))
-    ).subscribe(items => this.soundtracks.set(items));
+      finalize(() => {
+        if (requestId === this.soundtrackLoadRequestId) {
+          this.loadingSoundtracks.set(false);
+        }
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(items => {
+      if (requestId !== this.soundtrackLoadRequestId) {
+        return;
+      }
+
+      if (items === null) {
+        this.soundtrackError.set(true);
+        this.soundtracks.set([]);
+        return;
+      }
+
+      this.soundtracks.set(items);
+    });
   }
 
   setStatusFilter(kind: StudioKind, status: StudioStatusFilter) {
     if (kind === 'template') {
       this.templateStatusFilter.set(status);
-      this.loadTemplates();
       return;
     }
 
     this.soundtrackStatusFilter.set(status);
-    this.loadSoundtracks();
   }
 
   setPlanFilter(kind: StudioKind, planCode: string) {
     if (kind === 'template') {
       this.templatePlanFilter.set(planCode);
-      this.loadTemplates();
       return;
     }
 
     this.soundtrackPlanFilter.set(planCode);
-    this.loadSoundtracks();
   }
 
   openCreate(kind: StudioKind) {
+    if (this.actionBusy()) return;
     this.resetForm(kind);
     this.showForm.set(true);
   }
 
   openEditTemplate(template: AdminTemplateDto) {
+    if (this.actionBusy()) return;
     this.resetForm('template');
     this.editingItemId.set(template.id);
     this.formName = template.name;
@@ -219,6 +295,7 @@ export class TemplateStudioPage implements OnInit {
   }
 
   openEditSoundtrack(soundtrack: AdminSoundtrackDto) {
+    if (this.actionBusy()) return;
     this.resetForm('soundtrack');
     this.editingItemId.set(soundtrack.id);
     this.formName = soundtrack.name;
@@ -235,14 +312,20 @@ export class TemplateStudioPage implements OnInit {
     this.showForm.set(true);
   }
 
-  cancelForm() {
+  cancelForm(force = false) {
+    if (this.saving() && !force) return;
     this.showForm.set(false);
     this.editingItemId.set(null);
   }
 
   saveItem() {
+    if (this.saving()) return;
     if (!this.formName.trim()) {
       this.toast.error('Name is required.');
+      return;
+    }
+    if (!this.editingItemId() && !this.formAttachmentFile) {
+      this.toast.error('Attachment is required.');
       return;
     }
 
@@ -250,11 +333,13 @@ export class TemplateStudioPage implements OnInit {
     const request: Observable<AdminTemplateDto | AdminSoundtrackDto> = this.formKind === 'template'
       ? this.saveTemplateRequest()
       : this.saveSoundtrackRequest();
-    request.pipe(finalize(() => this.saving.set(false))).subscribe({
+    request.pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.saving.set(false))
+    ).subscribe({
       next: () => {
         this.toast.success(`${this.kindLabel()} saved.`);
-        this.showForm.set(false);
-        this.editingItemId.set(null);
+        this.cancelForm(true);
         if (this.formKind === 'template') {
           this.loadTemplates();
         } else {
@@ -266,12 +351,22 @@ export class TemplateStudioPage implements OnInit {
   }
 
   toggleItemStatus(kind: StudioKind, item: AdminTemplateDto | AdminSoundtrackDto) {
+    if (this.actionBusy()) return;
     const nextStatus = !item.isActive;
+    this.statusUpdatingAction.set({ kind, id: item.id });
     const request: Observable<AdminTemplateDto | AdminSoundtrackDto> = kind === 'template'
       ? this.api.updateTemplateStatus(item.id, nextStatus)
       : this.api.updateSoundtrackStatus(item.id, nextStatus);
 
-    request.subscribe({
+    request.pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        const current = this.statusUpdatingAction();
+        if (current?.kind === kind && current.id === item.id) {
+          this.statusUpdatingAction.set(null);
+        }
+      })
+    ).subscribe({
       next: () => {
         this.toast.success(`${this.kindLabel(kind)} ${nextStatus ? 'activated' : 'deactivated'}.`);
         if (kind === 'template') {
@@ -285,22 +380,35 @@ export class TemplateStudioPage implements OnInit {
   }
 
   deleteItem(kind: StudioKind, id: string) {
+    if (this.actionBusy()) return;
     const pending = this.pendingDelete();
     if (!pending || pending.kind !== kind || pending.id !== id) {
       this.pendingDelete.set({ kind, id });
       this.toast.show(`Click delete again to remove this ${this.kindLabel(kind).toLowerCase()}.`, 'warning', 5000);
-      setTimeout(() => {
+      this.clearPendingDeleteTimer();
+      this.pendingDeleteTimer = setTimeout(() => {
         const current = this.pendingDelete();
         if (current?.kind === kind && current.id === id) {
           this.pendingDelete.set(null);
         }
+        this.pendingDeleteTimer = null;
       }, 5000);
       return;
     }
 
+    this.clearPendingDeleteTimer();
     this.pendingDelete.set(null);
+    this.deletingAction.set({ kind, id });
     const request = kind === 'template' ? this.api.deleteTemplate(id) : this.api.deleteSoundtrack(id);
-    request.subscribe({
+    request.pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        const current = this.deletingAction();
+        if (current?.kind === kind && current.id === id) {
+          this.deletingAction.set(null);
+        }
+      })
+    ).subscribe({
       next: () => {
         this.toast.success(`${this.kindLabel(kind)} deleted.`);
         if (kind === 'template') {
@@ -316,6 +424,16 @@ export class TemplateStudioPage implements OnInit {
   pendingDeleteMatches(kind: StudioKind, id: string): boolean {
     const pending = this.pendingDelete();
     return pending?.kind === kind && pending.id === id;
+  }
+
+  isStatusUpdating(kind: StudioKind, id: string): boolean {
+    const current = this.statusUpdatingAction();
+    return current?.kind === kind && current.id === id;
+  }
+
+  isDeleting(kind: StudioKind, id: string): boolean {
+    const current = this.deletingAction();
+    return current?.kind === kind && current.id === id;
   }
 
   togglePlan(code: string) {
@@ -396,6 +514,35 @@ export class TemplateStudioPage implements OnInit {
     return `${action} ${this.kindLabel()}`;
   }
 
+  onAttachmentSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.formAttachmentFile = file;
+    this.formAttachmentName = file?.name ?? '';
+  }
+
+  clearAttachment(input?: HTMLInputElement) {
+    this.formAttachmentFile = null;
+    this.formAttachmentName = '';
+    if (input) {
+      input.value = '';
+    }
+  }
+
+  attachmentAccept(): string {
+    return this.formKind === 'soundtrack'
+      ? 'audio/*'
+      : 'image/*,video/*,.json,.lottie,.riv';
+  }
+
+  setDialogCategory(value: string) {
+    if (this.formKind === 'template') {
+      this.formCategory = value;
+    } else {
+      this.formSoundtrackGenre = value;
+    }
+  }
+
   trackTemplate(_: number, item: AdminTemplateDto): string {
     return item.id;
   }
@@ -422,7 +569,8 @@ export class TemplateStudioPage implements OnInit {
       allowedPlanCodes: [...this.formAllowedPlanCodes],
       allowedRoleIds: [...this.formAllowedRoleIds],
       allowedRoles: [],
-      tags: this.parseTags(this.formTags)
+      tags: this.parseTags(this.formTags),
+      file: this.formAttachmentFile
     };
 
     const id = this.editingItemId();
@@ -443,7 +591,8 @@ export class TemplateStudioPage implements OnInit {
       allowedPlanCodes: [...this.formAllowedPlanCodes],
       allowedRoleIds: [...this.formAllowedRoleIds],
       allowedRoles: [],
-      tags: this.parseTags(this.formTags)
+      tags: this.parseTags(this.formTags),
+      file: this.formAttachmentFile
     };
 
     const id = this.editingItemId();
@@ -469,6 +618,8 @@ export class TemplateStudioPage implements OnInit {
     this.formSoundtrackUrl = '';
     this.formDurationSeconds = null;
     this.formBpm = null;
+    this.formAttachmentFile = null;
+    this.formAttachmentName = '';
   }
 
   private buildStats(items: Array<{ isActive: boolean }>): { total: number; active: number; inactive: number } {
@@ -524,6 +675,15 @@ export class TemplateStudioPage implements OnInit {
   private emptyToNull(value: string): string | null {
     const trimmed = value.trim();
     return trimmed ? trimmed : null;
+  }
+
+  private clearPendingDeleteTimer() {
+    if (!this.pendingDeleteTimer) {
+      return;
+    }
+
+    clearTimeout(this.pendingDeleteTimer);
+    this.pendingDeleteTimer = null;
   }
 
   private patchTemplate(id: string, patch: Partial<AdminTemplateDto>) {
