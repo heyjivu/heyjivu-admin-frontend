@@ -193,7 +193,7 @@
        [class.row-virtual]="isVirtualKey(key.id)">
 
     <!-- Row Header -->
-    <div class="key-row__header" (click)="toggleRow(key.id, key)">
+    <div class="key-row__header" cdkDragHandle (click)="toggleRow(key.id, key)">
 
       <div class="d-flex items-center gap-12 min-w-0">
         <div class="drag-handle" cdkDragHandle (click)="$event.stopPropagation()" *ngIf="!isVirtualKey(key.id)" title="Drag to reorder priority">

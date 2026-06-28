@@ -366,13 +366,17 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 14px;
-  cursor: pointer;
+  cursor: grab;
   user-select: none;
   gap: 12px;
   transition: background 0.15s;
 
   &:hover {
     background: var(--text-alpha-015);
+  }
+
+  &:active {
+    cursor: grabbing;
   }
 
   > .d-flex:first-child {
