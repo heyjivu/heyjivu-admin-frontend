@@ -244,6 +244,10 @@
   @media (max-width: 900px) { grid-template-columns: 1fr; }
 }
 
+.dash-activity-grid--single {
+  grid-template-columns: 1fr;
+}
+
 .dash-activity-card {
   background: var(--border-subtle);
   border: 1px solid var(--border-subtle);

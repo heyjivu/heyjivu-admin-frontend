@@ -8,7 +8,7 @@
       <p class="screen-sub">{{ pageSubtitle() }}</p>
     </div>
     <div class="header-actions">
-      <button class="btn btn-soft" (click)="loadReport()">
+      <button class="btn btn-soft" (click)="loadReport()" [disabled]="loading()">
         <i class="pi pi-refresh" [class.pi-spin]="loading()"></i> Refresh
       </button>
     </div>
@@ -32,6 +32,7 @@
           (ngModelChange)="selectedRole.set($event); applyFilters()"
           optionLabel="label"
           optionValue="value"
+          [disabled]="loading()"
           styleClass="audit-select">
         </p-select>
       </div>
@@ -44,6 +45,7 @@
           (ngModelChange)="selectedUser.set($event); applyFilters()"
           optionLabel="label"
           optionValue="value"
+          [disabled]="loading()"
           styleClass="audit-select">
         </p-select>
       </div>
@@ -56,6 +58,7 @@
           (ngModelChange)="selectedCategory.set($event); applyFilters()"
           optionLabel="label"
           optionValue="value"
+          [disabled]="loading()"
           styleClass="audit-select">
         </p-select>
       </div>
@@ -68,18 +71,19 @@
           (ngModelChange)="selectedProvider.set($event); applyFilters()"
           optionLabel="label"
           optionValue="value"
+          [disabled]="loading()"
           styleClass="audit-select">
         </p-select>
       </div>
 
       <div class="filter-control date-control">
         <span>From</span>
-        <input type="date" class="glass-input" [ngModel]="fromDate()" (ngModelChange)="fromDate.set($event); applyFilters()">
+        <input type="date" class="glass-input" [ngModel]="fromDate()" (ngModelChange)="fromDate.set($event); applyFilters()" [disabled]="loading()">
       </div>
 
       <div class="filter-control date-control">
         <span>To</span>
-        <input type="date" class="glass-input" [ngModel]="toDate()" (ngModelChange)="toDate.set($event); applyFilters()">
+        <input type="date" class="glass-input" [ngModel]="toDate()" (ngModelChange)="toDate.set($event); applyFilters()" [disabled]="loading()">
       </div>
 
       <div class="filter-control search-control">
@@ -92,12 +96,13 @@
             placeholder="Provider, user, role, model, job..."
             [ngModel]="searchQuery()"
             (ngModelChange)="searchQuery.set($event)"
-            (keyup.enter)="applyFilters()">
-          <button class="mini-btn" type="button" (click)="applyFilters()">Apply</button>
+            (keyup.enter)="applyFilters()"
+            [disabled]="loading()">
+          <button class="mini-btn" type="button" (click)="applyFilters()" [disabled]="loading()">Apply</button>
         </div>
       </div>
 
-      <button class="clear-btn" type="button" (click)="clearFilters()">
+      <button class="clear-btn" type="button" (click)="clearFilters()" [disabled]="loading() || !hasActiveFilters()">
         <i class="pi pi-filter-slash"></i>
         Clear
       </button>

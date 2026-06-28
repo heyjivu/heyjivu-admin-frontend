@@ -1,7 +1,9 @@
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subscription, catchError, finalize, forkJoin, of } from 'rxjs';
 
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
@@ -15,6 +17,7 @@ import {
   AiCostRecord,
   CombinedAdminReport
 } from '../../dashboard/models/dashboard.model';
+import { AdminService, PagedResult, UserManagementDto } from '../../users/services/admin.service';
 
 const USD_TO_PKR_RATE = 278;
 
@@ -32,6 +35,11 @@ interface CostCategoryCard {
   tokens: number;
 }
 
+interface ReportFilterOption {
+  label: string;
+  value: string;
+}
+
 @Component({
   selector: 'app-reports-page',
   standalone: true,
@@ -41,18 +49,26 @@ interface CostCategoryCard {
 })
 export class ReportsPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   private readonly dashboardService = inject(DashboardService);
+  private readonly adminService = inject(AdminService);
   readonly Icons = AppIcons;
   readonly isSuperAdmin = signal(true);
   private readonly usdToPkrRate = USD_TO_PKR_RATE;
+  private filterRequestId = 0;
+  private reportRequestId = 0;
+  private filterRequest?: Subscription;
+  private reportRequest?: Subscription;
 
 
 
   activeTab = signal<'combined' | 'byok' | 'company'>('combined');
 
   loading = signal(false);
+  loadingFilters = signal(false);
   error = signal<string | null>(null);
+  readonly reportsBusy = computed(() => this.loading() || this.loadingFilters());
 
   // Admin Filtering
   fromDate = signal<string>('');
@@ -60,8 +76,8 @@ export class ReportsPage implements OnInit {
   selectedRole = signal<string>('');
   selectedUser = signal<string>('');
 
-  roles = [{ label: 'All Roles', value: '' }, { label: 'BYOK', value: 'ExpertBYOK' }, { label: 'Free', value: 'FreeGuest' }, { label: 'Premium', value: 'Company' }];
-  users = signal<any[]>([{ label: 'All Users', value: '' }]);
+  roles = signal<ReportFilterOption[]>([{ label: 'All Roles', value: '' }]);
+  users = signal<ReportFilterOption[]>([{ label: 'All Users', value: '' }]);
 
   // Data
   combinedReport = signal<CombinedAdminReport | null>(null);
@@ -108,44 +124,82 @@ export class ReportsPage implements OnInit {
   }
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
        const view = params['view'];
        this.activeTab.set(view === 'combined' ? 'combined' : 'combined');
     });
+    this.loadFilterOptions();
     this.loadReports();
-    this.loadUsers();
   }
 
-  loadUsers() {
-    // For demo purposes, fetch some distinct user IDs from API if needed, or mock it
-    this.users.set([
-       { label: 'All Users', value: '' },
-       { label: 'System Admin', value: 'admin-123' },
-       { label: 'Demo User', value: 'demo-456' }
-    ]);
+  loadFilterOptions() {
+    const requestId = ++this.filterRequestId;
+    this.filterRequest?.unsubscribe();
+    this.loadingFilters.set(true);
+    this.filterRequest = forkJoin({
+      roles: this.adminService.getRoles().pipe(catchError(() => of([]))),
+      users: this.adminService.getUsers({
+        pageNumber: 1,
+        pageSize: 100,
+        isActive: true,
+        includeQuotaSummary: false
+      }).pipe(catchError(() => of(this.emptyUsersResult())))
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        if (requestId === this.filterRequestId) {
+          this.loadingFilters.set(false);
+        }
+      })
+    ).subscribe(({ roles, users }) => {
+      if (requestId !== this.filterRequestId) return;
+      this.roles.set([
+        { label: 'All Roles', value: '' },
+        ...roles.map(role => ({
+          label: this.displayRoleName(role.name),
+          value: role.name
+        }))
+      ]);
+
+      this.users.set([
+        { label: 'All Users', value: '' },
+        ...users.items.map(user => ({
+          label: this.displayUserName(user),
+          value: user.id
+        }))
+      ]);
+    });
   }
 
   loadReports() {
+    const requestId = ++this.reportRequestId;
+    this.reportRequest?.unsubscribe();
 
     this.loading.set(true);
     this.error.set(null);
 
-    this.dashboardService.getCombinedAdminReports(
+    this.reportRequest = this.dashboardService.getCombinedAdminReports(
         this.fromDate(), this.toDate(), this.selectedUser(), this.selectedRole()
+    ).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        if (requestId === this.reportRequestId) {
+          this.loading.set(false);
+        }
+      })
     ).subscribe({
       next: (report: any) => {
+        if (requestId !== this.reportRequestId) return;
         if (!report) {
            this.error.set('Received empty report payload.');
-           this.loading.set(false);
            return;
         }
         this.combinedReport.set(report);
         this.updateCharts(report);
-        this.loading.set(false);
       },
       error: (err: any) => {
+        if (requestId !== this.reportRequestId) return;
         this.error.set('Failed to load Combined Admin reports: ' + (err.error?.message || err.message));
-        this.loading.set(false);
       }
     });
   }
@@ -368,6 +422,27 @@ export class ReportsPage implements OnInit {
   }
 
   clearError() { this.error.set(null); }
+
+  private emptyUsersResult(): PagedResult<UserManagementDto> {
+    return {
+      items: [],
+      totalCount: 0,
+      pageNumber: 1,
+      pageSize: 100
+    };
+  }
+
+  private displayUserName(user: UserManagementDto): string {
+    const name = user.displayName?.trim() || user.username || user.email;
+    return `${name} (${user.email})`;
+  }
+
+  private displayRoleName(roleName: string): string {
+    return roleName
+      .replace(/^\[Custom\]\s*/i, 'Custom ')
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .trim();
+  }
 
   private buildCategoryCards(report: CombinedAdminReport | null): CostCategoryCard[] {
     const rows = report?.categoryBreakdown || [];

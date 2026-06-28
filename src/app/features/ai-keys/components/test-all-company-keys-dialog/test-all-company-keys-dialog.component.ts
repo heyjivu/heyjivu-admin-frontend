@@ -179,6 +179,7 @@ export class TestAllCompanyKeysDialogComponent {
     if (normalized === 'websearch' || normalized === 'web') return 'Web Search';
     if (normalized === 'imagegen') return 'Image Generation';
     if (normalized === 'videogen') return 'Video Generation';
+    if (normalized === 'embedding' || normalized === 'embeddings' || normalized === 'vector') return 'Embedding';
     if (normalized === 'tts') return 'TTS';
     return category;
   }

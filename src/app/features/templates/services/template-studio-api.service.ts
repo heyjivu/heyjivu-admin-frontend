@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, from, map, switchMap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
 export type StudioStatusFilter = 'all' | 'active' | 'inactive';
@@ -76,13 +76,33 @@ export interface AdminSoundtrackDto {
 
 export type AdminTemplatePayload = Omit<AdminTemplateDto, 'id' | 'createdAt' | 'updatedAt'> & {
   scope: 'admin';
+  file?: File | null;
 };
 
 export type AdminSoundtrackPayload = Omit<AdminSoundtrackDto, 'id' | 'createdAt' | 'updatedAt'> & {
   scope: 'admin';
+  file?: File | null;
 };
 
 type ListResponse<T> = T[] | { items?: T[]; data?: T[]; results?: T[] };
+type AdminLibrarySection = 'templates' | 'soundtracks' | 'assets';
+
+interface AdminLibraryUploadUrlResponse {
+  url: string;
+  filePath: string;
+  folder: string;
+  itemId: string;
+  verb: string;
+  contentType?: string | null;
+  expiresAtUtc: string;
+  expiresInMinutes: number;
+}
+
+interface UploadedAdminLibraryFile {
+  filePath: string;
+  fileName: string;
+  contentType: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class TemplateStudioApiService {
@@ -96,15 +116,19 @@ export class TemplateStudioApiService {
   }
 
   createTemplate(payload: AdminTemplatePayload): Observable<AdminTemplateDto> {
-    return this.http
-      .post<BackendAdminTemplateDto>(`${this.apiUrl}/templates`, this.toTemplateRequest(payload))
-      .pipe(map(item => this.fromTemplate(item)));
+    return this.withUploadedFile('templates', payload.category, payload.name, payload.file).pipe(
+      switchMap(uploaded => this.http
+        .post<BackendAdminTemplateDto>(`${this.apiUrl}/templates`, this.toTemplateRequest(payload, uploaded))
+        .pipe(map(item => this.fromTemplate(item))))
+    );
   }
 
   updateTemplate(id: string, payload: AdminTemplatePayload): Observable<AdminTemplateDto> {
-    return this.http
-      .put<BackendAdminTemplateDto>(`${this.apiUrl}/templates/${encodeURIComponent(id)}`, this.toTemplateRequest(payload))
-      .pipe(map(item => this.fromTemplate(item)));
+    return this.withUploadedFile('templates', payload.category, payload.name, payload.file).pipe(
+      switchMap(uploaded => this.http
+        .put<BackendAdminTemplateDto>(`${this.apiUrl}/templates/${encodeURIComponent(id)}`, this.toTemplateRequest(payload, uploaded))
+        .pipe(map(item => this.fromTemplate(item))))
+    );
   }
 
   updateTemplateStatus(id: string, isActive: boolean): Observable<AdminTemplateDto> {
@@ -125,15 +149,19 @@ export class TemplateStudioApiService {
   }
 
   createSoundtrack(payload: AdminSoundtrackPayload): Observable<AdminSoundtrackDto> {
-    return this.http
-      .post<BackendAdminSoundtrackDto>(`${this.apiUrl}/soundtracks`, this.toSoundtrackRequest(payload))
-      .pipe(map(item => this.fromSoundtrack(item)));
+    return this.withUploadedFile('soundtracks', payload.genre, payload.name, payload.file).pipe(
+      switchMap(uploaded => this.http
+        .post<BackendAdminSoundtrackDto>(`${this.apiUrl}/soundtracks`, this.toSoundtrackRequest(payload, uploaded))
+        .pipe(map(item => this.fromSoundtrack(item))))
+    );
   }
 
   updateSoundtrack(id: string, payload: AdminSoundtrackPayload): Observable<AdminSoundtrackDto> {
-    return this.http
-      .put<BackendAdminSoundtrackDto>(`${this.apiUrl}/soundtracks/${encodeURIComponent(id)}`, this.toSoundtrackRequest(payload))
-      .pipe(map(item => this.fromSoundtrack(item)));
+    return this.withUploadedFile('soundtracks', payload.genre, payload.name, payload.file).pipe(
+      switchMap(uploaded => this.http
+        .put<BackendAdminSoundtrackDto>(`${this.apiUrl}/soundtracks/${encodeURIComponent(id)}`, this.toSoundtrackRequest(payload, uploaded))
+        .pipe(map(item => this.fromSoundtrack(item))))
+    );
   }
 
   updateSoundtrackStatus(id: string, isActive: boolean): Observable<AdminSoundtrackDto> {
@@ -200,17 +228,17 @@ export class TemplateStudioApiService {
     };
   }
 
-  private toTemplateRequest(payload: AdminTemplatePayload) {
+  private toTemplateRequest(payload: AdminTemplatePayload, uploaded?: UploadedAdminLibraryFile | null) {
     const parsedPayload = this.parseJsonRecord(payload.payloadJson);
     const dataJson = {
       ...parsedPayload,
-      description: payload.description,
       category: payload.category,
       templateType: payload.templateType,
       thumbnailUrl: payload.thumbnailUrl,
       previewUrl: payload.previewUrl,
       allowedPlanCodes: payload.allowedPlanCodes ?? [],
-      tags: payload.tags ?? []
+      tags: payload.tags ?? [],
+      ...(uploaded ? { adminLibraryFile: this.uploadMetadata('templates', uploaded) } : {})
     };
 
     return {
@@ -218,33 +246,88 @@ export class TemplateStudioApiService {
       type: this.normalizeTemplateType(payload.templateType),
       dataJson: JSON.stringify(dataJson),
       assignedRoleId: this.singleRole(payload.allowedRoleIds),
-      thumbnailFileId: null,
-      isActive: payload.isActive
+      thumbnailFileId: uploaded?.filePath ?? null,
+      isActive: payload.isActive,
+      fileExtension: uploaded?.fileName ?? null,
+      mimeType: uploaded?.contentType ?? null
     };
   }
 
-  private toSoundtrackRequest(payload: AdminSoundtrackPayload) {
+  private toSoundtrackRequest(payload: AdminSoundtrackPayload, uploaded?: UploadedAdminLibraryFile | null) {
     const duration = this.secondsToDuration(payload.durationSeconds);
+    const audioReference = uploaded?.filePath ?? payload.audioUrl;
     const metadata = {
-      description: payload.description,
-      mood: payload.mood,
-      audioUrl: payload.audioUrl,
+      category: payload.genre,
+      audioUrl: this.isHttpUrl(audioReference) ? audioReference : null,
       durationSeconds: payload.durationSeconds,
-      bpm: payload.bpm,
       allowedPlanCodes: payload.allowedPlanCodes ?? [],
-      tags: payload.tags ?? []
+      tags: payload.tags ?? [],
+      ...(uploaded ? { adminLibraryFile: this.uploadMetadata('soundtracks', uploaded) } : {})
     };
 
     return {
       name: payload.name,
-      genre: payload.genre || payload.mood || 'Admin soundtrack',
+      genre: payload.genre || 'Admin soundtrack',
       duration,
       localFileName: null,
-      storageFileId: this.isStorageReference(payload.audioUrl) ? payload.audioUrl : null,
-      mimeType: null,
+      storageFileId: this.isStorageReference(audioReference) ? audioReference : null,
+      mimeType: uploaded?.contentType ?? null,
       metadataJson: JSON.stringify(metadata),
       assignedRoleId: this.singleRole(payload.allowedRoleIds),
       isActive: payload.isActive
+    };
+  }
+
+  private withUploadedFile(
+    section: AdminLibrarySection,
+    category: string | null | undefined,
+    itemName: string,
+    file?: File | null
+  ): Observable<UploadedAdminLibraryFile | null> {
+    if (!file) {
+      return from(Promise.resolve(null));
+    }
+
+    const contentType = file.type || 'application/octet-stream';
+    return this.http.post<AdminLibraryUploadUrlResponse>(`${this.apiUrl}/storage/upload-url`, {
+      section,
+      category: category || 'general',
+      itemName,
+      fileName: file.name,
+      contentType
+    }).pipe(
+      switchMap(signed => from(this.putSignedFile(signed.url, file, signed.contentType || contentType)).pipe(
+        map(() => ({
+          filePath: signed.filePath,
+          fileName: file.name,
+          contentType: signed.contentType || contentType
+        }))
+      ))
+    );
+  }
+
+  private async putSignedFile(url: string, file: File, contentType: string): Promise<void> {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType },
+      body: file
+    });
+
+    if (!response.ok) {
+      throw new Error(`R2 upload failed with status ${response.status}.`);
+    }
+  }
+
+  private uploadMetadata(section: AdminLibrarySection, uploaded: UploadedAdminLibraryFile) {
+    return {
+      section,
+      storageKey: uploaded.filePath,
+      key: uploaded.filePath,
+      fileId: uploaded.filePath,
+      fileName: this.fileNameFromPath(uploaded.filePath),
+      originalFileName: uploaded.fileName,
+      extension: this.fileExtension(uploaded.fileName),
+      mimeType: uploaded.contentType
     };
   }
 
@@ -339,5 +422,20 @@ export class TemplateStudioApiService {
 
   private isStorageReference(value?: string | null): boolean {
     return !!value?.trim() && !/^https?:\/\//i.test(value.trim());
+  }
+
+  private isHttpUrl(value?: string | null): boolean {
+    return /^https?:\/\//i.test(value?.trim() ?? '');
+  }
+
+  private fileNameFromPath(value: string): string {
+    const normalized = value.replace(/\\/g, '/');
+    return normalized.slice(normalized.lastIndexOf('/') + 1);
+  }
+
+  private fileExtension(value: string): string | null {
+    const fileName = this.fileNameFromPath(value);
+    const dotIndex = fileName.lastIndexOf('.');
+    return dotIndex >= 0 ? fileName.slice(dotIndex).toLowerCase() : null;
   }
 }

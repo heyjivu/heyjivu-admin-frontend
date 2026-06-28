@@ -9,11 +9,10 @@ export const environment = {
   production: false,
   envName: 'staging',
 
-  // ── API & SignalR ──────────────────────────────────────────────
+  // ── API ────────────────────────────────────────────────────────
   // ← FILL THIS: your staging Azure Function / App Service URL
   apiUrl: 'https://staging-admin-api.heyjivu.com/api',
   authApiUrl: 'https://staging-api.heyjivu.com/api',
-  hubUrl: 'https://staging-admin-api.heyjivu.com/hubs/dashboard',
 
   // ── Storage — R2 direct playback ──────────────────────────────
   // ← FILL THIS (optional): your staging R2 public domain

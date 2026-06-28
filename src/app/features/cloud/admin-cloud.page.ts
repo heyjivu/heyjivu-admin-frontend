@@ -1,13 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
-import { AdminService, UserManagementDto } from '../users/services/admin.service';
+import { UserManagementDto } from '../users/services/admin.service';
 import {
   AdminCloudApiService,
   AdminCloudFileEntry,
   AdminCloudStorageInfo
 } from './services/admin-cloud-api.service';
+import { AdminCloudUserStore } from './state/admin-cloud-user.store';
 
 type FolderShortcut = {
   label: string;
@@ -27,19 +29,23 @@ type FolderSection = {
   templateUrl: './admin-cloud.page.html',
   styleUrl: './admin-cloud.page.scss'
 })
-export class AdminCloudPage implements OnInit, OnDestroy {
+export class AdminCloudPage implements OnInit {
   private readonly api = inject(AdminCloudApiService);
-  private readonly adminService = inject(AdminService);
-  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly cloudUsers = inject(AdminCloudUserStore);
+  private readonly destroyRef = inject(DestroyRef);
+  private storageRequestId = 0;
+  private fileRequestId = 0;
+  private previewRequestId = 0;
+  private downloadRequestId = 0;
+  private lastSelectedUserId: string | null = null;
 
-  readonly users = signal<UserManagementDto[]>([]);
-  readonly selectedUser = signal<UserManagementDto | null>(null);
-  readonly userSearch = signal('');
-  readonly loadingUsers = signal(false);
+  readonly selectedUser = this.cloudUsers.selectedUser;
 
   readonly files = signal<AdminCloudFileEntry[]>([]);
   readonly loadingFiles = signal(false);
   readonly storageInfo = signal<AdminCloudStorageInfo | null>(null);
+  readonly loadingStorage = signal(false);
+  readonly storageLoaded = signal(false);
   readonly currentFolder = signal('root');
   readonly history = signal<{ name: string; id: string }[]>([{ name: 'Root', id: 'root' }]);
 
@@ -48,6 +54,8 @@ export class AdminCloudPage implements OnInit, OnDestroy {
   readonly previewFile = signal<AdminCloudFileEntry | null>(null);
   readonly previewUrl = signal('');
   readonly previewLoading = signal(false);
+  readonly downloadPath = signal('');
+  readonly fileActionError = signal('');
 
   readonly folderSections: FolderSection[] = [
     {
@@ -105,86 +113,120 @@ export class AdminCloudPage implements OnInit, OnDestroy {
     if (!info || info.totalSpace <= 0) return 0;
     return Math.max(0, Math.min(100, (info.usedSpace / info.totalSpace) * 100));
   });
+  readonly storagePercentLabel = computed(() => this.storageInfo() ? `${Math.round(this.storagePercent())}%` : '--');
+
+  private readonly selectedUserWatcher = effect(() => {
+    const user = this.selectedUser();
+    const userId = user?.id ?? null;
+    if (this.lastSelectedUserId === userId) return;
+    this.lastSelectedUserId = userId;
+    queueMicrotask(() => this.applySelectedUser(user));
+  });
 
   ngOnInit(): void {
-    this.loadUsers();
+    this.cloudUsers.ensureLoaded();
   }
 
-  ngOnDestroy(): void {
-    if (this.searchTimer) {
-      clearTimeout(this.searchTimer);
+  private applySelectedUser(user: UserManagementDto | null): void {
+    if (!user) {
+      this.currentFolder.set('root');
+      this.history.set([{ name: 'Root', id: 'root' }]);
+      this.searchQuery.set('');
+      this.files.set([]);
+      this.storageInfo.set(null);
+      this.storageLoaded.set(false);
+      this.loadingStorage.set(false);
+      this.downloadRequestId++;
+      this.downloadPath.set('');
+      this.fileActionError.set('');
+      this.closePreview();
+      return;
     }
-  }
-
-  onUserSearchChange(value: string): void {
-    this.userSearch.set(value);
-    if (this.searchTimer) {
-      clearTimeout(this.searchTimer);
-    }
-    this.searchTimer = setTimeout(() => this.loadUsers(value), 250);
-  }
-
-  loadUsers(searchTerm = this.userSearch()): void {
-    this.loadingUsers.set(true);
-    this.adminService.getUsers({
-      pageNumber: 1,
-      pageSize: 50,
-      searchTerm: searchTerm.trim() || undefined,
-      sortBy: 'email'
-    }).pipe(
-      finalize(() => this.loadingUsers.set(false))
-    ).subscribe({
-      next: result => {
-        this.users.set(result.items || []);
-        if (!this.selectedUser() && result.items?.length) {
-          this.selectUser(result.items[0]);
-        }
-      },
-      error: () => this.users.set([])
-    });
-  }
-
-  selectUser(user: UserManagementDto): void {
-    this.selectedUser.set(user);
     this.currentFolder.set('root');
     this.history.set([{ name: 'Root', id: 'root' }]);
     this.searchQuery.set('');
-    this.loadStorageInfo();
+    this.files.set([]);
+    this.storageInfo.set(null);
+    this.storageLoaded.set(false);
+    this.loadingStorage.set(false);
+    this.downloadRequestId++;
+    this.downloadPath.set('');
+    this.fileActionError.set('');
+    this.closePreview();
     this.loadFiles('root');
   }
 
   loadStorageInfo(): void {
     const user = this.selectedUser();
     if (!user) return;
+    const userId = user.id;
+    const requestId = ++this.storageRequestId;
+    this.storageLoaded.set(true);
+    this.loadingStorage.set(true);
 
-    this.api.getStorageInfo(user.id).subscribe({
-      next: info => this.storageInfo.set(info),
-      error: () => this.storageInfo.set(null)
+    this.api.getStorageInfo(userId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        if (requestId === this.storageRequestId) {
+          this.loadingStorage.set(false);
+        }
+      })
+    ).subscribe({
+      next: info => {
+        if (requestId === this.storageRequestId && this.selectedUser()?.id === userId) {
+          this.storageInfo.set(info);
+        }
+      },
+      error: () => {
+        if (requestId === this.storageRequestId && this.selectedUser()?.id === userId) {
+          this.storageInfo.set(null);
+        }
+      }
     });
   }
 
   loadFiles(folder = this.currentFolder(), folderName?: string): void {
     const user = this.selectedUser();
     if (!user) {
+      this.fileRequestId++;
       this.files.set([]);
+      this.loadingFiles.set(false);
       return;
     }
+    const userId = user.id;
 
     const normalizedFolder = (folder || 'root').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '') || 'root';
+    const requestId = ++this.fileRequestId;
     this.currentFolder.set(normalizedFolder);
     this.updateHistory(normalizedFolder, folderName);
     this.loadingFiles.set(true);
+    this.fileActionError.set('');
 
-    this.api.getFiles(user.id, normalizedFolder).pipe(
-      finalize(() => this.loadingFiles.set(false))
+    this.api.getFiles(userId, normalizedFolder).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        if (requestId === this.fileRequestId) {
+          this.loadingFiles.set(false);
+        }
+      })
     ).subscribe({
-      next: files => this.files.set(files || []),
-      error: () => this.files.set([])
+      next: files => {
+        if (requestId === this.fileRequestId && this.selectedUser()?.id === userId) {
+          this.files.set(files || []);
+        }
+      },
+      error: () => {
+        if (requestId === this.fileRequestId && this.selectedUser()?.id === userId) {
+          this.files.set([]);
+        }
+      }
     });
   }
 
   refresh(): void {
-    this.loadStorageInfo();
+    if (this.storageLoaded()) {
+      this.loadStorageInfo();
+    }
     this.loadFiles(this.currentFolder());
   }
 
@@ -201,19 +243,38 @@ export class AdminCloudPage implements OnInit, OnDestroy {
   openPreview(file: AdminCloudFileEntry): void {
     const user = this.selectedUser();
     if (!user || file.isDirectory) return;
+    const userId = user.id;
+    const filePath = file.path;
+    const requestId = ++this.previewRequestId;
 
     this.previewFile.set(file);
     this.previewUrl.set('');
     this.previewLoading.set(true);
-    this.api.getDirectUrl(user.id, file.path).pipe(
-      finalize(() => this.previewLoading.set(false))
+    this.fileActionError.set('');
+    this.api.getDirectUrl(userId, filePath).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        if (requestId === this.previewRequestId) {
+          this.previewLoading.set(false);
+        }
+      })
     ).subscribe({
-      next: result => this.previewUrl.set(result.url),
-      error: () => this.previewUrl.set('')
+      next: result => {
+        if (requestId === this.previewRequestId && this.selectedUser()?.id === userId && this.previewFile()?.path === filePath) {
+          this.previewUrl.set(result.url);
+        }
+      },
+      error: () => {
+        if (requestId === this.previewRequestId) {
+          this.previewUrl.set('');
+          this.fileActionError.set('Preview link could not be prepared. Please retry this file.');
+        }
+      }
     });
   }
 
   closePreview(): void {
+    this.previewRequestId++;
     this.previewFile.set(null);
     this.previewUrl.set('');
     this.previewLoading.set(false);
@@ -222,18 +283,40 @@ export class AdminCloudPage implements OnInit, OnDestroy {
   download(file: AdminCloudFileEntry, event?: Event): void {
     event?.stopPropagation();
     const user = this.selectedUser();
-    if (!user || file.isDirectory) return;
+    if (!user || file.isDirectory || this.downloadPath()) return;
+    const requestId = ++this.downloadRequestId;
+    const userId = user.id;
+    const filePath = file.path;
 
-    this.api.getDirectUrl(user.id, file.path).subscribe({
+    this.downloadPath.set(filePath);
+    this.fileActionError.set('');
+    this.api.getDirectUrl(userId, filePath).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        if (requestId === this.downloadRequestId) {
+          this.downloadPath.set('');
+        }
+      })
+    ).subscribe({
       next: result => {
+        if (requestId !== this.downloadRequestId || this.selectedUser()?.id !== userId) return;
         const anchor = document.createElement('a');
         anchor.href = result.url;
         anchor.download = file.name;
         anchor.target = '_blank';
         anchor.rel = 'noopener';
         anchor.click();
+      },
+      error: () => {
+        if (requestId === this.downloadRequestId) {
+          this.fileActionError.set('Download link could not be prepared. Please retry this file.');
+        }
       }
     });
+  }
+
+  isDownloading(file: AdminCloudFileEntry): boolean {
+    return this.downloadPath() === file.path;
   }
 
   isActiveFolder(folder: string): boolean {
@@ -297,4 +380,5 @@ export class AdminCloudPage implements OnInit, OnDestroy {
   private extension(name: string): string {
     return (name.split('.').pop() || '').toLowerCase();
   }
+
 }

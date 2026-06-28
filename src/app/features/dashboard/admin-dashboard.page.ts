@@ -1,13 +1,16 @@
 import { Component, computed, signal, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { catchError, finalize, forkJoin, of } from 'rxjs';
 import {
   AdminAiUsageDashboardDto,
   AdminAiUsageRoleBreakdownDto,
   AdminAiUsageUserBreakdownDto,
+  AdminDashboardStatsDto,
   AdminService
 } from '../users/services/admin.service';
 import { AdminPaymentService } from '../payments/services/admin-payment.service';
+import { AuthStore } from '../../core/auth/state/auth.store';
 
 interface StatCard {
   label: string;
@@ -27,6 +30,7 @@ interface StatCard {
 export class AdminDashboardPage implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly paymentService = inject(AdminPaymentService);
+  readonly authStore = inject(AuthStore);
   private readonly usdToPkrRate = 278;
 
   loading = signal(false);
@@ -45,73 +49,65 @@ export class AdminDashboardPage implements OnInit {
   loadDashboard() {
     this.loading.set(true);
 
-    this.adminService.getStats().subscribe({
-      next: (data) => {
-        const aiUsage = data.aiUsage ?? this.emptyAiUsage();
-        this.aiUsage.set(aiUsage);
-        const totals = aiUsage.totals;
+    forkJoin({
+      stats: this.adminService.getStats().pipe(catchError(() => of(null))),
+      recentUsers: this.adminService.getRecentUsers(5).pipe(catchError(() => of([]))),
+      recentPayments: this.authStore.isSuperAdmin()
+        ? this.paymentService.getRecentPayments(5).pipe(catchError(() => of([])))
+        : of([])
+    }).pipe(
+      finalize(() => this.loading.set(false))
+    ).subscribe(({ stats, recentUsers, recentPayments }) => {
+      this.applyStats(stats);
+      this.recentUsers.set(recentUsers);
+      this.recentPayments.set(recentPayments);
+    });
+  }
 
-        this.stats.set([
-          { label: 'Total Users', value: data.totalUsers || 0, icon: 'fas fa-users', color: 'indigo' },
-          { label: 'Active Users', value: data.activeUsers || 0, icon: 'fas fa-user-check', color: 'emerald' },
-          { label: 'Total Revenue', value: `$${(data.totalRevenue || 0).toLocaleString()}`, icon: 'fas fa-dollar-sign', color: 'amber' },
-          { label: 'Pending Reviews', value: data.pendingReviews || 0, icon: 'fas fa-clipboard-list', color: 'violet' },
-          {
-            label: 'Platform AI Cost',
-            value: this.formatPkr(totals.platformCostUsd),
-            hint: this.formatUsd(totals.platformCostUsd),
-            icon: 'fas fa-server',
-            color: 'amber'
-          },
-          {
-            label: 'Observed BYOK Cost',
-            value: this.formatPkr(totals.byokCostUsd),
-            hint: this.formatUsd(totals.byokCostUsd),
-            icon: 'fas fa-key',
-            color: 'violet'
-          },
-          {
-            label: 'AI Calls',
-            value: (totals.totalCalls || 0).toLocaleString(),
-            hint: `${totals.platformCalls || 0} platform / ${totals.byokCalls || 0} BYOK`,
-            icon: 'fas fa-bolt',
-            color: 'emerald'
-          },
-          {
-            label: 'Avg AI Time',
-            value: this.formatDuration(totals.averageDurationMs),
-            hint: `${this.formatDuration(totals.totalDurationMs)} total`,
-            icon: 'fas fa-stopwatch',
-            color: 'indigo'
-          }
-        ]);
+  private applyStats(data: AdminDashboardStatsDto | null): void {
+    const aiUsage = data?.aiUsage ?? this.emptyAiUsage();
+    this.aiUsage.set(aiUsage);
+    const totals = aiUsage.totals;
+
+    const cards: StatCard[] = [
+      { label: 'Total Users', value: data?.totalUsers || 0, icon: 'fas fa-users', color: 'indigo' },
+      { label: 'Active Users', value: data?.activeUsers || 0, icon: 'fas fa-user-check', color: 'emerald' },
+      { label: 'Pending Reviews', value: data?.pendingReviews || 0, icon: 'fas fa-clipboard-list', color: 'violet' },
+      {
+        label: 'Platform AI Cost',
+        value: this.formatPkr(totals.platformCostUsd),
+        hint: this.formatUsd(totals.platformCostUsd),
+        icon: 'fas fa-server',
+        color: 'amber'
       },
-      error: () => {
-        this.aiUsage.set(this.emptyAiUsage());
-        this.stats.set([
-          { label: 'Total Users', value: 0, icon: 'fas fa-users', color: 'indigo' },
-          { label: 'Active Users', value: 0, icon: 'fas fa-user-check', color: 'emerald' },
-          { label: 'Total Revenue', value: '$0', icon: 'fas fa-dollar-sign', color: 'amber' },
-          { label: 'Pending Reviews', value: 0, icon: 'fas fa-clipboard-list', color: 'violet' },
-          { label: 'Platform AI Cost', value: this.formatPkr(0), hint: this.formatUsd(0), icon: 'fas fa-server', color: 'amber' },
-          { label: 'Observed BYOK Cost', value: this.formatPkr(0), hint: this.formatUsd(0), icon: 'fas fa-key', color: 'violet' },
-          { label: 'AI Calls', value: 0, hint: '0 platform / 0 BYOK', icon: 'fas fa-bolt', color: 'emerald' },
-          { label: 'Avg AI Time', value: this.formatDuration(0), hint: '0ms total', icon: 'fas fa-stopwatch', color: 'indigo' }
-        ]);
+      {
+        label: 'Observed BYOK Cost',
+        value: this.formatPkr(totals.byokCostUsd),
+        hint: this.formatUsd(totals.byokCostUsd),
+        icon: 'fas fa-key',
+        color: 'violet'
+      },
+      {
+        label: 'AI Calls',
+        value: (totals.totalCalls || 0).toLocaleString(),
+        hint: `${totals.platformCalls || 0} platform / ${totals.byokCalls || 0} BYOK`,
+        icon: 'fas fa-bolt',
+        color: 'emerald'
+      },
+      {
+        label: 'Avg AI Time',
+        value: this.formatDuration(totals.averageDurationMs),
+        hint: `${this.formatDuration(totals.totalDurationMs)} total`,
+        icon: 'fas fa-stopwatch',
+        color: 'indigo'
       }
-    });
+    ];
 
-    this.adminService.getRecentUsers(5).subscribe({
-      next: (users) => this.recentUsers.set(users),
-      error: () => this.recentUsers.set([])
-    });
+    if (this.authStore.isSuperAdmin()) {
+      cards.splice(2, 0, { label: 'Total Revenue', value: `$${(data?.totalRevenue || 0).toLocaleString()}`, icon: 'fas fa-dollar-sign', color: 'amber' });
+    }
 
-    this.paymentService.getRecentPayments(5).subscribe({
-      next: (payments) => this.recentPayments.set(payments),
-      error: () => this.recentPayments.set([])
-    });
-
-    this.loading.set(false);
+    this.stats.set(cards);
   }
 
   formatPkr(amountUsd: number | null | undefined): string {

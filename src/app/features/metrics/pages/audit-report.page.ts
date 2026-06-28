@@ -3,6 +3,7 @@ import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angula
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { finalize } from 'rxjs';
 
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
@@ -25,6 +26,7 @@ export class AuditReportPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly usdToPkrRate = USD_TO_PKR_RATE;
+  private reportRequestId = 0;
 
   readonly pageTitle = signal('Audit Report');
   readonly pageSubtitle = signal('Paginated AI usage records with cost, token, provider, role, and category filters.');
@@ -62,6 +64,17 @@ export class AuditReportPage implements OnInit {
     { label: 'All Providers', value: '' },
     ...(this.report()?.providers || [])
   ]);
+  readonly hasActiveFilters = computed(() =>
+    Boolean(
+      this.fromDate() ||
+      this.toDate() ||
+      this.selectedRole() ||
+      this.selectedUser() ||
+      this.selectedCategory() ||
+      this.selectedProvider() ||
+      this.searchQuery().trim()
+    )
+  );
 
   readonly records = computed(() => this.report()?.records.items || []);
   readonly totals = computed(() => this.report()?.totals || {
@@ -108,6 +121,7 @@ export class AuditReportPage implements OnInit {
   }
 
   loadReport(): void {
+    const requestId = ++this.reportRequestId;
     this.loading.set(true);
     this.error.set(null);
 
@@ -122,24 +136,40 @@ export class AuditReportPage implements OnInit {
       searchTerm: this.searchQuery().trim() || undefined,
       pageNumber: this.pageNumber(),
       pageSize: this.pageSize
-    }).subscribe({
+    }).pipe(
+      finalize(() => {
+        if (requestId === this.reportRequestId) {
+          this.loading.set(false);
+        }
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: report => {
+        if (requestId !== this.reportRequestId) {
+          return;
+        }
+
         this.report.set(report);
-        this.loading.set(false);
+        this.pageNumber.set(report.records.pageNumber || this.pageNumber());
       },
       error: (err: any) => {
+        if (requestId !== this.reportRequestId) {
+          return;
+        }
+
         this.error.set('Failed to load audit report: ' + (err.error?.message || err.message));
-        this.loading.set(false);
       }
     });
   }
 
   applyFilters(): void {
+    if (this.loading()) return;
     this.pageNumber.set(1);
     this.loadReport();
   }
 
   clearFilters(): void {
+    if (this.loading()) return;
     this.resetFilters();
     this.applyFilters();
   }
@@ -155,12 +185,14 @@ export class AuditReportPage implements OnInit {
   }
 
   nextPage(): void {
+    if (this.loading()) return;
     if (this.pageNumber() >= this.totalPages()) return;
     this.pageNumber.update(page => page + 1);
     this.loadReport();
   }
 
   previousPage(): void {
+    if (this.loading()) return;
     if (this.pageNumber() <= 1) return;
     this.pageNumber.update(page => page - 1);
     this.loadReport();

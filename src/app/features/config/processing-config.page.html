@@ -13,7 +13,7 @@
         </div>
       </div>
       <div class="header-actions">
-        <button class="btn btn-soft btn-sm" (click)="load()">
+        <button class="btn btn-soft btn-sm" (click)="load()" [disabled]="loading() || savingCompanyOptions() || capabilityBusy()">
           <i class="fas fa-sync" [class.fa-spin]="loading()"></i> Refresh
         </button>
       </div>
@@ -24,6 +24,13 @@
     @if (saved()) {
       <div class="proc-toast">
         <i class="fas fa-check-circle"></i> Company defaults saved successfully!
+      </div>
+    }
+
+    @if (processingLoadError() || processingSaveError()) {
+      <div class="proc-error">
+        <i class="fas fa-circle-exclamation"></i>
+        <span>{{ processingLoadError() || processingSaveError() }}</span>
       </div>
     }
 
@@ -39,10 +46,10 @@
               <div class="proc-section__sub">Provider metadata, sync locks, voices, resolutions, prices and quota tiers</div>
             </div>
             <div class="cap-actions">
-              <button class="btn btn-soft btn-sm" type="button" (click)="loadModelCapabilities()">
+              <button class="btn btn-soft btn-sm" type="button" (click)="loadModelCapabilities()" [disabled]="capabilityBusy()">
                 <i class="fas fa-sync" [class.fa-spin]="capabilitiesLoading()"></i> Refresh
               </button>
-              <button class="btn btn-primary btn-sm" type="button" (click)="openCapabilityEditor()">
+              <button class="btn btn-primary btn-sm" type="button" (click)="openCapabilityEditor()" [disabled]="capabilityBusy()">
                 <i class="fas fa-plus"></i> Add Model
               </button>
             </div>
@@ -53,28 +60,41 @@
                 <i class="fas fa-check-circle"></i> Model capability saved.
               </div>
             }
+            @if (capabilitiesLoadError() || capabilitySaveError()) {
+              <div class="proc-error proc-error--compact">
+                <i class="fas fa-circle-exclamation"></i>
+                <span>{{ capabilitiesLoadError() || capabilitySaveError() }}</span>
+              </div>
+            }
             <div class="cap-filter-row">
-              <select class="proc-input proc-input--select" [ngModel]="capabilityProviderFilter()" (change)="updateCapabilityFilter('provider', $event); applyCapabilityFilters()">
+              <select class="proc-input proc-input--select" [ngModel]="capabilityProviderFilter()" (change)="updateCapabilityFilter('provider', $event); applyCapabilityFilters()" [disabled]="capabilityBusy()">
                 <option value="">All providers</option>
                 @for (provider of capabilityProviders; track provider) {
                   <option [value]="provider">{{ provider }}</option>
                 }
               </select>
-              <select class="proc-input proc-input--select" [ngModel]="capabilityCategoryFilter()" (change)="updateCapabilityFilter('category', $event); applyCapabilityFilters()">
+              <select class="proc-input proc-input--select" [ngModel]="capabilityCategoryFilter()" (change)="updateCapabilityFilter('category', $event); applyCapabilityFilters()" [disabled]="capabilityBusy()">
                 <option value="">All categories</option>
                 @for (category of capabilityCategories; track category) {
                   <option [value]="category">{{ category }}</option>
                 }
               </select>
-              <input class="proc-input" [ngModel]="capabilitySearch()" (input)="onCapabilitySearchChange($event)" (keyup.enter)="applyCapabilityFilters()" placeholder="Search model or provider" />
-              <select class="proc-input proc-input--select" [ngModel]="capabilityPageSize()" (change)="updateCapabilityPageSize($event)">
+              <input class="proc-input" [ngModel]="capabilitySearch()" (input)="onCapabilitySearchChange($event)" (keyup.enter)="applyCapabilityFilters()" placeholder="Search model or provider" [disabled]="capabilityBusy()" />
+              <select class="proc-input proc-input--select" [ngModel]="capabilityPageSize()" (change)="updateCapabilityPageSize($event)" [disabled]="capabilityBusy()">
                 <option [value]="10">10 rows</option>
                 <option [value]="25">25 rows</option>
                 <option [value]="50">50 rows</option>
                 <option [value]="100">100 rows</option>
               </select>
-              <button class="btn btn-soft btn-sm" type="button" (click)="applyCapabilityFilters()">Apply</button>
+              <button class="btn btn-soft btn-sm" type="button" (click)="applyCapabilityFilters()" [disabled]="capabilityBusy()">Apply</button>
             </div>
+
+            @if (capabilitiesLoading()) {
+              <div class="cap-loading-strip">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Refreshing model capabilities...</span>
+              </div>
+            }
 
             <div class="cap-table-wrap">
               <table class="cap-table">
@@ -143,12 +163,12 @@
                         </span>
                       </td>
                       <td class="cap-row-actions">
-                        <button class="cap-icon-btn" type="button" title="Edit" (click)="openCapabilityEditor(row)">
+                        <button class="cap-icon-btn" type="button" title="Edit" (click)="openCapabilityEditor(row)" [disabled]="capabilityBusy()">
                           <i class="fas fa-pen"></i>
                         </button>
                         @if (row.id !== '00000000-0000-0000-0000-000000000000') {
-                          <button class="cap-icon-btn cap-icon-btn--danger" type="button" title="Delete" (click)="deleteCapability(row)">
-                            <i class="fas fa-trash"></i>
+                          <button class="cap-icon-btn cap-icon-btn--danger" type="button" title="Delete" (click)="deleteCapability(row)" [disabled]="capabilityBusy()">
+                            <i class="fas" [class.fa-trash]="!isDeletingCapability(row)" [class.fa-spinner]="isDeletingCapability(row)" [class.fa-spin]="isDeletingCapability(row)"></i>
                           </button>
                         }
                       </td>
@@ -521,8 +541,9 @@
 
         <!-- ── Save Bar ─────────────────────────────────────────────── -->
         <div class="proc-save-bar">
-          <button class="btn btn-primary" (click)="save()">
-            <i class="fas fa-save"></i> Save Company Defaults
+          <button class="btn btn-primary" (click)="save()" [disabled]="loading() || savingCompanyOptions()">
+            <i class="fas" [class.fa-save]="!savingCompanyOptions()" [class.fa-spinner]="savingCompanyOptions()" [class.fa-spin]="savingCompanyOptions()"></i>
+            {{ savingCompanyOptions() ? 'Saving...' : 'Save Company Defaults' }}
           </button>
         </div>
 
@@ -530,7 +551,10 @@
     } @else {
       <div class="proc-empty">
         <i class="fas fa-tasks"></i>
-        <span>Loading processing settings...</span>
+        <span>{{ loading() ? 'Loading processing settings...' : (processingLoadError() || 'Processing settings unavailable.') }}</span>
+        @if (processingLoadError()) {
+          <button class="btn btn-soft btn-sm" type="button" (click)="load()" [disabled]="loading()">Retry</button>
+        }
       </div>
     }
   </div>
@@ -544,12 +568,18 @@
           <div class="cap-modal__title">{{ form.id ? 'Edit Model Capability' : 'Add Model Capability' }}</div>
           <div class="cap-modal__sub">Manual values can be protected from provider sync.</div>
         </div>
-        <button class="cap-icon-btn" type="button" (click)="closeCapabilityEditor()" aria-label="Close dialog">
+        <button class="cap-icon-btn" type="button" (click)="closeCapabilityEditor()" aria-label="Close dialog" [disabled]="savingCapability()">
           <i class="fas fa-times"></i>
         </button>
       </div>
 
       <div class="cap-modal__body">
+        @if (capabilitySaveError()) {
+          <div class="proc-error proc-error--compact">
+            <i class="fas fa-circle-exclamation"></i>
+            <span>{{ capabilitySaveError() }}</span>
+          </div>
+        }
         <div class="cap-form-grid">
           <label class="proc-field">
             <span class="proc-field-label">Provider</span>
@@ -673,9 +703,10 @@
       </div>
 
       <div class="cap-modal__footer">
-        <button class="btn btn-soft" type="button" (click)="closeCapabilityEditor()">Cancel</button>
-        <button class="btn btn-primary" type="button" (click)="saveCapability()" [disabled]="!form.provider.trim() || !form.modelName.trim() || !form.category.trim()">
-          Save Model
+        <button class="btn btn-soft" type="button" (click)="closeCapabilityEditor()" [disabled]="savingCapability()">Cancel</button>
+        <button class="btn btn-primary" type="button" (click)="saveCapability()" [disabled]="savingCapability() || !form.provider.trim() || !form.modelName.trim() || !form.category.trim()">
+          <i class="fas" [class.fa-save]="!savingCapability()" [class.fa-spinner]="savingCapability()" [class.fa-spin]="savingCapability()"></i>
+          {{ savingCapability() ? 'Saving...' : 'Save Model' }}
         </button>
       </div>
     </div>

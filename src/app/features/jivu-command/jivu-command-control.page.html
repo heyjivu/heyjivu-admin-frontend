@@ -14,12 +14,12 @@
         @if (notice()) {
           <span class="notice-pill">{{ notice() }}</span>
         }
-        <button class="btn btn-soft btn-sm" (click)="refresh()">
+        <button class="btn btn-soft btn-sm" (click)="refresh()" [disabled]="loading()">
           <i class="fas fa-sync" [class.fa-spin]="loading()"></i>
           Refresh
         </button>
         @if (canManage()) {
-          <button class="btn btn-primary btn-sm" [disabled]="actionBusy()" (click)="runMaintenanceNow()">
+          <button class="btn btn-primary btn-sm" [disabled]="actionBusy() || loading()" (click)="runMaintenanceNow()">
             <i class="fas fa-broom"></i>
             Maintenance
           </button>
@@ -50,7 +50,7 @@
     <div class="filter-row">
       <label class="filter-field wide">
         <span>Search</span>
-        <input type="text" [(ngModel)]="search" placeholder="Title, user, error, command..." (keyup.enter)="applyFilters()" />
+        <input type="text" [(ngModel)]="search" placeholder="Title, user, error, command..." (keyup.enter)="applyFilters()" [disabled]="loading()" />
       </label>
       <label class="filter-field multi-field">
         <span>Role</span>
@@ -63,6 +63,7 @@
           panelStyleClass="jivu-filter-multiselect-panel"
           [filter]="true"
           [showToggleAll]="false"
+          [disabled]="loading()"
           [maxSelectedLabels]="1"
           selectedItemsLabel="{0} roles"
           (onChange)="onRoleFilterChange()"
@@ -79,6 +80,7 @@
           panelStyleClass="jivu-filter-multiselect-panel"
           [filter]="true"
           [showToggleAll]="false"
+          [disabled]="loading()"
           [maxSelectedLabels]="1"
           selectedItemsLabel="{0} users"
           (onChange)="onUserFilterChange()"
@@ -86,7 +88,7 @@
       </label>
       <label class="filter-field">
         <span>Status</span>
-        <select [(ngModel)]="status" (change)="applyFilters()">
+        <select [(ngModel)]="status" (change)="applyFilters()" [disabled]="loading()">
           <option value="">All</option>
           <option value="queued">Queued</option>
           <option value="claimed">Claimed</option>
@@ -99,7 +101,7 @@
       </label>
       <label class="filter-field">
         <span>Type</span>
-        <select [(ngModel)]="commandType" (change)="applyFilters()">
+        <select [(ngModel)]="commandType" (change)="applyFilters()" [disabled]="loading()">
           <option value="">All</option>
           <option value="smart_video_render">Smart Video</option>
           <option value="processing_upload_render">Processing Upload</option>
@@ -110,7 +112,7 @@
       </label>
       <label class="filter-field">
         <span>Target</span>
-        <select [(ngModel)]="targetDeviceInstanceId" (change)="applyFilters()">
+        <select [(ngModel)]="targetDeviceInstanceId" (change)="applyFilters()" [disabled]="loading()">
           <option value="">All devices</option>
           @for (device of devices(); track device.id) {
             <option [value]="device.deviceInstanceId">{{ device.displayName || device.deviceInstanceId }}</option>
@@ -119,9 +121,9 @@
       </label>
       <label class="filter-field date-field">
         <span>Date</span>
-        <input type="date" [(ngModel)]="date" (change)="applyFilters()" />
+        <input type="date" [(ngModel)]="date" (change)="applyFilters()" [disabled]="loading()" />
       </label>
-      <button class="btn btn-soft btn-sm" (click)="clearFilters()">Clear</button>
+      <button class="btn btn-soft btn-sm" (click)="clearFilters()" [disabled]="loading() || !hasActiveFilters()">Clear</button>
     </div>
   </div>
 
@@ -149,7 +151,7 @@
         <div class="maintenance-filters">
           <label class="filter-field wide">
             <span>Search</span>
-            <input type="text" [(ngModel)]="maintenanceSearch" placeholder="User, role, storage key..." (keyup.enter)="loadTempUsage()" />
+            <input type="text" [(ngModel)]="maintenanceSearch" placeholder="User, role, storage key..." (keyup.enter)="loadTempUsage()" [disabled]="isMaintenanceInteractionBusy()" />
           </label>
           <label class="filter-field multi-field">
             <span>Role</span>
@@ -162,6 +164,7 @@
               panelStyleClass="jivu-filter-multiselect-panel"
               [filter]="true"
               [showToggleAll]="false"
+              [disabled]="isMaintenanceInteractionBusy()"
               [maxSelectedLabels]="1"
               selectedItemsLabel="{0} roles"
               (onChange)="onMaintenanceRoleFilterChange()"
@@ -178,12 +181,13 @@
               panelStyleClass="jivu-filter-multiselect-panel"
               [filter]="true"
               [showToggleAll]="false"
+              [disabled]="isMaintenanceInteractionBusy()"
               [maxSelectedLabels]="1"
               selectedItemsLabel="{0} users"
               (onChange)="onMaintenanceUserFilterChange()"
             ></p-multiSelect>
           </label>
-          <button class="btn btn-soft btn-sm" type="button" (click)="loadTempUsage()" [disabled]="maintenanceLoading()">
+          <button class="btn btn-soft btn-sm" type="button" (click)="loadTempUsage()" [disabled]="isMaintenanceInteractionBusy()">
             <i class="fas fa-rotate" [class.fa-spin]="maintenanceLoading()"></i>
             Refresh
           </button>
@@ -215,6 +219,7 @@
                       type="checkbox"
                       [checked]="allTempUsageSelected()"
                       (change)="toggleAllTempUsageRows($any($event.target).checked)"
+                      [disabled]="isMaintenanceInteractionBusy()"
                       aria-label="Select all temp usage rows"
                     />
                   </th>
@@ -234,6 +239,7 @@
                         type="checkbox"
                         [checked]="isTempUsageSelected(row.userId)"
                         (change)="toggleTempUsageRow(row.userId, $any($event.target).checked)"
+                        [disabled]="isMaintenanceInteractionBusy()"
                         [attr.aria-label]="'Select temp files for ' + (row.userName || row.userEmail || row.userId)"
                       />
                     </td>
@@ -260,7 +266,7 @@
 
         <footer class="maintenance-modal__footer">
           <button class="btn btn-soft btn-sm" type="button" (click)="closeMaintenanceDialog()" [disabled]="maintenanceBusy()">Close</button>
-          <button class="btn btn-soft btn-sm" type="button" (click)="runMaintenanceForSelection()" [disabled]="maintenanceBusy() || maintenanceLoading()">
+          <button class="btn btn-soft btn-sm" type="button" (click)="runMaintenanceForSelection()" [disabled]="maintenanceBusy() || maintenanceLoading() || selectedTempUsageRows().length === 0">
             <i class="fas fa-clock-rotate-left"></i>
             Run Expired Cleanup
           </button>
@@ -347,11 +353,11 @@
         <div class="pagination">
           <span>Showing {{ (page() - 1) * pageSize() + 1 }}-{{ Math.min(page() * pageSize(), totalCount()) }} of {{ totalCount() }}</span>
           <div class="pagination-actions">
-            <button class="page-btn" [disabled]="page() <= 1" (click)="goToPage(page() - 1)">
+            <button class="page-btn" [disabled]="loading() || page() <= 1" (click)="goToPage(page() - 1)">
               <i class="fas fa-chevron-left"></i>
             </button>
             <span class="page-label">{{ page() }} / {{ totalPages() }}</span>
-            <button class="page-btn" [disabled]="page() >= totalPages()" (click)="goToPage(page() + 1)">
+            <button class="page-btn" [disabled]="loading() || page() >= totalPages()" (click)="goToPage(page() + 1)">
               <i class="fas fa-chevron-right"></i>
             </button>
           </div>
@@ -366,7 +372,7 @@
             <span class="eyebrow">Command Detail</span>
             <h2>{{ command.title || commandLabel(command.commandType) }}</h2>
           </div>
-          <button class="btn-icon" (click)="closeDetail()" title="Close">
+          <button class="btn-icon" (click)="closeDetail()" [disabled]="detailLoading()" title="Close">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -390,13 +396,13 @@
           <div class="move-panel">
             <label>
               <span>Move to device</span>
-              <select [ngModel]="selectedMoveDevice()" (ngModelChange)="selectedMoveDevice.set($event)">
+              <select [ngModel]="selectedMoveDevice()" (ngModelChange)="selectedMoveDevice.set($event)" [disabled]="actionBusy() || detailLoading()">
                 @for (device of devices(); track device.id) {
                   <option [value]="device.deviceInstanceId">{{ device.displayName || device.deviceInstanceId }}{{ device.isOnline ? '' : ' (offline)' }}</option>
                 }
               </select>
             </label>
-            <button class="btn btn-primary btn-sm" [disabled]="actionBusy() || !selectedMoveDevice() || selectedMoveDevice() === command.targetDeviceInstanceId" (click)="moveSelected()">Move</button>
+            <button class="btn btn-primary btn-sm" [disabled]="actionBusy() || detailLoading() || !selectedMoveDevice() || selectedMoveDevice() === command.targetDeviceInstanceId" (click)="moveSelected()">Move</button>
           </div>
         }
 
@@ -412,9 +418,9 @@
             <div><span>Updated</span><strong>{{ command.updatedAtUtc | date:'MMM d, y, HH:mm:ss' }}</strong></div>
           </div>
           @if (command.linkedJobId) {
-            <a class="linked-job" routerLink="/admin/pipeline" [queryParams]="{ search: command.linkedJobId }">
+            <a class="linked-job" routerLink="/admin/jivu-command" [queryParams]="{ search: command.linkedJobId }">
               <i class="fas fa-arrow-up-right-from-square"></i>
-              Linked pipeline job {{ command.linkedJobId }}
+              Linked job {{ command.linkedJobId }}
             </a>
           }
           @if (command.errorMessage) {

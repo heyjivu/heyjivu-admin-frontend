@@ -126,6 +126,26 @@
   text-transform: uppercase;
 }
 
+.report-filter-panel {
+  position: relative;
+
+  &.is-loading {
+    border-color: var(--accent-alpha-20);
+  }
+}
+
+.filter-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .cost-cell {
   strong,
   small {
@@ -222,6 +242,11 @@
   &:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 2px var(--accent-alpha-15);
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.58;
   }
 }
 

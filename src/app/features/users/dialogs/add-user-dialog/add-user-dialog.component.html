@@ -37,11 +37,11 @@
       <strong>{{ isAdminOnlyAccount() ? 'Admin portal access only.' : 'Plan and onboarding will be assigned next.' }}</strong>
     </div>
 
-    <div class="account-type-grid" role="radiogroup" aria-label="Account type">
+    <div class="account-type-grid" role="radiogroup" aria-label="Account type" *ngIf="!isTenantAdmin">
       <button
         type="button"
         class="account-type-card"
-        *ngFor="let option of accountTypeOptions"
+        *ngFor="let option of visibleAccountTypeOptions()"
         [class.selected]="form().accountType === option.value"
         (click)="patchForm({ accountType: option.value }); markField('accountType')"
         role="radio"
@@ -89,8 +89,8 @@
         <small *ngIf="isFieldInvalid('email') && showValidation('email')">Enter a valid email address.</small>
       </label>
 
-      <label class="wizard-field wizard-field--wide" [class.has-error]="isFieldInvalid('roleId') && showValidation('roleId')">
-        <span>{{ requiresAdminRole() ? 'Admin Role' : 'Role' }}</span>
+      <label class="wizard-field wizard-field--wide" *ngIf="!isTenantAdmin" [class.has-error]="isFieldInvalid('roleId') && showValidation('roleId')">
+        <span>{{ form().isOrgAdmin ? 'Organization Admin Role' : (requiresAdminRole() ? 'Admin Role' : 'Role') }}</span>
         <div class="wizard-input-shell">
           <i class="fas fa-shield-alt"></i>
           <select
@@ -105,7 +105,40 @@
         </div>
         <small *ngIf="loadingRoles()">Loading roles...</small>
         <small *ngIf="isFieldInvalid('roleId') && showValidation('roleId')">Select a role with admin rights.</small>
-        <small class="wizard-field__hint" *ngIf="requiresAdminRole() && !isFieldInvalid('roleId')">Required for admin portal access.</small>
+        <small class="wizard-field__hint" *ngIf="form().isOrgAdmin && !isFieldInvalid('roleId')">Required so this user can access the org-scoped admin portal.</small>
+        <small class="wizard-field__hint" *ngIf="requiresAdminRole() && !form().isOrgAdmin && !isFieldInvalid('roleId')">Required for global admin portal access.</small>
+      </label>
+
+      <label class="wizard-field wizard-field--wide" *ngIf="canAssignOrganization()">
+        <span>Organization</span>
+        <div class="wizard-input-shell">
+          <i class="fas fa-building"></i>
+          <select
+            class="field-input"
+            [ngModel]="form().organizationId"
+            (ngModelChange)="patchForm({ organizationId: $event || null, isOrgAdmin: $event ? form().isOrgAdmin : false })"
+          >
+            <option [ngValue]="null">No organization</option>
+            <option *ngFor="let org of organizations()" [ngValue]="org.id">{{ org.name }}</option>
+          </select>
+        </div>
+        <small class="wizard-field__hint">Visible only for User only accounts. Organization users use that organization's Non-BYOK AI keys.</small>
+      </label>
+
+      <label class="wizard-field wizard-field--wide" *ngIf="canAssignOrganization() && form().organizationId">
+        <span>Organization Admin</span>
+        <div class="wizard-input-shell">
+          <i class="fas fa-user-shield"></i>
+          <select
+            class="field-input"
+            [ngModel]="form().isOrgAdmin"
+            (ngModelChange)="patchForm({ isOrgAdmin: $event === true || $event === 'true' })"
+          >
+            <option [ngValue]="false">Regular organization user</option>
+            <option [ngValue]="true">Organization admin</option>
+          </select>
+        </div>
+        <small class="wizard-field__hint">Organization admins can manage only this organization's users and AI key pool.</small>
       </label>
 
       <label class="wizard-field" [class.has-error]="isFieldInvalid('password') && showValidation('password')">

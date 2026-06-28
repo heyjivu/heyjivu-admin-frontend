@@ -12,14 +12,12 @@ export const environment = {
   production: false,
   envName: 'local',
 
-  // ── API & SignalR ──────────────────────────────────────────────
+  // ── API ────────────────────────────────────────────────────────
   apiUrl: `http://${localApiHost}:5100/api`,          // Admin API — admin data endpoints
-  authApiUrl: `http://${localApiHost}:5000/api`,      // Main API — auth endpoints (login, me, etc.)
-  hubUrl: `http://${localApiHost}:5100/hubs/dashboard`,
+  authApiUrl: `http://${localApiHost}:5100/api`,      // Admin API — admin auth endpoints
 
   // ── Storage — R2 direct playback (staging bucket, shared with local) ──
-  // When a file is in R2 (server storage users), the frontend can play
-  // directly from R2 using presigned URLs returned by GET /api/drive/direct-url
+  // When a file is in R2, the frontend can play it directly using presigned URLs.
   // Leave r2PublicDomain blank — presigned URLs from API are used instead
   r2PublicDomain: '',
   useDirectVideoUrls: true,

@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DynamicDialogRef } from 'primeng/dynamicdialog';
+import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import {
   AdminCreateUserRequest,
   AdminPlanDto,
   AdminService,
+  OrganizationDto,
   RoleDto
 } from '../../services/admin.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -18,6 +19,8 @@ interface AddUserForm {
   displayName: string;
   email: string;
   roleId: string | null;
+  organizationId: string | null;
+  isOrgAdmin: boolean;
   planId: string;
   password: string;
   confirmPassword: string;
@@ -57,6 +60,7 @@ export class AddUserDialogComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly toast = inject(ToastService);
   private readonly ref = inject(DynamicDialogRef);
+  private readonly config = inject(DynamicDialogConfig, { optional: true });
 
   readonly steps: Array<{ id: AddUserStep; label: string; icon: string }> = [
     { id: 'account', label: 'Account', icon: 'fas fa-user-plus' },
@@ -67,19 +71,19 @@ export class AddUserDialogComponent implements OnInit {
     {
       value: 'user',
       label: 'User only',
-      description: 'User app access with plan and onboarding.',
+      description: 'User app access. Can be assigned to an organization.',
       icon: 'fas fa-user'
     },
     {
       value: 'both',
       label: 'Admin + user',
-      description: 'Admin portal plus user app access with plan.',
+      description: 'Global admin portal plus user app access.',
       icon: 'fas fa-user-shield'
     },
     {
       value: 'admin_only',
       label: 'Admin only',
-      description: 'Admin portal account. No user onboarding.',
+      description: 'Global admin portal account. No user onboarding.',
       icon: 'fas fa-shield-alt'
     }
   ];
@@ -87,6 +91,12 @@ export class AddUserDialogComponent implements OnInit {
   readonly formatOptions = ['short videos', 'carousel posts', 'reels/shorts', 'image posts'];
   readonly toneOptions = ['funny', 'premium', 'educational', 'bold', 'calm'];
   readonly audienceSuggestions = ['beginners', 'buyers', 'students', 'creators', 'local audience'];
+  readonly isTenantAdmin = Boolean(this.config?.data?.isTenantAdmin);
+  readonly isSuperAdmin = Boolean(this.config?.data?.isSuperAdmin);
+  readonly organizations = signal<OrganizationDto[]>((this.config?.data?.organizations ?? []) as OrganizationDto[]);
+  readonly visibleAccountTypeOptions = computed(() => this.isTenantAdmin
+    ? this.accountTypeOptions.filter(option => option.value === 'user')
+    : this.accountTypeOptions);
 
   roles = signal<RoleDto[]>([]);
   plans = signal<AdminPlanDto[]>([]);
@@ -142,9 +152,14 @@ export class AddUserDialogComponent implements OnInit {
   visibleSteps = computed(() => this.isAdminOnlyAccount()
     ? this.steps.filter(item => item.id === 'account')
     : this.steps);
+  canAssignOrganization = computed(() => this.isSuperAdmin && this.form().accountType === 'user');
 
   ngOnInit(): void {
-    this.loadRoles();
+    if (this.isTenantAdmin) {
+      this.patchForm({ accountType: 'user', roleId: null, organizationId: null, isOrgAdmin: false });
+    } else {
+      this.loadRoles();
+    }
     this.loadPlans();
   }
 
@@ -156,8 +171,14 @@ export class AddUserDialogComponent implements OnInit {
 
   patchForm(patch: Partial<AddUserForm>): void {
     this.form.update(form => ({ ...form, ...patch }));
+    if (patch.accountType && patch.accountType !== 'user') {
+      this.form.update(form => ({ ...form, organizationId: null, isOrgAdmin: false }));
+    }
     if (patch.accountType === 'admin_only') {
       this.step.set('account');
+    }
+    if (this.isTenantAdmin && patch.accountType && patch.accountType !== 'user') {
+      this.form.update(form => ({ ...form, accountType: 'user', roleId: null, isOrgAdmin: false }));
     }
     this.error.set(null);
   }
@@ -374,6 +395,8 @@ export class AddUserDialogComponent implements OnInit {
       accountType: form.accountType,
       roleId: form.roleId || null,
       planId: this.isAdminOnlyAccount() ? null : form.planId,
+      organizationId: this.canAssignOrganization() ? form.organizationId || null : null,
+      isOrgAdmin: this.canAssignOrganization() && form.isOrgAdmin,
       contentProfile: this.isAdminOnlyAccount()
         ? null
         : {
@@ -439,6 +462,8 @@ export class AddUserDialogComponent implements OnInit {
       displayName: '',
       email: '',
       roleId: null,
+      organizationId: null,
+      isOrgAdmin: false,
       planId: '',
       password: '',
       confirmPassword: '',
@@ -495,7 +520,9 @@ export class AddUserDialogComponent implements OnInit {
   }
 
   requiresAdminRole(): boolean {
-    return this.form().accountType === 'admin_only' || this.form().accountType === 'both';
+    return this.form().accountType === 'admin_only' ||
+      this.form().accountType === 'both' ||
+      (this.canAssignOrganization() && this.form().isOrgAdmin);
   }
 
   selectedRoleHasAdminRights(): boolean {

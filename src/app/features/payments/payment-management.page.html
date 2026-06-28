@@ -18,7 +18,7 @@
           <i class="fas fa-circle"></i>
           {{ form().environment === 'sandbox' ? 'Sandbox Mode' : 'Live Mode' }}
         </span>
-        <button class="btn btn-soft btn-sm" (click)="loadSettings()" id="payment-refresh-btn">
+        <button class="btn btn-soft btn-sm" (click)="loadSettings()" [disabled]="isBusy()" id="payment-refresh-btn">
           <i class="fas fa-sync" [class.fa-spin]="loading()"></i> Refresh
         </button>
       </div>
@@ -46,33 +46,46 @@
         </div>
 
         <div class="pm-form">
+          @if (settingsError()) {
+            <div class="pm-error-banner">
+              <i class="fas fa-triangle-exclamation"></i>
+              Payment settings could not be loaded. Check the admin API and refresh.
+            </div>
+          }
+
           <!-- Provider -->
           <div class="pm-field">
             <label class="pm-label">Payment Provider</label>
             <div class="pm-select-wrap">
               <i class="fas fa-building-columns pm-field-icon"></i>
-              <select [ngModel]="form().providerName" (ngModelChange)="selectProvider($event)" class="pm-input" id="payment-provider-select">
+              <select [ngModel]="form().providerName" (ngModelChange)="selectProvider($event)" class="pm-input" [class.pm-input--invalid]="isProviderInvalid()" [disabled]="isBusy()" id="payment-provider-select">
                 <option value="Safepay">Safepay</option>
                 <option value="LemonSqueezy">Lemon Squeezy</option>
               </select>
             </div>
+            @if (isProviderInvalid()) {
+              <div class="pm-field-error">Provider is required.</div>
+            }
           </div>
 
           <!-- Environment -->
           <div class="pm-field">
             <label class="pm-label">Environment</label>
             <div class="pm-radio-group">
-              <label class="pm-radio" [class.pm-radio--active]="form().environment === 'sandbox'">
-                <input type="radio" value="sandbox" [ngModel]="form().environment" (ngModelChange)="setEnvironment('sandbox')">
+              <label class="pm-radio" [class.pm-radio--active]="form().environment === 'sandbox'" [class.pm-radio--disabled]="isBusy()">
+                <input type="radio" value="sandbox" [ngModel]="form().environment" (ngModelChange)="setEnvironment('sandbox')" [disabled]="isBusy()">
                 <i class="fas fa-flask"></i>
                 <span>Sandbox</span>
               </label>
-              <label class="pm-radio" [class.pm-radio--active]="form().environment === 'production'">
-                <input type="radio" value="production" [ngModel]="form().environment" (ngModelChange)="setEnvironment('production')">
+              <label class="pm-radio" [class.pm-radio--active]="form().environment === 'production'" [class.pm-radio--disabled]="isBusy()">
+                <input type="radio" value="production" [ngModel]="form().environment" (ngModelChange)="setEnvironment('production')" [disabled]="isBusy()">
                 <i class="fas fa-globe"></i>
                 <span>Production</span>
               </label>
             </div>
+            @if (isEnvironmentInvalid()) {
+              <div class="pm-field-error">Environment is required.</div>
+            }
           </div>
 
           <!-- Checkout URL -->
@@ -80,7 +93,7 @@
             <label class="pm-label">Checkout URL</label>
             <div class="pm-input-wrap">
               <i class="fas fa-link pm-field-icon"></i>
-              <input type="text" [(ngModel)]="form().checkoutUrl" class="pm-input" id="checkout-url-input" placeholder="https://...">
+              <input type="text" [ngModel]="form().checkoutUrl" (ngModelChange)="patchForm({ checkoutUrl: $event })" class="pm-input" [disabled]="isBusy()" id="checkout-url-input" placeholder="https://...">
             </div>
           </div>
 
@@ -90,15 +103,21 @@
             <div class="pm-input-wrap">
               <i class="fas fa-key pm-field-icon"></i>
               <input type="text"
-                     [(ngModel)]="form().apiKey"
+                     [ngModel]="form().apiKey"
+                     (ngModelChange)="patchForm({ apiKey: $event })"
                      class="pm-input pm-input-secret"
+                     [class.pm-input--invalid]="isApiKeyInvalid()"
                      id="api-key-input"
+                     [disabled]="isBusy()"
                      [placeholder]="form().hasApiKey ? 'Stored. Leave blank to keep existing key.' : 'Enter API key'"
                      autocomplete="off"
                      autocapitalize="none"
                      spellcheck="false">
             </div>
             <div class="pm-toggle-sub" *ngIf="form().hasApiKey">A key is already stored. Enter a new value only when rotating it.</div>
+            @if (isApiKeyRequired()) {
+              <div class="pm-field-error">API key is required before saving this new provider.</div>
+            }
           </div>
 
           <!-- Webhook Secret -->
@@ -107,9 +126,11 @@
             <div class="pm-input-wrap">
               <i class="fas fa-shield-alt pm-field-icon"></i>
               <input type="text"
-                     [(ngModel)]="form().webhookSecret"
+                     [ngModel]="form().webhookSecret"
+                     (ngModelChange)="patchForm({ webhookSecret: $event })"
                      class="pm-input pm-input-secret"
                      id="webhook-secret-input"
+                     [disabled]="isBusy()"
                      [placeholder]="form().hasWebhookSecret ? 'Stored. Leave blank to keep existing secret.' : 'Enter webhook secret'"
                      autocomplete="off"
                      autocapitalize="none"
@@ -124,17 +145,17 @@
               <div class="pm-toggle-label">Gateway Active</div>
               <div class="pm-toggle-sub">Enable or disable this payment provider platform-wide</div>
             </div>
-            <label class="pm-switch">
-              <input type="checkbox" [(ngModel)]="form().isActive">
+            <label class="pm-switch" [class.pm-switch--disabled]="isBusy()">
+              <input type="checkbox" [ngModel]="form().isActive" (ngModelChange)="patchForm({ isActive: $event })" [disabled]="isBusy()">
               <span class="pm-switch-track"></span>
             </label>
           </div>
 
           <!-- Save Button -->
-          <button class="pm-save-btn" (click)="save()" [disabled]="loading()" id="save-payment-btn"
-                  [class.pm-save-btn--loading]="loading()">
-            <i class="fas" [class.fa-save]="!loading()" [class.fa-spinner]="loading()" [class.fa-spin]="loading()"></i>
-            {{ loading() ? 'Saving...' : 'Save Configuration' }}
+          <button class="pm-save-btn" (click)="save()" [disabled]="!canSave()" id="save-payment-btn"
+                  [class.pm-save-btn--loading]="saving()">
+            <i class="fas" [class.fa-save]="!saving()" [class.fa-spinner]="saving()" [class.fa-spin]="saving()"></i>
+            {{ saving() ? 'Saving...' : 'Save Configuration' }}
           </button>
         </div>
       </div>

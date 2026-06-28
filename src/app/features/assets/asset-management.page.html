@@ -7,14 +7,14 @@
         </div>
         <div>
           <div class="screen-title">Asset Management</div>
-          <div class="screen-sub">Manage asset templates, overlays and sound effects</div>
+          <div class="screen-sub">Manage admin asset packages available in user creation flows</div>
         </div>
       </div>
       <div class="header-actions">
-        <button class="btn btn-soft btn-sm" (click)="loadAssets()">
+        <button class="btn btn-soft btn-sm" type="button" (click)="loadAssets()" [disabled]="loading()">
           <i class="fas fa-sync" [class.fa-spin]="loading()"></i> Refresh
         </button>
-        <button class="btn btn-primary btn-sm" (click)="openCreate()">
+        <button class="btn btn-primary btn-sm" type="button" (click)="openCreate()" [disabled]="loading() || saving()">
           <i class="fas fa-plus"></i> Add Asset
         </button>
       </div>
@@ -26,6 +26,14 @@
       <div class="asset-table-title">
         <i class="fas fa-photo-film"></i> Asset Library
         <span class="asset-count-badge">{{ assets().length }}</span>
+      </div>
+      <div class="asset-table-actions">
+        <button class="btn btn-soft btn-sm" type="button" (click)="loadAssets()" [disabled]="loading()">
+          <i class="fas fa-sync" [class.fa-spin]="loading()"></i> Refresh
+        </button>
+        <button class="btn btn-primary btn-sm" type="button" (click)="openCreate()" [disabled]="loading() || saving()">
+          <i class="fas fa-plus"></i> Add Asset
+        </button>
       </div>
     </div>
 
@@ -40,133 +48,98 @@
           </tr>
         </thead>
         <tbody>
-          @for (asset of assets(); track asset.id) {
-            <tr>
-              <td>
-                <div class="asset-name-cell">
-                  <div class="asset-name-icon">
-                    @if (asset.type === 'Video') { <i class="fas fa-video"></i> }
-                    @else if (asset.type === 'Image') { <i class="fas fa-image"></i> }
-                    @else { <i class="fas fa-music"></i> }
-                  </div>
-                  <div>
-                    <div class="asset-name">{{ asset.name }}</div>
-                    @if (asset.description) {
-                      <div class="asset-desc">{{ asset.description }}</div>
-                    }
-                  </div>
-                </div>
-              </td>
-              <td>
-                <span class="asset-type-pill" [class.asset-type-pill--video]="asset.type === 'Video'"
-                      [class.asset-type-pill--image]="asset.type === 'Image'"
-                      [class.asset-type-pill--audio]="asset.type === 'Audio'">
-                  {{ asset.type }}
-                </span>
-              </td>
-              <td>
-                <span class="asset-status-pill" [class.asset-status-pill--active]="asset.isActive">
-                  {{ asset.isActive ? 'Active' : 'Inactive' }}
-                </span>
-              </td>
-              <td>
-                <div class="asset-actions">
-                  <button class="asset-icon-btn" (click)="openEdit(asset)" title="Edit Asset">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button class="asset-icon-btn asset-icon-btn--danger"
-                          (click)="deleteAsset(asset.id)"
-                          [title]="pendingDeleteAssetId() === asset.id ? 'Click again to delete asset' : 'Delete asset'">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          } @empty {
+          @if (loading() && assets().length === 0) {
             <tr>
               <td colspan="4">
                 <div class="asset-empty">
-                  <i class="fas fa-photo-film"></i>
-                  <span>No assets found. Click "Add Asset" to create one.</span>
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <span>Loading assets...</span>
                 </div>
               </td>
             </tr>
+          } @else if (assetError()) {
+            <tr>
+              <td colspan="4">
+                <div class="asset-empty asset-empty--error">
+                  <i class="fas fa-triangle-exclamation"></i>
+                  <span>Assets could not be loaded.</span>
+                </div>
+              </td>
+            </tr>
+          } @else {
+            @for (asset of assets(); track asset.id) {
+              <tr>
+                <td>
+                  <div class="asset-name-cell">
+                    <div class="asset-name-icon">
+                      <i class="fas fa-folder"></i>
+                    </div>
+                    <div>
+                      <div class="asset-name">{{ asset.name }}</div>
+                      @if (asset.description) {
+                        <div class="asset-desc">{{ asset.description }}</div>
+                      }
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="asset-type-pill">{{ asset.type }}</span>
+                </td>
+                <td>
+                  <span class="asset-status-pill" [class.asset-status-pill--active]="asset.isActive">
+                    {{ asset.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="asset-actions">
+                    <button class="asset-icon-btn" type="button" (click)="openEdit(asset)" title="Edit Asset" [disabled]="loading() || saving() || !!deletingAssetId()">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button
+                      class="asset-icon-btn asset-icon-btn--danger"
+                      type="button"
+                      [class.asset-icon-btn--confirm]="pendingDeleteAssetId() === asset.id"
+                      (click)="deleteAsset(asset.id)"
+                      [disabled]="loading() || saving() || (!!deletingAssetId() && deletingAssetId() !== asset.id)"
+                      [title]="pendingDeleteAssetId() === asset.id ? 'Click again to delete asset' : 'Delete asset'">
+                      <i
+                        class="fas"
+                        [class.fa-trash]="deletingAssetId() !== asset.id"
+                        [class.fa-spinner]="deletingAssetId() === asset.id"
+                        [class.fa-spin]="deletingAssetId() === asset.id"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="4">
+                  <div class="asset-empty">
+                    <i class="fas fa-photo-film"></i>
+                    <span>No assets found. Click "Add Asset" to create one.</span>
+                  </div>
+                </td>
+              </tr>
+            }
           }
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- ── Create/Edit Modal ────────────────────────────────────────── -->
   @if (showForm()) {
-    <div class="asset-overlay" (click)="cancelForm()">
-      <div class="asset-modal" (click)="$event.stopPropagation()">
-        <div class="asset-modal__header">
-          <div class="asset-modal__icon">
-            <i class="fas" [class.fa-plus]="!editing()" [class.fa-edit]="editing()"></i>
-          </div>
-          <div>
-            <div class="asset-modal__title">{{ editing() ? 'Edit Asset' : 'Create Asset' }}</div>
-            <div class="asset-modal__sub">{{ editing() ? 'Update asset details below' : 'Fill in the details to add a new asset' }}</div>
-          </div>
-          <button class="asset-modal__close" type="button" (click)="cancelForm()" aria-label="Close dialog">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-
-        <div class="asset-modal__body">
-          <div class="asset-form-grid">
-            <div class="asset-field">
-              <label class="asset-label">Name</label>
-              <input class="asset-input" [(ngModel)]="formName" placeholder="Asset name" />
-            </div>
-            <div class="asset-field">
-              <label class="asset-label">Type</label>
-              <div class="asset-radio-group">
-                @for (t of ['Video', 'Image', 'Audio']; track t) {
-                  <label class="asset-radio" [class.asset-radio--active]="formType === t" (click)="formType = t">
-                    <input type="radio" name="assetType" [value]="t" [(ngModel)]="formType" />
-                    <i class="fas" [class.fa-video]="t === 'Video'" [class.fa-image]="t === 'Image'" [class.fa-music]="t === 'Audio'"></i>
-                    {{ t }}
-                  </label>
-                }
-              </div>
-            </div>
-            <div class="asset-field asset-field--full">
-              <label class="asset-label">Description</label>
-              <textarea class="asset-input asset-input--textarea" [(ngModel)]="formDescription" rows="2" placeholder="Brief description"></textarea>
-            </div>
-            <div class="asset-field">
-              <label class="asset-label">File URL (4K)</label>
-              <input class="asset-input" [(ngModel)]="formFileUrl4k" placeholder="https://..." />
-            </div>
-            <div class="asset-field">
-              <label class="asset-label">File URL (2K)</label>
-              <input class="asset-input" [(ngModel)]="formFileUrl2k" placeholder="https://..." />
-            </div>
-            <div class="asset-field">
-              <label class="asset-label">File URL (1K)</label>
-              <input class="asset-input" [(ngModel)]="formFileUrl1k" placeholder="https://..." />
-            </div>
-            <div class="asset-field asset-field--full">
-              <div class="asset-toggle-row">
-                <span class="asset-toggle-label">Active</span>
-                <label class="asset-switch">
-                  <input type="checkbox" [(ngModel)]="formIsActive" />
-                  <span class="asset-switch__track"></span>
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="asset-modal__footer">
-          <button class="btn btn-ghost" (click)="cancelForm()">Cancel</button>
-          <button class="btn btn-primary" (click)="saveAsset()">
-            <i class="fas fa-save"></i> {{ editing() ? 'Update' : 'Create' }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <app-asset-dialog
+      [editing]="!!editing()"
+      [saving]="saving()"
+      [submitted]="formSubmitted()"
+      [(assetTitle)]="formName"
+      [(category)]="formType"
+      [(description)]="formDescription"
+      [(isActive)]="formIsActive"
+      [(attachmentName)]="formAttachmentName"
+      [(attachmentFile)]="formAttachmentFile"
+      (save)="saveAsset()"
+      (cancel)="cancelForm()">
+    </app-asset-dialog>
   }
 </div>
