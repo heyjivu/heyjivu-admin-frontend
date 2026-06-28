@@ -411,7 +411,7 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
         id: crypto.randomUUID(),
         key: key.key?.trim() ?? '',
         provider: key.provider || setting.provider,
-        modelName: this.nullableText(key.modelName),
+        modelName: this.usesProviderLevelPricing(setting.type) ? null : this.nullableText(key.modelName),
         roleName: this.nullableText(key.roleName),
         priority: setting.apiKeys.length,
         customLabel: this.nullableText(key.customLabel),
@@ -422,7 +422,7 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       keyToSave = newKey;
     } else {
       key.key = key.key?.trim() ?? '';
-      key.modelName = this.nullableText(key.modelName);
+      key.modelName = this.usesProviderLevelPricing(setting.type) ? null : this.nullableText(key.modelName);
       key.roleName = this.nullableText(key.roleName);
       key.customLabel = this.nullableText(key.customLabel);
     }
@@ -499,7 +499,7 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
           isBlocked: k.isBlocked,
           usageCount: k.usageCount,
           provider: k.provider || setting.provider,
-          modelName: this.nullableText(k.modelName),
+          modelName: this.usesProviderLevelPricing(setting.type) ? null : this.nullableText(k.modelName),
           roleName: this.nullableText(k.roleName),
           isFree: k.isFree,
           customLabel: this.nullableText(k.customLabel),
@@ -1131,9 +1131,12 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
 
   pricingValidationError(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): string | null {
     if (!this.requiresPricingProfile(key)) return null;
-    if (!this.nullableText(key.modelName)) return 'Model name is required before saving pricing.';
 
     const category = this.normalizedCategory(setting.type);
+    if (!this.usesProviderLevelPricing(setting.type) && !this.nullableText(key.modelName)) {
+      return 'Model name is required before saving pricing.';
+    }
+
     const profile = this.ensurePricingProfile(key, setting);
     if (category === 'text' && (!this.hasPositive(profile.inputPricePerMillion) || !this.hasPositive(profile.outputPricePerMillion))) {
       return 'Text pricing needs input and output price per 1M tokens.';
@@ -1230,6 +1233,11 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
 
   private normalizedCategory(category: string | null | undefined): string {
     return (category || '').trim().toLowerCase();
+  }
+
+  private usesProviderLevelPricing(category: string | null | undefined): boolean {
+    const normalized = this.normalizedCategory(category);
+    return normalized === 'stockmedia' || normalized === 'websearch' || normalized === 'search';
   }
 
   private parseVoiceTags(value: string): string[] {
