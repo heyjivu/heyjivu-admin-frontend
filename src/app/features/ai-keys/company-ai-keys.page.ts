@@ -88,12 +88,8 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       icon: 'fas fa-comment-dots',
       description: 'Language models for script writing, narration & content generation',
       providers: [
-        { name: 'OpenAI' },
-        { name: 'Gemini' },
         { name: 'DeepSeek' },
-        { name: 'OpenRouter' },
-        { name: 'Alibaba' },
-        { name: 'Groq' }
+        { name: 'OpenRouter' }
       ]
     },
     {
@@ -103,8 +99,7 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       description: 'Semantic vectors for memory, recommendations, and similarity search',
       providers: [
         { name: 'OpenAI' },
-        { name: 'Gemini' },
-        { name: 'OpenRouter' }
+        { name: 'Gemini' }
       ]
     },
     {
@@ -114,7 +109,6 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       description: 'Speech-to-text transcription models for audio processing',
       providers: [
         { name: 'Groq' },
-        { name: 'OpenAI' },
         { name: 'OpenRouter' }
       ]
     },
@@ -124,11 +118,8 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       icon: 'fas fa-image',
       description: 'AI engines for thumbnails, graphics, and B-roll visuals',
       providers: [
-        { name: 'Gemini' },
-        { name: 'OpenAI' },
         { name: 'TogetherAI' },
         { name: 'OpenRouter' },
-        { name: 'StabilityAI' },
         { name: 'Modal' }
       ]
     },
@@ -148,13 +139,8 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       icon: 'fas fa-film',
       description: 'AI video generation providers for 5-second clips',
       providers: [
-        { name: 'Alibaba' },
         { name: 'TogetherAI' },
         { name: 'OpenRouter' },
-        { name: 'Generic' },
-        { name: 'Luma' },
-        { name: 'Kling' },
-        { name: 'Runway' },
         { name: 'Modal' }
       ]
     },
@@ -166,11 +152,8 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       providers: [
         { name: 'TogetherAI' },
         { name: 'OpenRouter' },
-        { name: 'Gemini' },
-        { name: 'OpenAI' },
-        { name: 'Azure' },
         { name: 'ElevenLabs' },
-        { name: 'Cartesia' }
+        { name: 'Modal' }
       ]
     },
     {
