@@ -80,6 +80,10 @@ export class Sidebar {
     { label: 'Merchant', icon: 'fas fa-store', route: '/admin/plan-users', queryParams: { plan: 'merchant' }, section: 'plan-users', superAdminOnly: true },
     { label: 'Premium', icon: 'fas fa-crown', route: '/admin/plan-users', queryParams: { plan: 'premium' }, section: 'plan-users', superAdminOnly: true },
     { label: 'BYOK', icon: 'fas fa-key', route: '/admin/plan-users', queryParams: { plan: 'byok' }, section: 'plan-users', superAdminOnly: true },
+    { label: 'All Submissions', icon: 'fas fa-inbox', route: '/admin/template-submissions', section: 'template-submissions', superAdminOnly: true },
+    { label: 'Pending', icon: 'fas fa-clock', route: '/admin/template-submissions', queryParams: { status: 'Pending' }, section: 'template-submissions', superAdminOnly: true },
+    { label: 'Approved', icon: 'fas fa-check', route: '/admin/template-submissions', queryParams: { status: 'Approved' }, section: 'template-submissions', superAdminOnly: true },
+    { label: 'Published', icon: 'fas fa-rocket', route: '/admin/template-submissions', queryParams: { status: 'Published' }, section: 'template-submissions', superAdminOnly: true },
   ];
 
   readonly currentSection = computed(() => {
@@ -94,6 +98,7 @@ export class Sidebar {
     if (path.startsWith('/admin/templates') || path.startsWith('/admin/assets')) return 'templates';
     if (path.startsWith('/admin/cloud')) return 'cloud';
     if (path.startsWith('/admin/plan-users')) return 'plan-users';
+    if (path.startsWith('/admin/template-submissions')) return 'template-submissions';
     return null;
   });
 
@@ -170,6 +175,7 @@ export class Sidebar {
     if (section === 'templates') return 'Assets Studio';
     if (section === 'cloud') return 'User Cloud';
     if (section === 'plan-users') return 'Plan Users';
+    if (section === 'template-submissions') return 'Template Submissions';
     return 'Admin Portal';
   }
 

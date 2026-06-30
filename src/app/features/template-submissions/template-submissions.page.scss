@@ -1,0 +1,416 @@
+:host {
+  display: block;
+  height: 100%;
+  min-height: 0;
+}
+
+.submissions-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  padding: 18px;
+}
+
+.submissions-main {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px;
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.2));
+  border-radius: 8px;
+  background: var(--surface-card, rgba(15, 23, 42, 0.68));
+}
+
+/* ── Header ─────────────────────────────────────────── */
+
+.submissions-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.eyebrow {
+  color: var(--primary-color, #7dd3fc);
+  font: 900 10px/1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.submissions-header h1 {
+  margin: 7px 0 4px;
+  color: var(--text-color, #f8fafc);
+  font-size: 26px;
+}
+
+.submissions-header p {
+  margin: 0;
+  color: var(--text-color-secondary, #94a3b8);
+  font-size: 13px;
+}
+
+/* ── Buttons ─────────────────────────────────────────── */
+
+.icon-btn,
+.action-btn,
+.ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font: 850 13px/1 var(--font-family, system-ui);
+  transition: opacity 0.15s;
+}
+
+.icon-btn {
+  width: 38px;
+  color: var(--text-color-secondary, #cbd5e1);
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.ghost-btn {
+  padding: 0 14px;
+  color: var(--text-color-secondary, #cbd5e1);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.action-btn {
+  padding: 0 12px;
+}
+
+.action-btn--approve {
+  color: #052e16;
+  border-color: rgba(34, 197, 94, 0.45);
+  background: #22c55e;
+}
+
+.action-btn--reject {
+  color: #7f1d1d;
+  border-color: rgba(248, 113, 113, 0.45);
+  background: #f87171;
+}
+
+.action-btn--publish {
+  color: #06111c;
+  border-color: rgba(125, 211, 252, 0.45);
+  background: var(--primary-color, #7dd3fc);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ── Filter tabs ─────────────────────────────────────── */
+
+.status-tabs {
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.18));
+  border-radius: 8px;
+  background: rgba(148, 163, 184, 0.08);
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 90px;
+    min-height: 30px;
+    padding: 0 10px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-color-secondary, #94a3b8);
+    font: 850 12px/1 var(--font-family, system-ui);
+    background: transparent;
+    transition: background 0.12s, color 0.12s;
+  }
+
+  button.active {
+    color: #06111c;
+    background: var(--primary-color, #7dd3fc);
+  }
+}
+
+/* ── States ──────────────────────────────────────────── */
+
+.submissions-error,
+.submissions-loading,
+.submissions-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 20px;
+  color: var(--text-color-secondary, #94a3b8);
+  font-size: 14px;
+
+  i {
+    font-size: 28px;
+  }
+
+  p {
+    margin: 0;
+    text-align: center;
+  }
+}
+
+.submissions-error i {
+  color: #f87171;
+}
+
+/* ── Submissions list ────────────────────────────────── */
+
+.submissions-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+  overflow-y: auto;
+  align-content: start;
+}
+
+.submission-card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.15));
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.22);
+  overflow: hidden;
+}
+
+/* ── Preview ─────────────────────────────────────────── */
+
+.submission-preview {
+  background: rgba(2, 6, 23, 0.5);
+}
+
+.preview-video {
+  display: block;
+  width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: 0;
+}
+
+.meta-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 16px;
+  min-height: 120px;
+  color: var(--text-color-secondary, #94a3b8);
+
+  i {
+    font-size: 32px;
+    opacity: 0.5;
+  }
+}
+
+.meta-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-color-secondary, #94a3b8);
+  text-align: center;
+
+  strong {
+    color: var(--text-color, #f8fafc);
+  }
+}
+
+/* ── Info area ───────────────────────────────────────── */
+
+.submission-info {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.submission-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.submission-name {
+  color: var(--text-color, #f8fafc);
+  font-size: 15px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-badge {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-success { color: #22c55e; background: rgba(34, 197, 94, 0.12); }
+.status-info    { color: #38bdf8; background: rgba(56, 189, 248, 0.12); }
+.status-danger  { color: #f87171; background: rgba(248, 113, 113, 0.12); }
+.status-muted   { color: #cbd5e1; background: rgba(148, 163, 184, 0.12); }
+
+.submission-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 12px;
+  color: var(--text-color-secondary, #94a3b8);
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  i {
+    font-size: 11px;
+    opacity: 0.7;
+  }
+}
+
+.rejection-reason {
+  color: #fca5a5 !important;
+  font-style: italic;
+  flex-basis: 100%;
+}
+
+.submission-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── Reject modal ────────────────────────────────────── */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(2, 6, 23, 0.72);
+}
+
+.reject-modal {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 14px;
+  width: min(560px, calc(100vw - 36px));
+  max-height: min(520px, calc(100vh - 36px));
+  padding: 16px;
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.2));
+  border-radius: 8px;
+  background: var(--surface-card, rgba(15, 23, 42, 0.96));
+  overflow: hidden;
+}
+
+.reject-modal header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reject-modal h2 {
+  margin: 7px 0 4px;
+  color: var(--text-color, #f8fafc);
+  font-size: 22px;
+}
+
+.reject-modal p {
+  margin: 0;
+  color: var(--text-color-secondary, #94a3b8);
+  font-size: 13px;
+}
+
+.reject-body {
+  display: grid;
+  gap: 8px;
+
+  label {
+    color: var(--text-color, #f8fafc);
+    font-size: 13px;
+    font-weight: 700;
+  }
+}
+
+.required-mark {
+  color: #f87171;
+  margin-left: 2px;
+}
+
+.reject-textarea {
+  resize: vertical;
+  min-height: 90px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.2));
+  border-radius: 8px;
+  color: var(--text-color, #f8fafc);
+  background: rgba(2, 6, 23, 0.4);
+  font: 400 13px/1.5 var(--font-family, system-ui);
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color, #7dd3fc);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.reject-modal footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ── Responsive ──────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  .submissions-list {
+    grid-template-columns: 1fr;
+  }
+
+  .status-tabs {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .submissions-header {
+    flex-direction: column;
+  }
+}
