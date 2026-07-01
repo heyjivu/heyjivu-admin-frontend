@@ -1,0 +1,169 @@
+<section class="submissions-page">
+  <main class="submissions-main">
+    <header class="submissions-header">
+      <div>
+        <span class="eyebrow">Super Admin</span>
+        <h1>Template Submissions</h1>
+        <p>Review and publish creator-submitted video templates.</p>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="icon-btn" (click)="loadSubmissions()" [disabled]="loading()" title="Refresh">
+          <i class="fas" [ngClass]="loading() ? 'fa-spinner fa-spin' : 'fa-rotate'" aria-hidden="true"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Status filter tabs -->
+    <nav class="status-tabs" aria-label="Submission status filter">
+      <button
+        type="button"
+        *ngFor="let f of statusFilters"
+        [class.active]="activeFilter() === f.value"
+        (click)="setFilter(f.value)"
+      >
+        <i [class]="f.icon" aria-hidden="true"></i>
+        {{ f.label }}
+      </button>
+    </nav>
+
+    <!-- Error state -->
+    <div class="submissions-error" *ngIf="error() && !loading()">
+      <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+      <p>Failed to load submissions. <button type="button" class="ghost-btn" (click)="loadSubmissions()">Retry</button></p>
+    </div>
+
+    <!-- Loading state -->
+    <div class="submissions-loading" *ngIf="loading()">
+      <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+      <span>Loading submissions…</span>
+    </div>
+
+    <!-- Empty state -->
+    <div class="submissions-empty" *ngIf="!loading() && !error() && submissions().length === 0">
+      <i class="fas fa-inbox" aria-hidden="true"></i>
+      <p>No submissions found for this filter.</p>
+    </div>
+
+    <!-- Submissions list -->
+    <div class="submissions-list" *ngIf="!loading() && !error() && submissions().length > 0">
+      <article
+        class="submission-card"
+        *ngFor="let s of submissions(); trackBy: trackById"
+      >
+        <!-- Preview area -->
+        <div class="submission-preview">
+          <video
+            *ngIf="s.previewUrl; else metaFallback"
+            [src]="s.previewUrl"
+            controls
+            preload="metadata"
+            class="preview-video"
+            aria-label="Template preview"
+          ></video>
+          <ng-template #metaFallback>
+            <div class="meta-fallback">
+              <i class="fas fa-film" aria-hidden="true"></i>
+              <div class="meta-details">
+                <span *ngIf="s.category"><strong>Category:</strong> {{ s.category }}</span>
+                <span *ngIf="s.aspectRatio"><strong>Aspect ratio:</strong> {{ s.aspectRatio }}</span>
+                <span *ngIf="s.slotCount != null"><strong>Slots:</strong> {{ s.slotCount }}</span>
+              </div>
+            </div>
+          </ng-template>
+        </div>
+
+        <!-- Info area -->
+        <div class="submission-info">
+          <div class="submission-title-row">
+            <strong class="submission-name">{{ s.name }}</strong>
+            <em [class]="'status-badge status-' + statusTone(s.status)">{{ s.status }}</em>
+          </div>
+
+          <div class="submission-meta">
+            <span *ngIf="s.category"><i class="fas fa-tag" aria-hidden="true"></i> {{ s.category }}</span>
+            <span *ngIf="s.aspectRatio"><i class="fas fa-expand" aria-hidden="true"></i> {{ s.aspectRatio }}</span>
+            <span *ngIf="s.slotCount != null"><i class="fas fa-layer-group" aria-hidden="true"></i> {{ s.slotCount }} slots</span>
+            <span><i class="fas fa-calendar" aria-hidden="true"></i> {{ s.createdAt | date:'mediumDate' }}</span>
+            <span *ngIf="s.rejectionReason" class="rejection-reason"><i class="fas fa-comment-dots" aria-hidden="true"></i> {{ s.rejectionReason }}</span>
+          </div>
+
+          <!-- Actions -->
+          <div class="submission-actions">
+            <button
+              type="button"
+              class="action-btn action-btn--approve"
+              *ngIf="s.status === 'Pending'"
+              (click)="approve(s)"
+              [disabled]="isBusy()"
+              title="Approve this submission"
+            >
+              <i class="fas" [ngClass]="isActionBusy(s.id) ? 'fa-spinner fa-spin' : 'fa-check'" aria-hidden="true"></i>
+              Approve
+            </button>
+
+            <button
+              type="button"
+              class="action-btn action-btn--reject"
+              *ngIf="s.status === 'Pending' || s.status === 'Approved'"
+              (click)="openRejectModal(s)"
+              [disabled]="isBusy()"
+              title="Reject this submission"
+            >
+              <i class="fas fa-times" aria-hidden="true"></i>
+              Reject
+            </button>
+
+            <button
+              type="button"
+              class="action-btn action-btn--publish"
+              *ngIf="s.status === 'Approved'"
+              (click)="publish(s)"
+              [disabled]="isBusy()"
+              title="Publish this template"
+            >
+              <i class="fas" [ngClass]="isActionBusy(s.id) ? 'fa-spinner fa-spin' : 'fa-rocket'" aria-hidden="true"></i>
+              Publish
+            </button>
+          </div>
+        </div>
+      </article>
+    </div>
+  </main>
+</section>
+
+<!-- Reject modal -->
+<div class="modal-backdrop" *ngIf="rejectTarget()" (click)="closeRejectModal()">
+  <section class="reject-modal" role="dialog" aria-modal="true" aria-labelledby="rejectModalTitle" (click)="$event.stopPropagation()">
+    <header>
+      <div>
+        <span class="eyebrow">Action Required</span>
+        <h2 id="rejectModalTitle">Reject Submission</h2>
+        <p>Provide a reason for rejecting "{{ rejectTarget()?.name }}".</p>
+      </div>
+      <button type="button" class="icon-btn" (click)="closeRejectModal()" [disabled]="isRejecting()" aria-label="Close">
+        <i class="fas fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="reject-body">
+      <label for="reject-reason-input">Rejection Reason <span class="required-mark">*</span></label>
+      <textarea
+        id="reject-reason-input"
+        class="reject-textarea"
+        rows="4"
+        placeholder="Explain why this template is being rejected…"
+        [(ngModel)]="rejectReason"
+        [disabled]="isRejecting()"
+        maxlength="1000"
+      ></textarea>
+    </div>
+
+    <footer>
+      <button type="button" class="ghost-btn" (click)="closeRejectModal()" [disabled]="isRejecting()">Cancel</button>
+      <button type="button" class="action-btn action-btn--reject" (click)="confirmReject()" [disabled]="isRejecting()">
+        <i class="fas" [ngClass]="isRejecting() ? 'fa-spinner fa-spin' : 'fa-times'" aria-hidden="true"></i>
+        {{ isRejecting() ? 'Rejecting…' : 'Confirm Reject' }}
+      </button>
+    </footer>
+  </section>
+</div>

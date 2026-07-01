@@ -153,6 +153,11 @@ export const routes: Routes = [
         path: 'plan-users',
         canActivate: [authGuard, superAdminOnly, hasRight(Rights.Admin_PlanUsers_View)],
         loadComponent: () => import('./features/plan-users/plan-users.page').then((m) => m.PlanUsersPage),
+      },
+      {
+        path: 'template-submissions',
+        canActivate: [authGuard, superAdminOnly, hasRight(Rights.Admin_Config_View)],
+        loadComponent: () => import('./features/template-submissions/template-submissions.page').then((m) => m.TemplateSubmissionsPage),
       }
     ]
   },

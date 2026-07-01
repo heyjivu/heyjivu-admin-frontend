@@ -83,6 +83,10 @@
       <i class="fas fa-cloud"></i>
       <span class="tab-label">Cloud</span>
     </button>
+    <button *ngIf="authStore.isSuperAdmin()" class="tab-btn" routerLink="/admin/template-submissions" routerLinkActive="active" title="Template Submissions">
+      <i class="fas fa-inbox"></i>
+      <span class="tab-label">Submissions</span>
+    </button>
   </div>
 
   <div class="topbar-right">
