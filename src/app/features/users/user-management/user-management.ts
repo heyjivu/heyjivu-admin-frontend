@@ -1063,9 +1063,16 @@ export class UserManagementComponent implements OnInit {
       isByokPosts: user.isByokPosts,
       [field]: !user[field]
     };
-    
+
     this.adminService.updateUserByok(user.id, updatedByok).subscribe(() => {
       this.loadData();
+    });
+  }
+
+  toggleTemplateSubmitter(user: UserManagementDto) {
+    this.adminService.updateTemplateSubmitter(user.id, !user.canSubmitTemplates).subscribe({
+      next: () => this.loadData(),
+      error: (err) => this.toast.error(this.readApiError(err, 'Failed to update template submitter permission.'))
     });
   }
 

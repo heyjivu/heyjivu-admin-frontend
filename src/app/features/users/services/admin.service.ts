@@ -33,6 +33,7 @@ export interface UserManagementDto {
   isByokVideoGeneration: boolean;
   isByokPosts: boolean;
   byokRequested: boolean;
+  canSubmitTemplates: boolean;
 }
 
 export interface RightDto {
@@ -297,6 +298,10 @@ export class AdminService {
 
   updateUserByok(userId: string, byok: { isByokProcessing: boolean, isByokTrend: boolean, isByokVideoGeneration: boolean, isByokPosts: boolean }): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/${userId}/byok`, byok);
+  }
+
+  updateTemplateSubmitter(userId: string, enabled: boolean): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/${userId}/template-submitter`, { enabled });
   }
 
   getStats(): Observable<AdminDashboardStatsDto> {
