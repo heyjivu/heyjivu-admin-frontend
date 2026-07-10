@@ -15,6 +15,18 @@ export interface PaymentSettingDto {
   hasWebhookSecret?: boolean;
 }
 
+export interface PayFastStatusDto {
+  enabled: boolean;
+  environment: string;
+  merchantIdConfigured: boolean;
+  securedKeyConfigured: boolean;
+  accessTokenUrl: string;
+  postTransactionUrl: string;
+  successUrl: string;
+  failureUrl: string;
+  checkoutCallbackUrl: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -24,6 +36,10 @@ export class AdminPaymentService {
 
   getSettings(): Observable<PaymentSettingDto[]> {
     return this.http.get<PaymentSettingDto[]>(`${this.apiUrl}/settings`);
+  }
+
+  getPayFastStatus(): Observable<PayFastStatusDto> {
+    return this.http.get<PayFastStatusDto>(`${this.apiUrl}/payfast/status`);
   }
 
   updateSetting(dto: PaymentSettingDto): Observable<PaymentSettingDto> {

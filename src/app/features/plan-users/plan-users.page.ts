@@ -96,7 +96,7 @@ const FINAL_PLANS: AdminPlan[] = [
   {
     code: 'byok',
     name: 'BYOK',
-    priceRs: 1500,
+    priceRs: 500,
     icon: 'fas fa-key',
     notes: 'Own keys / fair use',
     quotaCards: [
@@ -104,7 +104,7 @@ const FINAL_PLANS: AdminPlan[] = [
       quotaCard('Voice Minutes', 'fas fa-microphone', [['Allowance', 'Own keys / fair use']]),
       quotaCard('AI Video Clips', 'fas fa-film', [['Provider clips', 'Own keys / fair use']]),
       quotaCard('Processing / Whisper Minutes', 'fas fa-clock', [['Allowance', 'Own keys / fair use']]),
-      quotaCard('Storage', 'fas fa-database', [['Allowance', '30 GB']])
+      quotaCard('Storage', 'fas fa-database', [['Allowance', '10 GB']])
     ]
   }
 ];
