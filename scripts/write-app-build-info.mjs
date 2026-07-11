@@ -2,12 +2,13 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 const packageJson = JSON.parse(readFileSync(resolve('package.json'), 'utf8'));
-const refName = process.env.GITHUB_REF_NAME ?? '';
+const refName = process.env.GITHUB_REF_NAME || process.env.CF_PAGES_BRANCH || '';
 const tagVersion = refName.startsWith('v') ? refName.slice(1) : '';
 const versionFile = readVersionFile();
 const version = cleanVersion(process.env.HEYJIVU_APP_VERSION || tagVersion || versionFile || packageJson.version || '0.0.0');
-const buildNumber = process.env.HEYJIVU_BUILD_NUMBER || process.env.GITHUB_RUN_NUMBER || 'local';
-const commitSha = (process.env.HEYJIVU_COMMIT_SHA || process.env.GITHUB_SHA || 'local').slice(0, 12);
+const cloudflareCommitSha = process.env.CF_PAGES_COMMIT_SHA || '';
+const buildNumber = process.env.HEYJIVU_BUILD_NUMBER || process.env.GITHUB_RUN_NUMBER || cloudflareCommitSha.slice(0, 12) || 'local';
+const commitSha = (process.env.HEYJIVU_COMMIT_SHA || process.env.GITHUB_SHA || cloudflareCommitSha || 'local').slice(0, 12);
 const channel = process.env.HEYJIVU_RELEASE_CHANNEL || resolveChannel(refName);
 const outputPath = resolve('src/app/core/version/app-build-info.ts');
 
