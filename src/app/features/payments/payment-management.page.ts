@@ -1,10 +1,16 @@
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { CommonModule, TitleCasePipe } from '@angular/common';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AdminPaymentService, PaymentSettingDto } from './services/admin-payment.service';
 import { ToastService } from '../../core/services/toast.service';
+import {
+  AdminPaymentService,
+  PayFastStatusDto,
+  PaymentSettingDto
+} from './services/admin-payment.service';
+
+type PaymentProvider = 'PayFast' | 'LemonSqueezy';
 
 @Component({
   selector: 'app-payment-management',
@@ -18,56 +24,71 @@ export class PaymentManagementPage implements OnInit {
   private toast = inject(ToastService);
   private destroyRef = inject(DestroyRef);
   private settingsLoadRequestId = 0;
-  
+  private payFastStatusLoadRequestId = 0;
+
   settings = signal<PaymentSettingDto[]>([]);
   loading = signal(false);
   saving = signal(false);
   settingsError = signal(false);
   formSubmitted = signal(false);
-  
-  // For editing/creating
-  selectedProvider = signal<string>('Safepay');
-  form = signal<PaymentSettingDto>({
-    providerName: 'Safepay',
-    apiKey: '',
-    webhookSecret: '',
-    checkoutUrl: 'https://sandbox.api.getsafepay.com/checkout/pay',
-    environment: 'sandbox',
-    isActive: true
-  });
 
-  ngOnInit() {
-    this.loadSettings();
+  payFastStatus = signal<PayFastStatusDto | null>(null);
+  payFastLoading = signal(false);
+  payFastError = signal(false);
+
+  selectedProvider = signal<PaymentProvider>('PayFast');
+  form = signal<PaymentSettingDto>(this.defaultLemonSqueezyForm());
+
+  isPayFastSelected = computed(() => this.selectedProvider() === 'PayFast');
+  activeEnvironment = computed(() => {
+    if (this.isPayFastSelected()) {
+      return this.payFastStatus()?.environment?.trim().toLowerCase() || 'unknown';
+    }
+
+    return this.form().environment?.trim().toLowerCase() || 'unknown';
+  });
+  activeProviderEnabled = computed(() =>
+    this.isPayFastSelected()
+      ? this.payFastStatus()?.enabled === true
+      : this.form().isActive
+  );
+
+  ngOnInit(): void {
+    this.refresh();
   }
 
-  setEnvironment(environment: 'sandbox' | 'production') {
-    if (this.isBusy()) return;
-    const checkoutUrl = this.form().providerName === 'Safepay'
-      ? environment === 'production'
-        ? 'https://getsafepay.com/checkout/pay'
-        : 'https://sandbox.api.getsafepay.com/checkout/pay'
-      : this.form().checkoutUrl;
+  refresh(): void {
+    if (this.saving()) return;
+    this.loadSettings();
+    this.loadPayFastStatus();
+  }
 
-    this.patchForm({
-      environment,
-      checkoutUrl
-    });
+  setEnvironment(environment: 'sandbox' | 'production'): void {
+    if (this.isPayFastSelected() || this.isBusy()) return;
+    this.patchForm({ environment });
   }
 
   patchForm(patch: Partial<PaymentSettingDto>): void {
-    if (this.isBusy()) return;
+    if (this.isPayFastSelected() || this.isBusy()) return;
     this.form.update(current => ({ ...current, ...patch }));
   }
 
-  selectProvider(providerName: string) {
+  selectProvider(providerName: string): void {
     if (this.isBusy()) return;
-    this.selectedProvider.set(providerName);
-    const existing = this.settings().find((setting) => setting.providerName === providerName);
-    this.form.set(existing ? this.toEditableForm(existing) : this.defaultForm(providerName));
+
+    const provider: PaymentProvider = providerName === 'LemonSqueezy'
+      ? 'LemonSqueezy'
+      : 'PayFast';
+
+    this.selectedProvider.set(provider);
+    if (provider === 'LemonSqueezy') {
+      const existing = this.settings().find(setting => setting.providerName === provider);
+      this.form.set(existing ? this.toEditableForm(existing) : this.defaultLemonSqueezyForm());
+    }
     this.formSubmitted.set(false);
   }
 
-  loadSettings() {
+  loadSettings(): void {
     if (this.saving()) return;
     const requestId = ++this.settingsLoadRequestId;
     this.loading.set(true);
@@ -80,26 +101,49 @@ export class PaymentManagementPage implements OnInit {
       }),
       takeUntilDestroyed(this.destroyRef)
     ).subscribe({
-      next: (data) => {
+      next: data => {
         if (requestId !== this.settingsLoadRequestId) return;
         this.settings.set(data);
-        const providerName = this.selectedProvider();
-        const selected = data.find(s => s.providerName === providerName) || data.find(s => s.providerName === 'Safepay');
-        if (selected) {
-          this.selectedProvider.set(selected.providerName);
-        }
-        this.form.set(selected ? this.toEditableForm(selected) : this.defaultForm(providerName));
+        const lemonSqueezy = data.find(setting => setting.providerName === 'LemonSqueezy');
+        this.form.set(lemonSqueezy
+          ? this.toEditableForm(lemonSqueezy)
+          : this.defaultLemonSqueezyForm());
       },
       error: () => {
         if (requestId !== this.settingsLoadRequestId) return;
         this.settingsError.set(true);
-        this.toast.error('Failed to load payment settings.');
+        this.toast.error('Failed to load Lemon Squeezy settings.');
       }
     });
   }
 
-  save() {
-    if (this.isBusy()) return;
+  loadPayFastStatus(): void {
+    if (this.saving()) return;
+    const requestId = ++this.payFastStatusLoadRequestId;
+    this.payFastLoading.set(true);
+    this.payFastError.set(false);
+    this.paymentService.getPayFastStatus().pipe(
+      finalize(() => {
+        if (requestId === this.payFastStatusLoadRequestId) {
+          this.payFastLoading.set(false);
+        }
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: status => {
+        if (requestId !== this.payFastStatusLoadRequestId) return;
+        this.payFastStatus.set(status);
+      },
+      error: () => {
+        if (requestId !== this.payFastStatusLoadRequestId) return;
+        this.payFastError.set(true);
+        this.toast.error('Failed to load secure PayFast configuration status.');
+      }
+    });
+  }
+
+  save(): void {
+    if (this.isPayFastSelected() || this.isBusy()) return;
     this.formSubmitted.set(true);
     const current = this.form();
     if (!this.isFormValid()) {
@@ -109,7 +153,7 @@ export class PaymentManagementPage implements OnInit {
 
     const payload: PaymentSettingDto = {
       ...current,
-      providerName: current.providerName.trim(),
+      providerName: 'LemonSqueezy',
       environment: current.environment.trim(),
       checkoutUrl: current.checkoutUrl?.trim() || undefined,
       apiKey: current.apiKey?.trim() || undefined,
@@ -125,22 +169,18 @@ export class PaymentManagementPage implements OnInit {
         this.saving.set(false);
         this.formSubmitted.set(false);
         this.loadSettings();
-        this.toast.success('Payment settings updated successfully.');
+        this.toast.success('Lemon Squeezy settings updated successfully.');
       },
-      error: () => this.toast.error('Failed to update payment settings.')
+      error: () => this.toast.error('Failed to update Lemon Squeezy settings.')
     });
   }
 
   isBusy(): boolean {
-    return this.loading() || this.saving();
+    return this.loading() || this.payFastLoading() || this.saving();
   }
 
   canSave(): boolean {
-    return !this.isBusy() && this.isFormValid();
-  }
-
-  isProviderInvalid(): boolean {
-    return this.formSubmitted() && !this.form().providerName.trim();
+    return !this.isPayFastSelected() && !this.isBusy() && this.isFormValid();
   }
 
   isEnvironmentInvalid(): boolean {
@@ -159,19 +199,18 @@ export class PaymentManagementPage implements OnInit {
   private toEditableForm(setting: PaymentSettingDto): PaymentSettingDto {
     return {
       ...setting,
+      providerName: 'LemonSqueezy',
       apiKey: '',
       webhookSecret: ''
     };
   }
 
-  private defaultForm(providerName: string): PaymentSettingDto {
+  private defaultLemonSqueezyForm(): PaymentSettingDto {
     return {
-      providerName,
+      providerName: 'LemonSqueezy',
       apiKey: '',
       webhookSecret: '',
-      checkoutUrl: providerName === 'Safepay'
-        ? 'https://sandbox.api.getsafepay.com/checkout/pay'
-        : '',
+      checkoutUrl: '',
       environment: 'sandbox',
       isActive: true
     };
@@ -179,11 +218,8 @@ export class PaymentManagementPage implements OnInit {
 
   private isFormValid(): boolean {
     const current = this.form();
-    return !!current.providerName.trim() &&
+    return current.providerName === 'LemonSqueezy' &&
       !!current.environment.trim() &&
       !this.isApiKeyRequired();
   }
 }
-
-
-

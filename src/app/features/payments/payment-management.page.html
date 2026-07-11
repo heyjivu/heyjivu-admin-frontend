@@ -1,6 +1,4 @@
 <div class="screen">
-
-  <!-- Screen Header -->
   <div class="screen-header screen-header-compact">
     <div class="flex justify-content-between align-items-center px-4 py-3 screen-title-row">
       <div class="flex align-items-center gap-3">
@@ -9,17 +7,19 @@
         </div>
         <div>
           <div class="screen-title">Payment Settings</div>
-          <div class="screen-sub">Configure global payment gateway credentials for the platform</div>
+          <div class="screen-sub">Review secure PayFast deployment status or edit Lemon Squeezy</div>
         </div>
       </div>
       <div class="header-actions">
-        <span class="pm-env-badge" [class.pm-env-badge--sandbox]="form().environment === 'sandbox'"
-              [class.pm-env-badge--live]="form().environment === 'production'">
+        <span
+          class="pm-env-badge"
+          [class.pm-env-badge--sandbox]="activeEnvironment() === 'sandbox'"
+          [class.pm-env-badge--live]="activeEnvironment() === 'production'">
           <i class="fas fa-circle"></i>
-          {{ form().environment === 'sandbox' ? 'Sandbox Mode' : 'Live Mode' }}
+          {{ activeEnvironment() | titlecase }} Mode
         </span>
-        <button class="btn btn-soft btn-sm" (click)="loadSettings()" [disabled]="isBusy()" id="payment-refresh-btn">
-          <i class="fas fa-sync" [class.fa-spin]="loading()"></i> Refresh
+        <button class="btn btn-soft btn-sm" (click)="refresh()" [disabled]="isBusy()" id="payment-refresh-btn">
+          <i class="fas fa-sync" [class.fa-spin]="loading() || payFastLoading()"></i> Refresh
         </button>
       </div>
     </div>
@@ -27,140 +27,237 @@
 
   <div class="screen-container">
     <div class="pm-grid">
-
-      <!-- Gateway Configuration Card -->
       <div class="pm-card">
         <div class="pm-card-header">
           <div class="pm-card-icon pm-card-icon--indigo">
-            <i class="fas fa-server"></i>
+            <i class="fas" [class.fa-shield-halved]="isPayFastSelected()" [class.fa-server]="!isPayFastSelected()"></i>
           </div>
           <div>
-            <div class="pm-card-title">Gateway Configuration</div>
-            <div class="pm-card-subtitle">Set credentials for your payment provider</div>
+            <div class="pm-card-title">
+              {{ isPayFastSelected() ? 'PayFast Secure Configuration' : 'Lemon Squeezy Configuration' }}
+            </div>
+            <div class="pm-card-subtitle">
+              {{ isPayFastSelected() ? 'Read-only status from the backend deployment' : 'Edit the international payment provider' }}
+            </div>
           </div>
-          <span class="pm-status-badge" [class.pm-status-badge--active]="form().isActive"
-                [class.pm-status-badge--inactive]="!form().isActive">
+          <span
+            class="pm-status-badge"
+            [class.pm-status-badge--active]="activeProviderEnabled()"
+            [class.pm-status-badge--inactive]="!activeProviderEnabled()">
             <i class="fas fa-circle"></i>
-            {{ form().isActive ? 'Active' : 'Disabled' }}
+            {{ activeProviderEnabled() ? 'Enabled' : 'Disabled' }}
           </span>
         </div>
 
         <div class="pm-form">
-          @if (settingsError()) {
-            <div class="pm-error-banner">
-              <i class="fas fa-triangle-exclamation"></i>
-              Payment settings could not be loaded. Check the admin API and refresh.
-            </div>
-          }
-
-          <!-- Provider -->
           <div class="pm-field">
-            <label class="pm-label">Payment Provider</label>
+            <label class="pm-label" for="payment-provider-select">Payment Provider</label>
             <div class="pm-select-wrap">
               <i class="fas fa-building-columns pm-field-icon"></i>
-              <select [ngModel]="form().providerName" (ngModelChange)="selectProvider($event)" class="pm-input" [class.pm-input--invalid]="isProviderInvalid()" [disabled]="isBusy()" id="payment-provider-select">
-                <option value="Safepay">Safepay</option>
+              <select
+                [ngModel]="selectedProvider()"
+                (ngModelChange)="selectProvider($event)"
+                class="pm-input"
+                [disabled]="isBusy()"
+                id="payment-provider-select">
+                <option value="PayFast">PayFast</option>
                 <option value="LemonSqueezy">Lemon Squeezy</option>
               </select>
             </div>
-            @if (isProviderInvalid()) {
-              <div class="pm-field-error">Provider is required.</div>
-            }
           </div>
 
-          <!-- Environment -->
-          <div class="pm-field">
-            <label class="pm-label">Environment</label>
-            <div class="pm-radio-group">
-              <label class="pm-radio" [class.pm-radio--active]="form().environment === 'sandbox'" [class.pm-radio--disabled]="isBusy()">
-                <input type="radio" value="sandbox" [ngModel]="form().environment" (ngModelChange)="setEnvironment('sandbox')" [disabled]="isBusy()">
-                <i class="fas fa-flask"></i>
-                <span>Sandbox</span>
+          @if (isPayFastSelected()) {
+            @if (payFastError()) {
+              <div class="pm-error-banner">
+                <i class="fas fa-triangle-exclamation"></i>
+                Secure PayFast configuration status could not be loaded. Check the admin API and refresh.
+              </div>
+            }
+
+            @if (payFastLoading() && !payFastStatus()) {
+              <div class="pm-loading-state" role="status">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Loading PayFast configuration status…</span>
+              </div>
+            } @else if (payFastStatus(); as status) {
+              <div class="pm-secure-note">
+                <i class="fas fa-lock"></i>
+                <div>
+                  <strong>Secrets stay outside the admin application</strong>
+                  <span>PayFast credentials are managed in Azure App Service settings or Key Vault. This page cannot read or save the Secured Key.</span>
+                </div>
+              </div>
+
+              <div class="pm-config-grid">
+                <div class="pm-config-item">
+                  <span class="pm-config-label">Gateway</span>
+                  <span
+                    class="pm-config-state"
+                    [class.pm-config-state--ok]="status.enabled"
+                    [class.pm-config-state--missing]="!status.enabled">
+                    <i class="fas" [class.fa-circle-check]="status.enabled" [class.fa-circle-xmark]="!status.enabled"></i>
+                    {{ status.enabled ? 'Enabled' : 'Disabled' }}
+                  </span>
+                </div>
+                <div class="pm-config-item">
+                  <span class="pm-config-label">Environment</span>
+                  <strong class="pm-config-value">{{ status.environment | titlecase }}</strong>
+                </div>
+                <div class="pm-config-item">
+                  <span class="pm-config-label">Merchant ID</span>
+                  <span
+                    class="pm-config-state"
+                    [class.pm-config-state--ok]="status.merchantIdConfigured"
+                    [class.pm-config-state--missing]="!status.merchantIdConfigured">
+                    <i class="fas" [class.fa-circle-check]="status.merchantIdConfigured" [class.fa-circle-xmark]="!status.merchantIdConfigured"></i>
+                    {{ status.merchantIdConfigured ? 'Configured ••••••••' : 'Not configured' }}
+                  </span>
+                </div>
+                <div class="pm-config-item">
+                  <span class="pm-config-label">Secured Key</span>
+                  <span
+                    class="pm-config-state"
+                    [class.pm-config-state--ok]="status.securedKeyConfigured"
+                    [class.pm-config-state--missing]="!status.securedKeyConfigured">
+                    <i class="fas" [class.fa-circle-check]="status.securedKeyConfigured" [class.fa-circle-xmark]="!status.securedKeyConfigured"></i>
+                    {{ status.securedKeyConfigured ? 'Configured ••••••••' : 'Not configured' }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="pm-endpoint-section">
+                <div class="pm-section-heading">Verified endpoint configuration</div>
+                <div class="pm-endpoint-list">
+                  <div class="pm-endpoint-row">
+                    <span>Access token URL</span>
+                    <code>{{ status.accessTokenUrl || 'Not configured' }}</code>
+                  </div>
+                  <div class="pm-endpoint-row">
+                    <span>Transaction URL</span>
+                    <code>{{ status.postTransactionUrl || 'Not configured' }}</code>
+                  </div>
+                  <div class="pm-endpoint-row">
+                    <span>Success return URL</span>
+                    <code>{{ status.successUrl || 'Not configured' }}</code>
+                  </div>
+                  <div class="pm-endpoint-row">
+                    <span>Failure return URL</span>
+                    <code>{{ status.failureUrl || 'Not configured' }}</code>
+                  </div>
+                  <div class="pm-endpoint-row">
+                    <span>Checkout callback URL</span>
+                    <code>{{ status.checkoutCallbackUrl || 'Not configured' }}</code>
+                  </div>
+                </div>
+              </div>
+            }
+          } @else {
+            @if (settingsError()) {
+              <div class="pm-error-banner">
+                <i class="fas fa-triangle-exclamation"></i>
+                Lemon Squeezy settings could not be loaded. Check the admin API and refresh.
+              </div>
+            }
+
+            <div class="pm-field">
+              <label class="pm-label">Environment</label>
+              <div class="pm-radio-group">
+                <label class="pm-radio" [class.pm-radio--active]="form().environment === 'sandbox'" [class.pm-radio--disabled]="isBusy()">
+                  <input type="radio" value="sandbox" [ngModel]="form().environment" (ngModelChange)="setEnvironment('sandbox')" [disabled]="isBusy()">
+                  <i class="fas fa-flask"></i>
+                  <span>Sandbox</span>
+                </label>
+                <label class="pm-radio" [class.pm-radio--active]="form().environment === 'production'" [class.pm-radio--disabled]="isBusy()">
+                  <input type="radio" value="production" [ngModel]="form().environment" (ngModelChange)="setEnvironment('production')" [disabled]="isBusy()">
+                  <i class="fas fa-globe"></i>
+                  <span>Production</span>
+                </label>
+              </div>
+              @if (isEnvironmentInvalid()) {
+                <div class="pm-field-error">Environment is required.</div>
+              }
+            </div>
+
+            <div class="pm-field">
+              <label class="pm-label" for="checkout-url-input">Checkout URL</label>
+              <div class="pm-input-wrap">
+                <i class="fas fa-link pm-field-icon"></i>
+                <input
+                  type="text"
+                  [ngModel]="form().checkoutUrl"
+                  (ngModelChange)="patchForm({ checkoutUrl: $event })"
+                  class="pm-input"
+                  [disabled]="isBusy()"
+                  id="checkout-url-input"
+                  placeholder="https://...">
+              </div>
+            </div>
+
+            <div class="pm-field">
+              <label class="pm-label" for="api-key-input">API Key / Public Key</label>
+              <div class="pm-input-wrap">
+                <i class="fas fa-key pm-field-icon"></i>
+                <input
+                  type="text"
+                  [ngModel]="form().apiKey"
+                  (ngModelChange)="patchForm({ apiKey: $event })"
+                  class="pm-input pm-input-secret"
+                  [class.pm-input--invalid]="isApiKeyInvalid()"
+                  id="api-key-input"
+                  [disabled]="isBusy()"
+                  [placeholder]="form().hasApiKey ? 'Stored. Leave blank to keep existing key.' : 'Enter API key'"
+                  autocomplete="off"
+                  autocapitalize="none"
+                  spellcheck="false">
+              </div>
+              @if (form().hasApiKey) {
+                <div class="pm-toggle-sub">A key is already stored. Enter a new value only when rotating it.</div>
+              }
+              @if (isApiKeyRequired()) {
+                <div class="pm-field-error">API key is required before saving this provider.</div>
+              }
+            </div>
+
+            <div class="pm-field">
+              <label class="pm-label" for="webhook-secret-input">Webhook Secret</label>
+              <div class="pm-input-wrap">
+                <i class="fas fa-shield-alt pm-field-icon"></i>
+                <input
+                  type="text"
+                  [ngModel]="form().webhookSecret"
+                  (ngModelChange)="patchForm({ webhookSecret: $event })"
+                  class="pm-input pm-input-secret"
+                  id="webhook-secret-input"
+                  [disabled]="isBusy()"
+                  [placeholder]="form().hasWebhookSecret ? 'Stored. Leave blank to keep existing secret.' : 'Enter webhook secret'"
+                  autocomplete="off"
+                  autocapitalize="none"
+                  spellcheck="false">
+              </div>
+              @if (form().hasWebhookSecret) {
+                <div class="pm-toggle-sub">A webhook secret is already stored. Enter a new value only when rotating it.</div>
+              }
+            </div>
+
+            <div class="pm-toggle-row">
+              <div>
+                <div class="pm-toggle-label">Gateway Active</div>
+                <div class="pm-toggle-sub">Enable or disable Lemon Squeezy platform-wide</div>
+              </div>
+              <label class="pm-switch" [class.pm-switch--disabled]="isBusy()">
+                <input type="checkbox" [ngModel]="form().isActive" (ngModelChange)="patchForm({ isActive: $event })" [disabled]="isBusy()">
+                <span class="pm-switch-track"></span>
               </label>
-              <label class="pm-radio" [class.pm-radio--active]="form().environment === 'production'" [class.pm-radio--disabled]="isBusy()">
-                <input type="radio" value="production" [ngModel]="form().environment" (ngModelChange)="setEnvironment('production')" [disabled]="isBusy()">
-                <i class="fas fa-globe"></i>
-                <span>Production</span>
-              </label>
             </div>
-            @if (isEnvironmentInvalid()) {
-              <div class="pm-field-error">Environment is required.</div>
-            }
-          </div>
 
-          <!-- Checkout URL -->
-          <div class="pm-field">
-            <label class="pm-label">Checkout URL</label>
-            <div class="pm-input-wrap">
-              <i class="fas fa-link pm-field-icon"></i>
-              <input type="text" [ngModel]="form().checkoutUrl" (ngModelChange)="patchForm({ checkoutUrl: $event })" class="pm-input" [disabled]="isBusy()" id="checkout-url-input" placeholder="https://...">
-            </div>
-          </div>
-
-          <!-- API Key -->
-          <div class="pm-field">
-            <label class="pm-label">API Key / Public Key</label>
-            <div class="pm-input-wrap">
-              <i class="fas fa-key pm-field-icon"></i>
-              <input type="text"
-                     [ngModel]="form().apiKey"
-                     (ngModelChange)="patchForm({ apiKey: $event })"
-                     class="pm-input pm-input-secret"
-                     [class.pm-input--invalid]="isApiKeyInvalid()"
-                     id="api-key-input"
-                     [disabled]="isBusy()"
-                     [placeholder]="form().hasApiKey ? 'Stored. Leave blank to keep existing key.' : 'Enter API key'"
-                     autocomplete="off"
-                     autocapitalize="none"
-                     spellcheck="false">
-            </div>
-            <div class="pm-toggle-sub" *ngIf="form().hasApiKey">A key is already stored. Enter a new value only when rotating it.</div>
-            @if (isApiKeyRequired()) {
-              <div class="pm-field-error">API key is required before saving this new provider.</div>
-            }
-          </div>
-
-          <!-- Webhook Secret -->
-          <div class="pm-field">
-            <label class="pm-label">Webhook Secret</label>
-            <div class="pm-input-wrap">
-              <i class="fas fa-shield-alt pm-field-icon"></i>
-              <input type="text"
-                     [ngModel]="form().webhookSecret"
-                     (ngModelChange)="patchForm({ webhookSecret: $event })"
-                     class="pm-input pm-input-secret"
-                     id="webhook-secret-input"
-                     [disabled]="isBusy()"
-                     [placeholder]="form().hasWebhookSecret ? 'Stored. Leave blank to keep existing secret.' : 'Enter webhook secret'"
-                     autocomplete="off"
-                     autocapitalize="none"
-                     spellcheck="false">
-            </div>
-            <div class="pm-toggle-sub" *ngIf="form().hasWebhookSecret">A webhook secret is already stored. Enter a new value only when rotating it.</div>
-          </div>
-
-          <!-- Active Toggle -->
-          <div class="pm-toggle-row">
-            <div>
-              <div class="pm-toggle-label">Gateway Active</div>
-              <div class="pm-toggle-sub">Enable or disable this payment provider platform-wide</div>
-            </div>
-            <label class="pm-switch" [class.pm-switch--disabled]="isBusy()">
-              <input type="checkbox" [ngModel]="form().isActive" (ngModelChange)="patchForm({ isActive: $event })" [disabled]="isBusy()">
-              <span class="pm-switch-track"></span>
-            </label>
-          </div>
-
-          <!-- Save Button -->
-          <button class="pm-save-btn" (click)="save()" [disabled]="!canSave()" id="save-payment-btn"
-                  [class.pm-save-btn--loading]="saving()">
-            <i class="fas" [class.fa-save]="!saving()" [class.fa-spinner]="saving()" [class.fa-spin]="saving()"></i>
-            {{ saving() ? 'Saving...' : 'Save Configuration' }}
-          </button>
+            <button class="pm-save-btn" (click)="save()" [disabled]="!canSave()" id="save-payment-btn" [class.pm-save-btn--loading]="saving()">
+              <i class="fas" [class.fa-save]="!saving()" [class.fa-spinner]="saving()" [class.fa-spin]="saving()"></i>
+              {{ saving() ? 'Saving...' : 'Save Lemon Squeezy Configuration' }}
+            </button>
+          }
         </div>
       </div>
 
-      <!-- Info Panel -->
       <div class="pm-info-col">
         <div class="pm-card pm-info-card">
           <div class="pm-card-header">
@@ -169,61 +266,75 @@
             </div>
             <div>
               <div class="pm-card-title">Integration Guide</div>
-              <div class="pm-card-subtitle">Setup instructions &amp; security notes</div>
+              <div class="pm-card-subtitle">Setup and security notes</div>
             </div>
           </div>
 
           <div class="pm-info-list">
-            <div class="pm-info-item">
-              <div class="pm-info-icon pm-info-icon--blue">
-                <i class="fas fa-building"></i>
+            @if (isPayFastSelected()) {
+              <div class="pm-info-item">
+                <div class="pm-info-icon pm-info-icon--blue"><i class="fas fa-building"></i></div>
+                <div>
+                  <div class="pm-info-title">Merchant Account</div>
+                  <div class="pm-info-desc">Complete PayFast merchant approval and sandbox testing before enabling production checkout.</div>
+                </div>
               </div>
-              <div>
-                <div class="pm-info-title">Merchant Account</div>
-                <div class="pm-info-desc">Create a merchant account on Safepay Sandbox or Production before entering API keys.</div>
+              <div class="pm-info-item">
+                <div class="pm-info-icon pm-info-icon--emerald"><i class="fas fa-code-branch"></i></div>
+                <div>
+                  <div class="pm-info-title">Backend-owned Checkout</div>
+                  <div class="pm-info-desc">The backend creates and verifies every PayFast checkout. Browser return pages never activate a plan by themselves.</div>
+                </div>
               </div>
-            </div>
-
-            <div class="pm-info-item">
-              <div class="pm-info-icon pm-info-icon--emerald">
-                <i class="fas fa-webhook"></i>
+              <div class="pm-info-item">
+                <div class="pm-info-icon pm-info-icon--amber"><i class="fas fa-key"></i></div>
+                <div>
+                  <div class="pm-info-title">Secret Management</div>
+                  <div class="pm-info-desc">Merchant ID and Secured Key are supplied through Azure App Service settings or Key Vault references, not this admin form.</div>
+                </div>
               </div>
-              <div>
-                <div class="pm-info-title">Webhook Endpoint</div>
-                <div class="pm-info-desc">Set your Safepay webhook to:</div>
-                <code class="pm-code">https://api.heyjivu.com/api/onboarding/webhooks/safepay</code>
+            } @else {
+              <div class="pm-info-item">
+                <div class="pm-info-icon pm-info-icon--blue"><i class="fas fa-building"></i></div>
+                <div>
+                  <div class="pm-info-title">Store Account</div>
+                  <div class="pm-info-desc">Create a Lemon Squeezy store and API credentials before enabling international checkout.</div>
+                </div>
               </div>
-            </div>
-
-            <div class="pm-info-item">
-              <div class="pm-info-icon pm-info-icon--amber">
-                <i class="fas fa-lock"></i>
+              <div class="pm-info-item">
+                <div class="pm-info-icon pm-info-icon--emerald"><i class="fas fa-webhook"></i></div>
+                <div>
+                  <div class="pm-info-title">Webhook Endpoint</div>
+                  <div class="pm-info-desc">Configure Lemon Squeezy to deliver signed events to:</div>
+                  <code class="pm-code">https://api.heyjivu.com/api/onboarding/webhooks/lemonsqueezy</code>
+                </div>
               </div>
-              <div>
-                <div class="pm-info-title">Security Notice</div>
-                <div class="pm-info-desc">All credentials are encrypted at rest. Never share your API keys publicly or commit them to source control.</div>
+              <div class="pm-info-item">
+                <div class="pm-info-icon pm-info-icon--amber"><i class="fas fa-lock"></i></div>
+                <div>
+                  <div class="pm-info-title">Credential Safety</div>
+                  <div class="pm-info-desc">Never share or commit credentials. Enter a value here only when creating or intentionally rotating the Lemon Squeezy setting.</div>
+                </div>
               </div>
-            </div>
+            }
           </div>
         </div>
 
-        <!-- Provider Status Card -->
         <div class="pm-card pm-provider-card">
           <div class="pm-provider-header">
             <i class="fas fa-plug-circle-check pm-provider-icon"></i>
-            <span>Connected Provider</span>
+            <span>Selected Provider</span>
           </div>
-          <div class="pm-provider-name">{{ form().providerName || '—' }}</div>
+          <div class="pm-provider-name">{{ selectedProvider() === 'PayFast' ? 'PayFast' : 'Lemon Squeezy' }}</div>
           <div class="pm-provider-meta">
-            <span>{{ form().environment | titlecase }} Environment</span>
+            <span>{{ activeEnvironment() | titlecase }} Environment</span>
             <span class="pm-dot"></span>
-            <span [class.pm-text-success]="form().isActive" [class.pm-text-muted]="!form().isActive">
-              {{ form().isActive ? 'Online' : 'Offline' }}
+            <span [class.pm-text-success]="activeProviderEnabled()" [class.pm-text-muted]="!activeProviderEnabled()">
+              {{ activeProviderEnabled() ? 'Enabled' : 'Disabled' }}
             </span>
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </div>
