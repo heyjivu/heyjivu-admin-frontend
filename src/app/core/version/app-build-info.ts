@@ -1,5 +1,5 @@
 export const APP_BUILD_INFO = {
-  version: "1.0.4",
+  version: "1.0.5",
   buildNumber: "local",
   commitSha: "local",
   channel: "development" as string

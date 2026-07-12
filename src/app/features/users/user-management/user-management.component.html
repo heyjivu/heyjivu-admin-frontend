@@ -8,8 +8,12 @@
       <div class="flex align-items-center gap-3">
         <i class="fas fa-users-cog text-indigo-400" style="font-size: 18px;"></i>
         <div>
-          <div class="screen-title">User Management</div>
-          <div class="screen-sub">{{ authStore.isTenantAdmin() ? 'Manage users inside your organization' : 'Manage users, roles, permissions and organizations' }}</div>
+          <div class="screen-title">{{ activeTab() === 'quotas' ? 'User Quota' : 'User Management' }}</div>
+          <div class="screen-sub">
+            {{ activeTab() === 'quotas'
+              ? 'Review users and manage individual quota overrides'
+              : (authStore.isTenantAdmin() ? 'Manage users inside your organization' : 'Manage users, roles, permissions and organizations') }}
+          </div>
         </div>
       </div>
       <div class="header-actions">
@@ -33,11 +37,11 @@
     <div class="stats-grid">
       <div class="stat-card glass-card">
         <span class="label">Total Users</span>
-        <span class="value">{{ users().length }}</span>
+        <span class="value">{{ totalDatabaseUsers() }}</span>
       </div>
       <div class="stat-card glass-card" *ngIf="authStore.isSuperAdmin()">
         <span class="label">Active Organizations</span>
-        <span class="value">{{ organizations().length }}</span>
+        <span class="value">{{ activeOrganizationCount() }}</span>
       </div>
     </div>
 
@@ -217,6 +221,113 @@
     </div>
 
   <!-- ── Roles Tab ───────────────────────────────────── -->
+  <!-- User Quota Tab -->
+  <div *ngIf="activeTab() === 'quotas' && authStore.isSuperAdmin()" class="animate-fade-in user-quota-view">
+    <div class="table-controls">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input
+          type="text"
+          placeholder="Search users..."
+          class="glass-input"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="onSearchChange($event)"
+        >
+      </div>
+      <div class="filter-group">
+        <select
+          class="filter-select glass-input"
+          [ngModel]="selectedRoleFilter()"
+          (ngModelChange)="selectedRoleFilter.set($event); onFilterChange()"
+        >
+          <option value="">All Roles</option>
+          <option *ngFor="let role of roles()" [value]="role.id">{{ displayRoleName(role.name) }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-container glass-card quota-users-table-container">
+      <table class="admin-table quota-users-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Organization</th>
+            <th>Role</th>
+            <th>Plan</th>
+            <th>Quota Summary</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading()">
+            <td colspan="6" class="quota-grid-state"><i class="fas fa-spinner fa-spin"></i> Loading users...</td>
+          </tr>
+          <tr *ngIf="!loading() && users().length === 0">
+            <td colspan="6" class="quota-grid-state">No users match the current search and role filter.</td>
+          </tr>
+          <tr
+            *ngFor="let user of users()"
+            class="quota-user-row"
+            tabindex="0"
+            (click)="editUserProcessingSettings(user, true)"
+            (keydown.enter)="editUserProcessingSettings(user, true)"
+          >
+            <td>
+              <div class="user-info">
+                <div class="avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
+                <div class="details">
+                  <span class="name">{{ user.displayName }}</span>
+                  <span class="email">{{ user.email }}</span>
+                </div>
+              </div>
+            </td>
+            <td><span class="org-badge" [class.individual]="!user.organizationId">{{ user.organizationName }}</span></td>
+            <td><span class="plan-pill">{{ displayRoleName(user.roleName) }}</span></td>
+            <td><span class="plan-pill">{{ getUserPlanLabel(user) }}</span></td>
+            <td class="quota-cell">
+              <div class="quota-preview" *ngIf="getUserQuotaCards(user) as quotaCards">
+                <ng-container *ngIf="quotaCards.length > 0; else inheritedQuota">
+                  <div
+                    class="quota-preview-row"
+                    *ngFor="let quota of quotaCards.slice(0, 3)"
+                    [title]="getQuotaPreview(quota)"
+                  >
+                    <strong>{{ getQuotaDisplayLabel(quota) }}</strong>
+                    <span>{{ getQuotaPreviewValue(quota) }}</span>
+                  </div>
+                  <span class="quota-more" *ngIf="quotaCards.length > 3">+{{ quotaCards.length - 3 }} more quotas</span>
+                </ng-container>
+              </div>
+              <ng-template #inheritedQuota><span class="quota-empty">Role defaults</span></ng-template>
+            </td>
+            <td>
+              <button
+                type="button"
+                class="btn btn-soft btn-sm quota-edit-btn"
+                (click)="$event.stopPropagation(); editUserProcessingSettings(user, true)"
+              >
+                <i class="fas fa-sliders-h"></i> Edit Quota
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination glass-card">
+      <div class="pagination-info">
+        Showing
+        <strong>{{ totalItems() === 0 ? 0 : (currentPage() - 1) * pageSize() + 1 }}-{{ Math.min(currentPage() * pageSize(), totalItems()) }}</strong>
+        of <strong>{{ totalItems() }}</strong> users
+      </div>
+      <div class="pagination-controls">
+        <button class="page-btn" [disabled]="currentPage() === 1" (click)="prevPage()" aria-label="Previous page"><i class="fas fa-chevron-left"></i></button>
+        <button class="page-btn active">{{ currentPage() }}</button>
+        <button class="page-btn" [disabled]="currentPage() * pageSize() >= totalItems()" (click)="nextPage()" aria-label="Next page"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+
   <div *ngIf="activeTab() === 'roles' && authStore.isSuperAdmin()" class="animate-fade-in">
     <div class="roles-layout">
       <div class="roles-list table-container glass-card">
@@ -620,32 +731,55 @@
   <div class="modal-overlay animate-fade-in" *ngIf="editingUser()">
     <div class="modal-container glass-card" style="width: 600px; max-width: 90vw;">
       <div class="modal-header">
-        <h3>Edit User Defaults for {{ editingUser()?.displayName }}</h3>
+        <h3>{{ quotaOnlyEditor() ? 'Edit User Quota' : 'Edit User Defaults' }} for {{ editingUser()?.displayName }}</h3>
         <button class="modal-close" type="button" (click)="editingUser.set(null)" aria-label="Close dialog">
           <i class="fas fa-times"></i>
         </button>
       </div>
 
       <div class="modal-content" style="max-height: 70vh; overflow-y: auto; padding: 20px;" *ngIf="userProcessingOptions()">
-        <p class="text-sm text-gray-400 mb-4">Leave fields empty to inherit from Role defaults.</p>
+        <p class="text-sm text-gray-400 mb-4">Leave quota fields empty to inherit from role defaults.</p>
 
-        <div class="section-title settings-section-title">Daily Quotas</div>
+        <div class="section-title settings-section-title">{{ quotaOnlyEditor() ? 'All Quotas' : 'Daily Quotas' }}</div>
         <div class="settings-options-column quota-override-section">
-          <div class="option-subfield" *ngFor="let quota of roleQuotaDefinitions">
-            <span class="option-sublabel">{{ quota.overrideLabel }}</span>
-            <input
-              type="number"
-              class="field-input"
-              [min]="quota.min"
-              [max]="quota.max"
-              placeholder="Inherit role quota"
-              [ngModel]="getUserQuotaOverride(quota.key)"
-              (ngModelChange)="setUserQuotaOverride(quota.key, $event)"
-            >
-            <small>{{ quota.description }}</small>
-          </div>
+          <ng-container *ngIf="quotaOnlyEditor(); else defaultQuotaFields">
+            <div class="quota-editor-loading" *ngIf="userQuotaLoading()">
+              <i class="fas fa-spinner fa-spin"></i> Loading quota details...
+            </div>
+            <div class="quota-editor-loading" *ngIf="!userQuotaLoading() && userQuotaRows().length === 0">
+              No quota definitions are available for this user.
+            </div>
+            <div class="option-subfield" *ngFor="let quota of userQuotaRows()">
+              <span class="option-sublabel">{{ quota.label }}</span>
+              <input
+                type="number"
+                class="field-input"
+                min="-1"
+                [placeholder]="quota.limit < 0 || quota.limit === 2147483647 ? 'Current: Unlimited' : 'Current: ' + quota.limit"
+                [ngModel]="getUserQuotaOverride(quota.key)"
+                (ngModelChange)="setUserQuotaOverride(quota.key, $event)"
+              >
+              <small>{{ quota.displayValue }}<span *ngIf="quota.unit"> · {{ quota.unit }}</span></small>
+            </div>
+          </ng-container>
+          <ng-template #defaultQuotaFields>
+            <div class="option-subfield" *ngFor="let quota of roleQuotaDefinitions">
+              <span class="option-sublabel">{{ quota.overrideLabel }}</span>
+              <input
+                type="number"
+                class="field-input"
+                [min]="quota.min"
+                [max]="quota.max"
+                placeholder="Inherit role quota"
+                [ngModel]="getUserQuotaOverride(quota.key)"
+                (ngModelChange)="setUserQuotaOverride(quota.key, $event)"
+              >
+              <small>{{ quota.description }}</small>
+            </div>
+          </ng-template>
         </div>
 
+        <ng-container *ngIf="!quotaOnlyEditor()">
         <div class="section-title settings-section-title">Output Settings</div>
         <div class="settings-options-column">
           <div class="option-row">
@@ -724,11 +858,12 @@
             </select>
           </div>
         </div>
+        </ng-container>
       </div>
 
       <div class="modal-footer" style="padding: 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px;">
         <button class="btn btn-ghost" (click)="editingUser.set(null)">Cancel</button>
-        <button class="btn btn-primary" (click)="saveUserProcessingSettings()">Save Options</button>
+        <button class="btn btn-primary" (click)="saveUserProcessingSettings()">{{ quotaOnlyEditor() ? 'Save Quota' : 'Save Options' }}</button>
       </div>
     </div>
   </div>

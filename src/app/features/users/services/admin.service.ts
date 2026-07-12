@@ -128,14 +128,26 @@ export interface AdminUpdateAccountTypeRequest {
   contentProfile?: AdminCreateContentProfileRequest | null;
 }
 
+export interface AdminQuotaDto {
+  key: string;
+  type: string;
+  label: string;
+  unit: string;
+  limit: number;
+  used: number;
+  remaining: number;
+  displayValue: string;
+  expiresAt?: string | null;
+}
+
 export interface UserQuotaOverviewDto {
   userId?: string;
   planCode?: string | null;
   planName?: string | null;
-  quotas?: unknown;
-  quotaBuckets?: unknown;
-  quotaOverrides?: unknown;
-  quotaSummary?: unknown;
+  quotas?: AdminQuotaDto[];
+  quotaBuckets?: AdminQuotaDto[];
+  quotaOverrides?: AdminQuotaDto[];
+  quotaSummary?: AdminQuotaDto[];
 }
 
 export interface AdminAiUsageTotalsDto {
