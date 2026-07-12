@@ -808,3 +808,48 @@ select.select-input {
     }
   }
 }
+.user-quota-view {
+  display: grid;
+  gap: 16px;
+}
+
+.quota-users-table-container {
+  overflow-x: auto;
+}
+
+.quota-users-table {
+  min-width: 880px;
+
+  th:last-child,
+  td:last-child {
+    width: 132px;
+    text-align: right;
+  }
+}
+
+.quota-user-row {
+  cursor: pointer;
+  transition: background-color 160ms ease;
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in srgb, var(--accent2) 8%, transparent);
+    outline: none;
+  }
+}
+
+.quota-edit-btn {
+  white-space: nowrap;
+}
+
+.quota-grid-state {
+  height: 150px;
+  color: var(--text3);
+  text-align: center !important;
+}
+
+.quota-editor-loading {
+  padding: 18px 4px;
+  color: var(--text3);
+  text-align: center;
+}

@@ -6,26 +6,28 @@
           <i class="fas fa-credit-card"></i>
         </div>
         <div>
-          <div class="screen-title">Payment Settings</div>
-          <div class="screen-sub">Review secure PayFast deployment status or edit Lemon Squeezy</div>
+          <div class="screen-title">{{ screenTitle() }}</div>
+          <div class="screen-sub">{{ screenSubtitle() }}</div>
         </div>
       </div>
       <div class="header-actions">
         <span
           class="pm-env-badge"
           [class.pm-env-badge--sandbox]="activeEnvironment() === 'sandbox'"
-          [class.pm-env-badge--live]="activeEnvironment() === 'production'">
+          [class.pm-env-badge--live]="activeEnvironment() === 'production'"
+          [class.pm-env-badge--manual]="activeEnvironment() === 'manual'">
           <i class="fas fa-circle"></i>
           {{ activeEnvironment() | titlecase }} Mode
         </span>
         <button class="btn btn-soft btn-sm" (click)="refresh()" [disabled]="isBusy()" id="payment-refresh-btn">
-          <i class="fas fa-sync" [class.fa-spin]="loading() || payFastLoading()"></i> Refresh
+          <i class="fas fa-sync" [class.fa-spin]="loading() || payFastLoading() || manualMethodLoading() || manualProofsLoading() || manualSmsLoading() || qrUploading()"></i> Refresh
         </button>
       </div>
     </div>
   </div>
 
   <div class="screen-container">
+    @if (activeSection() === 'settings') {
     <div class="pm-grid">
       <div class="pm-card">
         <div class="pm-card-header">
@@ -336,5 +338,739 @@
         </div>
       </div>
     </div>
+        } @else if (activeSection() === 'manual') {
+          <div class="pm-manual-grid">
+            <section class="pm-card pm-qr-card">
+              <div class="pm-card-header">
+                <div class="pm-card-icon pm-card-icon--emerald">
+                  <i class="fas fa-qrcode"></i>
+                </div>
+                <div>
+                  <div class="pm-card-title">Plan Payment QR</div>
+                  <div class="pm-card-subtitle">Upload one QR for each paid plan</div>
+                </div>
+              </div>
+
+              <div class="pm-qr-body">
+                @if (manualMethodLoading() && !manualMethod()) {
+                  <div class="pm-loading-state" role="status">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Loading QR...</span>
+                  </div>
+                } @else {
+                  <div class="pm-plan-qr-list">
+                    @for (plan of manualMethod()?.plans ?? []; track plan.planKey) {
+                      <article class="pm-plan-qr-item">
+                        <div class="pm-plan-qr-head">
+                          <div>
+                            <strong>{{ plan.planName }}</strong>
+                            <span>{{ plan.pricePkr | number:'1.0-0' }} PKR / ${{ plan.priceUsd | number:'1.2-2' }}</span>
+                          </div>
+                          <span class="pm-proof-status" [attr.data-status]="plan.qrImageKey ? 'approved' : 'pending'">
+                            {{ plan.qrImageKey ? 'QR Ready' : 'Missing' }}
+                          </span>
+                        </div>
+
+                        @if (plan.qrImageUrl) {
+                          <button type="button" class="pm-qr-preview" title="Current plan payment QR">
+                            <img [src]="plan.qrImageUrl" [alt]="plan.planName + ' payment QR'">
+                          </button>
+                        } @else {
+                          <div class="pm-empty-qr">
+                            <i class="fas fa-qrcode"></i>
+                            <span>No QR uploaded</span>
+                          </div>
+                        }
+
+                        <label class="pm-upload-btn" [class.pm-upload-btn--disabled]="qrUploading() || isBusy()">
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            (change)="onQrSelected($event, plan.planKey)"
+                            [disabled]="qrUploading() || isBusy()">
+                          <i class="fas" [class.fa-upload]="!qrUploading()" [class.fa-spinner]="qrUploading()" [class.fa-spin]="qrUploading()"></i>
+                          <span>{{ qrUploading() ? 'Uploading...' : 'Upload ' + plan.planName + ' QR' }}</span>
+                        </label>
+                      </article>
+                    } @empty {
+                      <div class="pm-empty-qr">
+                        <i class="fas fa-qrcode"></i>
+                        <span>No paid plans found</span>
+                      </div>
+                    }
+                  </div>
+                }
+
+                @if (manualMethodError()) {
+                  <div class="pm-error-banner">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    QR configuration could not be loaded.
+                  </div>
+                }
+
+                <div class="pm-toggle-sub">Each QR image is stored in secure object storage and shown through short-lived preview links.</div>
+              </div>
+            </section>
+
+            <section class="pm-card pm-review-card">
+              <div class="pm-review-head-grid">
+                <div class="pm-card-header pm-proof-header">
+                  <div class="pm-card-icon pm-card-icon--indigo">
+                    <i class="fas fa-receipt"></i>
+                  </div>
+                  <div>
+                    <div class="pm-card-title">User Payment Proofs</div>
+                    <div class="pm-card-subtitle">Select proofs or activate them individually</div>
+                  </div>
+                </div>
+                <div class="pm-card-header pm-proof-header">
+                  <div class="pm-card-icon pm-card-icon--emerald">
+                    <i class="fas fa-message"></i>
+                  </div>
+                  <div>
+                    <div class="pm-card-title">Merchant SMS Receipts</div>
+                    <div class="pm-card-subtitle">Drag a receipt onto any proof to change its link</div>
+                  </div>
+                  <button class="btn btn-soft btn-sm" type="button" (click)="loadManualPaymentReview()" [disabled]="manualProofsLoading() || manualSmsLoading()">
+                    <i class="fas fa-sync" [class.fa-spin]="manualProofsLoading() || manualSmsLoading()"></i>
+                    Refresh
+                  </button>
+                </div>
+              </div>
+
+              <div class="pm-review-toolbar-grid">
+                <div class="pm-review-proof-tools">
+                  <div class="pm-proof-tabs" role="tablist" aria-label="Manual payment proof status">
+                    <button type="button" role="tab" class="pm-proof-tab" [class.pm-proof-tab--active]="manualStatus() === 'pending'" (click)="setManualStatus('pending')">Pending</button>
+                    <button type="button" role="tab" class="pm-proof-tab" [class.pm-proof-tab--active]="manualStatus() === 'approved'" (click)="setManualStatus('approved')">Approved</button>
+                    <button type="button" role="tab" class="pm-proof-tab" [class.pm-proof-tab--active]="manualStatus() === 'rejected'" (click)="setManualStatus('rejected')">Rejected</button>
+                  </div>
+                </div>
+                <div class="pm-review-right-tools">
+                  <div class="pm-drag-hint"><i class="fas fa-grip-vertical"></i>Drag SMS onto a proof</div>
+                  @if (manualStatus() === 'pending' && selectableManualProofs().length > 0) {
+                    <div class="pm-bulk-actions">
+                      <label class="pm-select-all">
+                        <input type="checkbox" [checked]="allSelectableManualProofsSelected()" (change)="toggleAllManualProofs()" [disabled]="manualBulkActivating() || !!manualActionId()">
+                        <span>Select all</span>
+                      </label>
+                      <button type="button" class="pm-action-btn pm-action-btn--approve pm-bulk-activate" (click)="activateSelectedProofs()" [disabled]="selectedManualProofCount() === 0 || manualBulkActivating() || !!manualActionId()">
+                        <i class="fas" [class.fa-check-double]="!manualBulkActivating()" [class.fa-spinner]="manualBulkActivating()" [class.fa-spin]="manualBulkActivating()"></i>
+                        Activate ({{ selectedManualProofCount() }})
+                      </button>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <div class="pm-review-list">
+                @if (manualProofsLoading() || manualSmsLoading()) {
+                  <div class="pm-loading-state pm-proof-loading pm-review-full" role="status">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Loading backend-matched payment review...</span>
+                  </div>
+                } @else if (manualProofsError() || manualSmsError()) {
+                  <div class="pm-error-banner pm-review-full">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    Payment review queue could not be loaded.
+                  </div>
+                } @else if (manualReviewRows().length === 0) {
+                  <div class="pm-empty-state pm-review-full">
+                    <i class="fas fa-inbox"></i>
+                    <span>No payment proofs or SMS receipts on this page</span>
+                  </div>
+                } @else {
+                  @for (row of manualReviewRows(); track row.key) {
+                    <div class="pm-review-row" [class.pm-review-row--matched]="row.matched">
+                      <div
+                        class="pm-review-cell pm-review-proof-cell"
+                        [class.pm-review-cell--matched]="row.matched"
+                        [class.pm-review-cell--drop-ready]="!!draggedSmsReceiptId() && !!row.proof"
+                        (dragover)="row.proof && allowSmsDrop($event)"
+                        (drop)="row.proof && dropSmsOnProof($event, row.proof)">
+                        @if (row.proof; as proof) {
+                          <article class="pm-compact-review-row" [class.pm-compact-review-row--selectable]="proof.status === 'pending'">
+                            @if (proof.status === 'pending') {
+                              <input
+                                class="pm-row-checkbox"
+                                type="checkbox"
+                                [checked]="isManualProofSelected(proof.id)"
+                                (change)="toggleManualProofSelection(proof)"
+                                [disabled]="isProofActionBusy(proof)"
+                                [attr.aria-label]="'Select ' + (proof.planName || proof.planKey || 'payment proof')">
+                            }
+                            <div class="pm-compact-summary">
+                              <strong>{{ formatMoney(proof) }}</strong>
+                              <span>{{ proof.createdAt | date:'medium' }}</span>
+                            </div>
+                            <div class="pm-compact-badges">
+                              @if (row.matched) { <span class="pm-match-badge"><i class="fas fa-link"></i>{{ manualMatchLabel(row) }}</span> }
+                            </div>
+                            <div class="pm-proof-actions">
+                              <button type="button" class="pm-icon-btn" title="Show details" aria-label="Show payment details" (click)="openReviewDetails(row)"><i class="fas fa-eye"></i></button>
+                              @if (proof.status === 'pending') {
+                                <button type="button" class="pm-action-btn pm-action-btn--approve" (click)="approveProof(proof)" [disabled]="isProofActionBusy(proof)">
+                                  <i class="fas" [class.fa-check]="!isProofActionBusy(proof)" [class.fa-spinner]="isProofActionBusy(proof)" [class.fa-spin]="isProofActionBusy(proof)"></i>
+                                  Activate
+                                </button>
+                              }
+                            </div>
+                          </article>
+                        } @else {
+                          <div class="pm-review-placeholder"><i class="fas fa-arrow-left"></i><span>No proof paired</span></div>
+                        }
+                      </div>
+
+                      <div class="pm-review-cell pm-review-sms-cell" [class.pm-review-cell--matched]="row.matched">
+                        @if (row.receipt; as receipt) {
+                          <article
+                            class="pm-sms-row pm-sms-row--review"
+                            [class.pm-sms-row--dragging]="draggedSmsReceiptId() === receipt.id"
+                            [attr.draggable]="!isSmsActionBusy(receipt)"
+                            (dragstart)="startSmsDrag($event, receipt)"
+                            (dragend)="endSmsDrag()">
+                            <div class="pm-compact-sms-summary">
+                              <i class="fas fa-grip-vertical" title="Drag receipt"></i>
+                              <div class="pm-compact-summary">
+                                <strong>{{ formatSmsAmount(receipt) }}</strong>
+                                <span>{{ receipt.receivedAt | date:'medium' }}</span>
+                              </div>
+                            </div>
+                            <div class="pm-compact-badges">
+                              @if (row.matched) { <span class="pm-match-badge" [attr.data-source]="row.matchSource"><i class="fas fa-circle-check"></i>{{ row.matchSource === 'manual' ? 'Manual link' : 'Auto matched' }}</span> }
+                            </div>
+                            <div class="pm-sms-actions">
+                              <button type="button" class="pm-icon-btn" title="Show details" aria-label="Show SMS details" (click)="openReviewDetails(row)"><i class="fas fa-eye"></i></button>
+                              @if (row.matched) {
+                                <button type="button" class="pm-icon-btn" title="Disconnect receipt" (click)="disconnectSms(row)" [disabled]="isSmsActionBusy(receipt)"><i class="fas fa-link-slash"></i></button>
+                              }
+                              <button type="button" class="pm-icon-btn pm-icon-btn--danger" title="Delete unrelated receipt" (click)="deleteSmsReceipt(receipt)" [disabled]="isSmsActionBusy(receipt)"><i class="fas fa-trash"></i></button>
+                            </div>
+                          </article>
+                        } @else {
+                          <div class="pm-review-placeholder"><i class="fas fa-message"></i><span>Drop an SMS receipt on this proof</span></div>
+                        }
+                      </div>
+                    </div>
+                  }
+                }
+              </div>
+
+              <div class="pm-review-pagination-grid">
+                <div class="pm-pagination" *ngIf="manualTotal() > 0">
+                  <span>Proofs {{ manualRangeLabel() }}</span>
+                  <div class="pm-pagination-actions">
+                    <button type="button" class="pm-icon-btn" title="Previous 50 proofs" (click)="previousManualPage()" [disabled]="!canPreviousManualPage()"><i class="fas fa-chevron-left"></i></button>
+                    <span>Page {{ manualPage() }} / {{ manualPageCount() }}</span>
+                    <button type="button" class="pm-icon-btn" title="Next 50 proofs" (click)="nextManualPage()" [disabled]="!canNextManualPage()"><i class="fas fa-chevron-right"></i></button>
+                  </div>
+                </div>
+                <div class="pm-pagination" *ngIf="manualSmsTotal() > 0">
+                  <span>SMS {{ manualSmsRangeLabel() }}</span>
+                  <div class="pm-pagination-actions">
+                    <button type="button" class="pm-icon-btn" title="Previous 50 SMS" (click)="previousManualSmsPage()" [disabled]="!canPreviousManualSmsPage()"><i class="fas fa-chevron-left"></i></button>
+                    <span>Page {{ manualSmsPage() }} / {{ manualSmsPageCount() }}</span>
+                    <button type="button" class="pm-icon-btn" title="Next 50 SMS" (click)="nextManualSmsPage()" [disabled]="!canNextManualSmsPage()"><i class="fas fa-chevron-right"></i></button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="pm-card pm-proof-card" hidden>
+              <div class="pm-card-header pm-proof-header">
+                <div class="pm-card-icon pm-card-icon--indigo">
+                  <i class="fas fa-receipt"></i>
+                </div>
+                <div>
+                  <div class="pm-card-title">User Payment Proofs</div>
+                  <div class="pm-card-subtitle">Open a proof, verify the uploaded screenshot, then activate or reject</div>
+                </div>
+                <button class="btn btn-soft btn-sm" type="button" (click)="loadManualPaymentProofs()" [disabled]="manualProofsLoading()">
+                  <i class="fas fa-sync" [class.fa-spin]="manualProofsLoading()"></i>
+                  Refresh
+                </button>
+              </div>
+
+              <div class="pm-proof-tabs" role="tablist" aria-label="Manual payment proof status">
+                <button
+                  type="button"
+                  role="tab"
+                  class="pm-proof-tab"
+                  [class.pm-proof-tab--active]="manualStatus() === 'pending'"
+                  (click)="setManualStatus('pending')">
+                  Pending
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  class="pm-proof-tab"
+                  [class.pm-proof-tab--active]="manualStatus() === 'approved'"
+                  (click)="setManualStatus('approved')">
+                  Approved
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  class="pm-proof-tab"
+                  [class.pm-proof-tab--active]="manualStatus() === 'rejected'"
+                  (click)="setManualStatus('rejected')">
+                  Rejected
+                </button>
+              </div>
+
+              <div class="pm-proof-list">
+                @if (manualProofsLoading()) {
+                  <div class="pm-loading-state pm-proof-loading" role="status">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Loading {{ statusLabel(manualStatus()) | lowercase }} proofs...</span>
+                  </div>
+                } @else if (manualProofsError()) {
+                  <div class="pm-error-banner">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    Manual payment proofs could not be loaded.
+                  </div>
+                } @else if (manualProofs().length === 0) {
+                  <div class="pm-empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <span>No {{ statusLabel(manualStatus()) | lowercase }} payment proofs</span>
+                  </div>
+                } @else {
+                  @for (proof of manualProofs(); track proof.id) {
+                    <article class="pm-proof-row">
+                      <button type="button" class="pm-proof-thumb" (click)="openProof(proof)" title="Open payment proof">
+                        <i class="fas" [ngClass]="proofIconClass(proof)"></i>
+                        <span>{{ proofKindLabel(proof) }}</span>
+                      </button>
+
+                      <div class="pm-proof-main">
+                        <div class="pm-proof-title-row">
+                          <strong>{{ proof.planName || proof.planKey || 'Selected plan' }}</strong>
+                          <span class="pm-proof-status" [attr.data-status]="proof.status">{{ statusLabel(proof.status) }}</span>
+                        </div>
+                        <div class="pm-proof-user">{{ proof.userName || 'Unknown user' }} &middot; {{ proof.userEmail || 'No email' }}</div>
+                        <div class="pm-proof-meta">
+                          <span>{{ formatMoney(proof) }}</span>
+                          <span>{{ proof.createdAt | date:'medium' }}</span>
+                          <span>{{ proof.providerOrderId }}</span>
+                          @if (proof.paymentReference) {
+                            <span class="pm-proof-reference">Ref: {{ proof.paymentReference }}</span>
+                          }
+                          @if (proof.referralCode) {
+                            <span class="pm-proof-referral">Referral: {{ proof.referralCode }}</span>
+                          }
+                        </div>
+                      </div>
+
+                      <div class="pm-proof-actions">
+                        <button type="button" class="pm-icon-btn" title="View proof" (click)="openProof(proof)">
+                          <i class="fas fa-up-right-and-down-left-from-center"></i>
+                        </button>
+                        @if (proof.status === 'pending') {
+                          <button
+                            type="button"
+                            class="pm-action-btn pm-action-btn--approve"
+                            (click)="approveProof(proof)"
+                            [disabled]="isProofActionBusy(proof)">
+                            <i class="fas" [class.fa-check]="!isProofActionBusy(proof)" [class.fa-spinner]="isProofActionBusy(proof)" [class.fa-spin]="isProofActionBusy(proof)"></i>
+                            Activate
+                          </button>
+                        }
+                      </div>
+                    </article>
+                  }
+                }
+              </div>
+
+              <div class="pm-pagination" *ngIf="manualTotal() > 0">
+                <span>Showing {{ manualRangeLabel() }}</span>
+                <div class="pm-pagination-actions">
+                  <button
+                    type="button"
+                    class="pm-icon-btn"
+                    title="Previous 50"
+                    (click)="previousManualPage()"
+                    [disabled]="!canPreviousManualPage()">
+                    <i class="fas fa-chevron-left"></i>
+                  </button>
+                  <span>Page {{ manualPage() }} / {{ manualPageCount() }}</span>
+                  <button
+                    type="button"
+                    class="pm-icon-btn"
+                    title="Next 50"
+                    (click)="nextManualPage()"
+                    [disabled]="!canNextManualPage()">
+                    <i class="fas fa-chevron-right"></i>
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section class="pm-card pm-sms-card" hidden>
+              <div class="pm-card-header pm-proof-header">
+                <div class="pm-card-icon pm-card-icon--emerald">
+                  <i class="fas fa-message"></i>
+                </div>
+                <div>
+                  <div class="pm-card-title">Merchant SMS Receipts</div>
+                  <div class="pm-card-subtitle">Messages forwarded by your private Android relay, newest first</div>
+                </div>
+                <button class="btn btn-soft btn-sm" type="button" (click)="loadManualPaymentSmsReceipts()" [disabled]="manualSmsLoading()">
+                  <i class="fas fa-sync" [class.fa-spin]="manualSmsLoading()"></i>
+                  Refresh
+                </button>
+              </div>
+
+              <div class="pm-sms-list">
+                @if (manualSmsLoading()) {
+                  <div class="pm-loading-state pm-proof-loading" role="status">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Loading payment SMS receipts...</span>
+                  </div>
+                } @else if (manualSmsError()) {
+                  <div class="pm-error-banner">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    Payment SMS receipts could not be loaded.
+                  </div>
+                } @else if (manualSmsReceipts().length === 0) {
+                  <div class="pm-empty-state">
+                    <i class="fas fa-mobile-screen"></i>
+                    <span>No SMS received from the relay yet</span>
+                  </div>
+                } @else {
+                  @for (receipt of manualSmsReceipts(); track receipt.id) {
+                    <article class="pm-sms-row">
+                      <div class="pm-sms-row-head">
+                        <strong>{{ receipt.sender || 'Unknown sender' }}</strong>
+                        <span class="pm-proof-status" data-status="approved">Received</span>
+                      </div>
+                      <div class="pm-sms-message">{{ receipt.message }}</div>
+                      <div class="pm-proof-meta">
+                        <span class="pm-sms-amount">{{ formatSmsAmount(receipt) }}</span>
+                        <span>{{ receipt.receivedAt | date:'medium' }}</span>
+                        @if (receipt.reference) {
+                          <span class="pm-proof-reference">Ref: {{ receipt.reference }}</span>
+                        }
+                      </div>
+                    </article>
+                  }
+                }
+              </div>
+
+              <div class="pm-pagination" *ngIf="manualSmsTotal() > 0">
+                <span>Showing {{ manualSmsRangeLabel() }}</span>
+                <div class="pm-pagination-actions">
+                  <button
+                    type="button"
+                    class="pm-icon-btn"
+                    title="Previous 50"
+                    (click)="previousManualSmsPage()"
+                    [disabled]="!canPreviousManualSmsPage()">
+                    <i class="fas fa-chevron-left"></i>
+                  </button>
+                  <span>Page {{ manualSmsPage() }} / {{ manualSmsPageCount() }}</span>
+                  <button
+                    type="button"
+                    class="pm-icon-btn"
+                    title="Next 50"
+                    (click)="nextManualSmsPage()"
+                    [disabled]="!canNextManualSmsPage()">
+                    <i class="fas fa-chevron-right"></i>
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
+        } @else {
+          <section class="pm-card pm-referral-card">
+            <div class="pm-card-header pm-proof-header">
+              <div class="pm-card-icon pm-card-icon--emerald">
+                <i class="fas fa-user-tag"></i>
+              </div>
+              <div>
+                <div class="pm-card-title">Referral Code Users</div>
+                <div class="pm-card-subtitle">Assign marketer codes and track signups plus approved manual payments</div>
+              </div>
+              <button class="btn btn-soft btn-sm" type="button" (click)="openReferralForm()" [disabled]="isBusy()">
+                <i class="fas fa-plus"></i>
+                Add Referral User
+              </button>
+              <button class="btn btn-soft btn-sm" type="button" (click)="loadManualReferralUsers()" [disabled]="referralUsersLoading()">
+                <i class="fas fa-sync" [class.fa-spin]="referralUsersLoading()"></i>
+                Refresh
+              </button>
+            </div>
+
+            @if (showReferralForm()) {
+              <div class="pm-referral-form">
+                <div class="pm-referral-search">
+                  <label class="pm-field">
+                    <span class="pm-label">Find current user</span>
+                    <input
+                      class="pm-input"
+                      type="search"
+                      placeholder="Search name or email"
+                      [value]="referralUserSearch()"
+                      (input)="onReferralUserSearchInput($event)">
+                  </label>
+                  <button type="button" class="pm-action-btn" (click)="loadReferralUserOptions()" [disabled]="referralUserOptionsLoading()">
+                    <i class="fas" [class.fa-search]="!referralUserOptionsLoading()" [class.fa-spinner]="referralUserOptionsLoading()" [class.fa-spin]="referralUserOptionsLoading()"></i>
+                    Search
+                  </button>
+                </div>
+
+                <div class="pm-referral-form-grid">
+                  <label class="pm-field">
+                    <span class="pm-label">User / marketer</span>
+                    <select class="pm-input" [ngModel]="selectedReferralUserId()" (ngModelChange)="selectedReferralUserId.set($event)">
+                      <option value="">Select user</option>
+                      @for (user of referralUserOptions(); track user.id) {
+                        <option [value]="user.id">{{ user.displayName || user.username || user.email }} · {{ user.email }}</option>
+                      }
+                    </select>
+                  </label>
+
+                  <label class="pm-field">
+                    <span class="pm-label">Referral code</span>
+                    <input
+                      class="pm-input"
+                      type="text"
+                      maxlength="40"
+                      placeholder="UMER-01"
+                      [ngModel]="referralCodeInput()"
+                      (ngModelChange)="referralCodeInput.set($event)">
+                  </label>
+                </div>
+
+                <div class="pm-modal-actions">
+                  <button type="button" class="pm-action-btn" (click)="closeReferralForm()" [disabled]="referralSaving()">Cancel</button>
+                  <button type="button" class="pm-action-btn pm-action-btn--approve" (click)="saveReferralUser()" [disabled]="referralSaving()">
+                    <i class="fas" [class.fa-check]="!referralSaving()" [class.fa-spinner]="referralSaving()" [class.fa-spin]="referralSaving()"></i>
+                    Save Referral User
+                  </button>
+                </div>
+              </div>
+            }
+
+            <div class="pm-referral-grid">
+              @if (referralUsersLoading()) {
+                <div class="pm-loading-state pm-proof-loading" role="status">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <span>Loading referral code users...</span>
+                </div>
+              } @else if (referralUsersError()) {
+                <div class="pm-error-banner">
+                  <i class="fas fa-triangle-exclamation"></i>
+                  Referral code users could not be loaded.
+                </div>
+              } @else if (referralUsers().length === 0) {
+                <div class="pm-empty-state">
+                  <i class="fas fa-user-tag"></i>
+                  <span>No referral code users yet</span>
+                </div>
+              } @else {
+                <div class="pm-referral-table-wrap">
+                  <table class="pm-referral-table">
+                    <thead>
+                      <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Referral Code</th>
+                        <th>Users</th>
+                        <th>Approved</th>
+                        <th>Total</th>
+                        <th>Last Email</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of referralUsers(); track row.userId) {
+                        <tr>
+                          <td>{{ row.userName }}</td>
+                          <td>{{ row.userEmail }}</td>
+                          <td><span class="pm-code-pill">{{ row.referralCode }}</span></td>
+                          <td>{{ row.signupCount }}</td>
+                          <td>{{ row.approvedPaymentCount }}</td>
+                          <td>{{ formatReferralAmount(row) }}</td>
+                          <td>{{ row.lastEmailSentAt ? (row.lastEmailSentAt | date:'medium') : 'Not sent' }}</td>
+                          <td>
+                            <button
+                              type="button"
+                              class="pm-action-btn"
+                              (click)="sendReferralCodeEmail(row)"
+                              [disabled]="isReferralActionBusy(row)">
+                              <i class="fas" [class.fa-envelope]="!isReferralActionBusy(row)" [class.fa-spinner]="isReferralActionBusy(row)" [class.fa-spin]="isReferralActionBusy(row)"></i>
+                              Send Email
+                            </button>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+
+            <div class="pm-pagination" *ngIf="referralTotal() > 0">
+              <span>Showing {{ referralRangeLabel() }}</span>
+              <div class="pm-pagination-actions">
+                <button
+                  type="button"
+                  class="pm-icon-btn"
+                  title="Previous 50"
+                  (click)="previousReferralPage()"
+                  [disabled]="!canPreviousReferralPage()">
+                  <i class="fas fa-chevron-left"></i>
+                </button>
+                <span>Page {{ referralPage() }} / {{ referralPageCount() }}</span>
+                <button
+                  type="button"
+                  class="pm-icon-btn"
+                  title="Next 50"
+                  (click)="nextReferralPage()"
+                  [disabled]="!canNextReferralPage()">
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          </section>
+        }
   </div>
+
+  @if (selectedProof() || selectedReviewReceipt()) {
+    <div class="pm-modal-backdrop" (click)="closeProof()">
+      <section class="pm-proof-modal" role="dialog" aria-modal="true" aria-label="Payment proof" (click)="$event.stopPropagation()">
+        <header class="pm-modal-header">
+          <div>
+            <div class="pm-card-title">{{ selectedProof()?.planName || selectedProof()?.planKey || selectedReviewReceipt()?.sender || 'Payment details' }}</div>
+            <div class="pm-card-subtitle">{{ selectedProof()?.userEmail || selectedProof()?.userName || (selectedReviewReceipt() ? 'Merchant SMS receipt' : 'Payment proof') }}</div>
+          </div>
+          <button type="button" class="pm-icon-btn" title="Close proof" (click)="closeProof()" [disabled]="!!manualActionId()">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </header>
+
+        <div class="pm-modal-body">
+          <div class="pm-modal-image">
+            @if (selectedProof(); as proof) {
+              @if (selectedProofLoading()) {
+                <div class="pm-empty-state">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <span>{{ proof.proofImageKey ? 'Downloading screenshot from R2...' : 'Loading payment proof...' }}</span>
+                </div>
+              } @else if (proof.proofImageUrl) {
+                <img [src]="proof.proofImageUrl" [alt]="proof.proofFileName || 'Payment screenshot'">
+              } @else if (proof.paymentReference) {
+                <div class="pm-reference-proof">
+                  <i class="fas fa-hashtag"></i>
+                  <span>Reference</span>
+                  <strong>{{ proof.paymentReference }}</strong>
+                </div>
+              } @else {
+                <div class="pm-empty-state">
+                  <i class="fas fa-receipt"></i>
+                  <span>No screenshot or reference available</span>
+                </div>
+              }
+            } @else {
+              <div class="pm-empty-state">
+                <i class="fas fa-image"></i>
+                <span>No payment proof paired with this SMS</span>
+              </div>
+            }
+          </div>
+
+          <aside class="pm-modal-details">
+            @if (selectedReviewReceipt(); as receipt) {
+              <div class="pm-sms-detail-panel">
+                <div class="pm-sms-detail-head">
+                  <div>
+                    <span>Merchant SMS</span>
+                    <strong>{{ receipt.sender || 'Unknown sender' }}</strong>
+                  </div>
+                  <span class="pm-proof-status" [attr.data-status]="receipt.status === 'approved' ? 'approved' : 'pending'">{{ receipt.status === 'approved' ? 'Approved' : 'Pending' }}</span>
+                </div>
+                <div class="pm-sms-detail-message">{{ receipt.message }}</div>
+                <div class="pm-proof-meta">
+                  <span class="pm-sms-amount">{{ formatSmsAmount(receipt) }}</span>
+                  <span>{{ receipt.receivedAt | date:'medium' }}</span>
+                  @if (receipt.reference) { <span class="pm-proof-reference">Ref: {{ receipt.reference }}</span> }
+                </div>
+              </div>
+            }
+
+            @if (selectedProof(); as proof) {
+            <div class="pm-detail-row">
+              <span>User</span>
+              <strong>{{ proof.userName || 'Unknown user' }}</strong>
+            </div>
+            <div class="pm-detail-row">
+              <span>Email</span>
+              <strong>{{ proof.userEmail || 'No email' }}</strong>
+            </div>
+            <div class="pm-detail-row">
+              <span>Plan</span>
+              <strong>{{ proof.planName || proof.planKey || 'Selected plan' }}</strong>
+            </div>
+            <div class="pm-detail-row">
+              <span>Amount</span>
+              <strong>{{ formatMoney(proof) }}</strong>
+            </div>
+            <div class="pm-detail-row" *ngIf="proof.paymentReference">
+              <span>Reference</span>
+              <strong>{{ proof.paymentReference }}</strong>
+            </div>
+            <div class="pm-detail-row" *ngIf="proof.referralCode">
+              <span>Referral Code</span>
+              <strong>{{ proof.referralCode }}</strong>
+            </div>
+            <div class="pm-detail-row">
+              <span>Submitted</span>
+              <strong>{{ proof.createdAt | date:'medium' }}</strong>
+            </div>
+            <div class="pm-detail-row">
+              <span>Status</span>
+              <strong>{{ statusLabel(proof.status) }}</strong>
+            </div>
+
+            @if (proof.status === 'pending') {
+              <label class="pm-field">
+                <span class="pm-label">Reject note</span>
+                <textarea
+                  class="pm-textarea"
+                  rows="4"
+                  [ngModel]="rejectReason()"
+                  (ngModelChange)="rejectReason.set($event)"
+                  placeholder="Optional reason shown in admin history"></textarea>
+              </label>
+
+              <div class="pm-modal-actions">
+                <button
+                  type="button"
+                  class="pm-action-btn pm-action-btn--reject"
+                  (click)="rejectProof(proof)"
+                  [disabled]="isProofActionBusy(proof)">
+                  <i class="fas fa-xmark"></i>
+                  Reject
+                </button>
+                <button
+                  type="button"
+                  class="pm-action-btn pm-action-btn--approve"
+                  (click)="approveProof(proof)"
+                  [disabled]="isProofActionBusy(proof)">
+                  <i class="fas" [class.fa-check]="!isProofActionBusy(proof)" [class.fa-spinner]="isProofActionBusy(proof)" [class.fa-spin]="isProofActionBusy(proof)"></i>
+                  Activate Plan
+                </button>
+              </div>
+            } @else if (proof.rejectionReason) {
+              <div class="pm-rejection-note">
+                <span>Reject note</span>
+                <strong>{{ proof.rejectionReason }}</strong>
+              </div>
+            }
+            }
+          </aside>
+        </div>
+      </section>
+    </div>
+  }
 </div>

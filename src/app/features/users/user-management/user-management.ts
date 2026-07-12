@@ -1,8 +1,9 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   AdminCreateContentProfileRequest,
+  AdminQuotaDto,
   AdminPlanDto,
   AdminService,
   UserManagementDto,
@@ -46,7 +47,7 @@ export class UserManagementComponent implements OnInit {
   readonly authStore = inject(AuthStore);
   public readonly Rights = Rights;
   
-  activeTab = signal<'users' | 'orgs' | 'roles'>('users');
+  activeTab = signal<'users' | 'orgs' | 'roles' | 'quotas'>('users');
   Math = Math;
   users = signal<UserManagementDto[]>([]);
   
@@ -57,6 +58,7 @@ export class UserManagementComponent implements OnInit {
   currentPage = signal(1);
   pageSize = signal(10);
   totalItems = signal(0);
+  totalDatabaseUsers = signal(0);
   private searchTimeout: any;
 
   onSearchChange(value: string) {
@@ -90,6 +92,9 @@ export class UserManagementComponent implements OnInit {
   roles = signal<RoleDto[]>([]);
   availableRights = signal<RightDto[]>([]);
   organizations = signal<OrganizationDto[]>([]);
+  activeOrganizationCount = computed(() =>
+    this.organizations().filter(organization => organization.isActive !== false).length
+  );
   loading = signal(false);
   loadingLookups = signal(false);
   private lookupsLoaded = false;
@@ -107,6 +112,9 @@ export class UserManagementComponent implements OnInit {
   totalJobs = signal(0);
 
   editingUser = signal<UserManagementDto | null>(null);
+  quotaOnlyEditor = signal(false);
+  userQuotaRows = signal<AdminQuotaDto[]>([]);
+  userQuotaLoading = signal(false);
   userProcessingOptions = signal<any>(null);
   readonly roleQuotaDefinitions: DailyQuotaDefinition[] = [
     {
@@ -176,19 +184,26 @@ export class UserManagementComponent implements OnInit {
   });
   savingOrganization = signal(false);
 
-  setTab(tab: 'users' | 'orgs' | 'roles') {
+  setTab(tab: 'users' | 'orgs' | 'roles' | 'quotas') {
     if (this.authStore.isTenantAdmin() && tab !== 'users') {
       this.activeTab.set('users');
       return;
     }
 
+    const tabChanged = this.activeTab() !== tab;
     this.activeTab.set(tab);
+    if (tabChanged) {
+      this.currentPage.set(1);
+    }
+    if (tab === 'quotas') {
+      this.selectedStatusFilter.set('');
+    }
     if (tab === 'roles' && this.availableRights().length === 0) {
       this.loadRolesAndRights();
     }
   }
 
-  navigateTab(tab: 'users' | 'orgs' | 'roles') {
+  navigateTab(tab: 'users' | 'orgs' | 'roles' | 'quotas') {
     if (this.authStore.isTenantAdmin() && tab !== 'users') return;
 
     this.router.navigate([], {
@@ -200,14 +215,15 @@ export class UserManagementComponent implements OnInit {
 
   ngOnInit() {
     this.loadLookups();
-    this.loadData();
+    this.loadDatabaseTotals();
     this.route.queryParams.subscribe(params => {
       const tab = params['tab'];
-      if (tab === 'users' || tab === 'roles' || tab === 'orgs') {
+      if (tab === 'users' || tab === 'roles' || tab === 'orgs' || tab === 'quotas') {
         this.setTab(tab);
       } else {
         this.setTab('users');
       }
+      this.loadData();
     });
   }
 
@@ -215,8 +231,8 @@ export class UserManagementComponent implements OnInit {
     this.loading.set(true);
     
     let isActive: boolean | undefined = undefined;
-    if (this.selectedStatusFilter() === 'active') isActive = true;
-    if (this.selectedStatusFilter() === 'inactive') isActive = false;
+    if (this.activeTab() === 'users' && this.selectedStatusFilter() === 'active') isActive = true;
+    if (this.activeTab() === 'users' && this.selectedStatusFilter() === 'inactive') isActive = false;
 
     // Load Users
     this.adminService.getUsers({
@@ -249,7 +265,22 @@ export class UserManagementComponent implements OnInit {
 
   refreshAll() {
     this.loadLookups(true);
+    this.loadDatabaseTotals();
     this.loadData();
+  }
+
+  private loadDatabaseTotals() {
+    this.adminService.getUsers({
+      pageNumber: 1,
+      pageSize: 1,
+      includeQuotaSummary: this.activeTab() === 'quotas'
+    }).subscribe({
+      next: result => this.totalDatabaseUsers.set(result.totalCount ?? result.items?.length ?? 0),
+      error: err => {
+        console.error('Failed to load user-management totals', err);
+        this.totalDatabaseUsers.set(0);
+      }
+    });
   }
 
   loadLookups(force = false) {
@@ -328,6 +359,7 @@ export class UserManagementComponent implements OnInit {
     ref.onClose.subscribe((created) => {
       if (created) {
         this.currentPage.set(1);
+        this.loadDatabaseTotals();
         this.loadData();
       }
     });
@@ -540,9 +572,17 @@ export class UserManagementComponent implements OnInit {
     }, {});
   }
 
-  editUserProcessingSettings(user: UserManagementDto) {
+  editUserProcessingSettings(user: UserManagementDto, quotaOnly = false) {
     this.editingUser.set(user);
+    this.quotaOnlyEditor.set(quotaOnly);
+    this.userQuotaRows.set([]);
+    this.userQuotaLoading.set(true);
     this.userQuotaOverrides.set(this.emptyDailyQuotaOverrides());
+    if (quotaOnly) {
+      this.userProcessingOptions.set({});
+    }
+
+    if (!quotaOnly) {
     this.adminService.getUserProcessingOptions(user.id).subscribe({
       next: (options) => {
         if (options && Object.keys(options).length > 0) {
@@ -589,17 +629,26 @@ export class UserManagementComponent implements OnInit {
         });
       }
     });
+    }
 
     this.adminService.getUserQuotaOverview(user.id).subscribe({
       next: (overview) => {
         const overrides = this.emptyDailyQuotaOverrides();
+        const quotaRows = overview?.quotas ?? overview?.quotaSummary ?? [];
+        this.userQuotaRows.set(quotaRows);
+        this.userQuotaLoading.set(false);
         this.roleQuotaDefinitions.forEach(quota => {
+          overrides[quota.key] = this.findQuotaLimit(overview?.quotaOverrides, quota.key);
+        });
+        quotaRows.forEach(quota => {
           overrides[quota.key] = this.findQuotaLimit(overview?.quotaOverrides, quota.key);
         });
         this.userQuotaOverrides.set(overrides);
       },
       error: (err) => {
         console.error('Failed to load user quota overview', err);
+        this.userQuotaRows.set([]);
+        this.userQuotaLoading.set(false);
         this.userQuotaOverrides.set(this.emptyDailyQuotaOverrides());
       }
     });
@@ -609,20 +658,33 @@ export class UserManagementComponent implements OnInit {
     const user = this.editingUser();
     if (!user || !this.userProcessingOptions()) return;
 
-    const updates = [this.adminService.updateUserProcessingOptions(user.id, this.userProcessingOptions())];
-    this.roleQuotaDefinitions.forEach(quota => {
-      const overrideLimit = this.userQuotaOverrides()[quota.key];
+    const updates: Observable<unknown>[] = [];
+    if (!this.quotaOnlyEditor()) {
+      updates.push(this.adminService.updateUserProcessingOptions(user.id, this.userProcessingOptions()));
+    }
+    const quotaKeys = this.quotaOnlyEditor()
+      ? this.userQuotaRows().map(quota => quota.key)
+      : this.roleQuotaDefinitions.map(quota => quota.key);
+    quotaKeys.forEach(quotaKey => {
+      const overrideLimit = this.userQuotaOverrides()[quotaKey];
       if (overrideLimit !== null && overrideLimit !== undefined) {
-        updates.push(this.adminService.updateUserQuota(user.id, quota.key, overrideLimit));
+        updates.push(this.adminService.updateUserQuota(user.id, quotaKey, overrideLimit));
       }
     });
 
+    if (updates.length === 0) {
+      this.toast.show('Enter at least one quota override to save.', 'info');
+      return;
+    }
+
     forkJoin(updates).subscribe({
       next: () => {
-        this.toast.success('User defaults updated successfully.');
+        this.toast.success(this.quotaOnlyEditor() ? 'User quota updated successfully.' : 'User defaults updated successfully.');
         this.editingUser.set(null);
+        this.quotaOnlyEditor.set(false);
         this.userProcessingOptions.set(null);
         this.userQuotaOverrides.set(this.emptyDailyQuotaOverrides());
+        if (this.activeTab() === 'quotas') this.loadData();
       },
       error: (err) => {
         console.error('Failed to update user processing options', err);
