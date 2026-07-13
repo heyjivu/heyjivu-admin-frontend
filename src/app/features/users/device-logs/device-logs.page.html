@@ -1,0 +1,171 @@
+<div class="screen device-logs-screen">
+  <div class="screen-header screen-header-compact">
+    <div class="flex justify-content-between align-items-center px-4 py-3 screen-title-row">
+      <div class="flex align-items-center gap-3">
+        <i class="fas fa-desktop text-indigo-400 page-icon"></i>
+        <div>
+          <div class="screen-title">Device logs</div>
+          <div class="screen-sub">Successful user sign-ins by web, mobile, and desktop</div>
+        </div>
+      </div>
+      <button class="btn btn-soft btn-sm" type="button" (click)="loadUsers()">
+        <i class="fas fa-sync" [class.fa-spin]="loading()"></i>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="screen-container">
+    <div class="table-controls">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input
+          class="glass-input"
+          type="search"
+          placeholder="Search user name or email..."
+          [ngModel]="searchQuery()"
+          (ngModelChange)="onSearchChange($event)"
+        />
+      </div>
+      <div class="result-count">{{ totalItems() }} users</div>
+    </div>
+
+    <div class="table-container glass-card device-table-container">
+      <table class="admin-table device-table">
+        <thead>
+          <tr>
+            <th>User name</th>
+            <th>Email</th>
+            <th>Web</th>
+            <th>Mobile</th>
+            <th>Desktop</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading()">
+            <td colspan="5" class="table-state"><i class="fas fa-spinner fa-spin"></i> Loading device logs...</td>
+          </tr>
+          <tr *ngIf="!loading() && users().length === 0">
+            <td colspan="5" class="table-state">No users match this search.</td>
+          </tr>
+          <tr *ngFor="let user of users()">
+            <td>
+              <div class="user-name-cell">
+                <span class="avatar">{{ user.userName.charAt(0).toUpperCase() }}</span>
+                <strong>{{ user.userName }}</strong>
+              </div>
+            </td>
+            <td class="email-cell">{{ user.email }}</td>
+            <td>
+              <div class="count-action">
+                <span>{{ user.webLogins }}</span>
+                <button
+                  class="icon-btn"
+                  type="button"
+                  title="View web login history"
+                  aria-label="View web login history"
+                  [disabled]="user.webLogins === 0"
+                  (click)="openHistory(user, 'web')"
+                ><i class="fas fa-eye"></i></button>
+              </div>
+            </td>
+            <td>
+              <div class="count-action">
+                <span>{{ user.mobileLogins }}</span>
+                <button
+                  class="icon-btn"
+                  type="button"
+                  title="View mobile login history"
+                  aria-label="View mobile login history"
+                  [disabled]="user.mobileLogins === 0"
+                  (click)="openHistory(user, 'mobile')"
+                ><i class="fas fa-eye"></i></button>
+              </div>
+            </td>
+            <td>
+              <div class="count-action">
+                <span>{{ user.desktopLogins }}</span>
+                <button
+                  class="icon-btn"
+                  type="button"
+                  title="View desktop login history"
+                  aria-label="View desktop login history"
+                  [disabled]="user.desktopLogins === 0"
+                  (click)="openHistory(user, 'desktop')"
+                ><i class="fas fa-eye"></i></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination glass-card">
+      <div class="pagination-info">
+        Showing <strong>{{ pageStart() }}-{{ pageEnd() }}</strong> of <strong>{{ totalItems() }}</strong> users
+      </div>
+      <div class="pagination-controls">
+        <button class="page-btn" type="button" title="Previous page" [disabled]="currentPage() === 1" (click)="previousPage()">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="page-btn active" type="button">{{ currentPage() }}</button>
+        <button class="page-btn" type="button" title="Next page" [disabled]="currentPage() * pageSize >= totalItems()" (click)="nextPage()">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="history-backdrop" *ngIf="historySelection() as selection" (click)="closeHistory()">
+  <section class="history-dialog glass-card" role="dialog" aria-modal="true" aria-labelledby="history-title" (click)="$event.stopPropagation()">
+    <header class="history-header">
+      <div>
+        <div class="history-kicker">{{ platformLabel(selection.platform) }} login history</div>
+        <h2 id="history-title">{{ selection.user.userName }}</h2>
+        <p>{{ selection.user.email }} - newest login first</p>
+      </div>
+      <button class="icon-btn" type="button" title="Close" aria-label="Close login history" (click)="closeHistory()">
+        <i class="fas fa-times"></i>
+      </button>
+    </header>
+
+    <div class="history-table-wrap">
+      <table class="admin-table history-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Time</th>
+            <th>IP address</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="historyLoading()">
+            <td colspan="3" class="table-state"><i class="fas fa-spinner fa-spin"></i> Loading history...</td>
+          </tr>
+          <tr *ngIf="!historyLoading() && history().length === 0">
+            <td colspan="3" class="table-state">No login history is available.</td>
+          </tr>
+          <tr *ngFor="let entry of history()">
+            <td>{{ entry.loggedInAt | date:'MMM d, y' }}</td>
+            <td>{{ entry.loggedInAt | date:'h:mm:ss a' }}</td>
+            <td class="ip-cell">{{ entry.ipAddress || 'Not available' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="history-footer">
+      <span>Showing {{ historyStart() }}-{{ historyEnd() }} of {{ historyTotal() }} logins</span>
+      <div class="pagination-controls">
+        <button class="page-btn" type="button" title="Previous history page" [disabled]="historyPage() === 1" (click)="previousHistoryPage()">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="page-btn active" type="button">{{ historyPage() }}</button>
+        <button class="page-btn" type="button" title="Next history page" [disabled]="historyPage() * historyPageSize >= historyTotal()" (click)="nextHistoryPage()">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </footer>
+  </section>
+</div>

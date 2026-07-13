@@ -90,6 +90,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/metrics/pages/audit-report.page').then((m) => m.AuditReportPage),
       },
       {
+        path: 'users/device-logs',
+        canActivate: [authGuard, hasRight(Rights.Admin_Users_View)],
+        loadComponent: () => import('./features/users/device-logs/device-logs.page').then((m) => m.DeviceLogsPage),
+      },
+      {
         path: 'users',
         canActivate: [authGuard, hasRight(Rights.Admin_Users_View)],
         loadComponent: () => import('./features/users/user-management/user-management').then((m) => m.UserManagementComponent),

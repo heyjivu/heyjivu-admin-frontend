@@ -800,57 +800,6 @@
               </button>
             </div>
 
-            @if (showReferralForm()) {
-              <div class="pm-referral-form">
-                <div class="pm-referral-search">
-                  <label class="pm-field">
-                    <span class="pm-label">Find current user</span>
-                    <input
-                      class="pm-input"
-                      type="search"
-                      placeholder="Search name or email"
-                      [value]="referralUserSearch()"
-                      (input)="onReferralUserSearchInput($event)">
-                  </label>
-                  <button type="button" class="pm-action-btn" (click)="loadReferralUserOptions()" [disabled]="referralUserOptionsLoading()">
-                    <i class="fas" [class.fa-search]="!referralUserOptionsLoading()" [class.fa-spinner]="referralUserOptionsLoading()" [class.fa-spin]="referralUserOptionsLoading()"></i>
-                    Search
-                  </button>
-                </div>
-
-                <div class="pm-referral-form-grid">
-                  <label class="pm-field">
-                    <span class="pm-label">User / marketer</span>
-                    <select class="pm-input" [ngModel]="selectedReferralUserId()" (ngModelChange)="selectedReferralUserId.set($event)">
-                      <option value="">Select user</option>
-                      @for (user of referralUserOptions(); track user.id) {
-                        <option [value]="user.id">{{ user.displayName || user.username || user.email }} · {{ user.email }}</option>
-                      }
-                    </select>
-                  </label>
-
-                  <label class="pm-field">
-                    <span class="pm-label">Referral code</span>
-                    <input
-                      class="pm-input"
-                      type="text"
-                      maxlength="40"
-                      placeholder="UMER-01"
-                      [ngModel]="referralCodeInput()"
-                      (ngModelChange)="referralCodeInput.set($event)">
-                  </label>
-                </div>
-
-                <div class="pm-modal-actions">
-                  <button type="button" class="pm-action-btn" (click)="closeReferralForm()" [disabled]="referralSaving()">Cancel</button>
-                  <button type="button" class="pm-action-btn pm-action-btn--approve" (click)="saveReferralUser()" [disabled]="referralSaving()">
-                    <i class="fas" [class.fa-check]="!referralSaving()" [class.fa-spinner]="referralSaving()" [class.fa-spin]="referralSaving()"></i>
-                    Save Referral User
-                  </button>
-                </div>
-              </div>
-            }
-
             <div class="pm-referral-grid">
               @if (referralUsersLoading()) {
                 <div class="pm-loading-state pm-proof-loading" role="status">
@@ -935,6 +884,79 @@
           </section>
         }
   </div>
+
+  @if (showReferralForm()) {
+    <div class="pm-modal-backdrop" (click)="closeReferralForm()">
+      <section
+        class="pm-referral-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="referral-modal-title"
+        (click)="$event.stopPropagation()">
+        <header class="pm-modal-header">
+          <div>
+            <div class="pm-card-title" id="referral-modal-title">Add Referral User</div>
+            <div class="pm-card-subtitle">Assign a referral code to an active user</div>
+          </div>
+          <button
+            type="button"
+            class="pm-icon-btn"
+            title="Close"
+            aria-label="Close referral user dialog"
+            (click)="closeReferralForm()"
+            [disabled]="referralSaving()">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </header>
+
+        <div class="pm-referral-modal__body">
+          <label class="pm-field">
+            <span class="pm-label">Email address</span>
+            <p-select
+              [options]="referralUserOptions()"
+              optionLabel="email"
+              optionValue="id"
+              [filter]="true"
+              filterBy="email"
+              filterPlaceholder="Search email address"
+              emptyFilterMessage="No email address found"
+              placeholder="Select email address"
+              [showClear]="true"
+              [loading]="referralUserOptionsLoading()"
+              [disabled]="referralUserOptionsLoading() || referralSaving()"
+              [ngModel]="selectedReferralUserId()"
+              (ngModelChange)="selectedReferralUserId.set($event || '')"
+              styleClass="pm-referral-email-select">
+            </p-select>
+          </label>
+
+          <label class="pm-field">
+            <span class="pm-label">Referral code</span>
+            <input
+              class="pm-input"
+              type="text"
+              maxlength="40"
+              placeholder="UMER-01"
+              [disabled]="referralSaving()"
+              [ngModel]="referralCodeInput()"
+              (ngModelChange)="referralCodeInput.set($event)">
+          </label>
+        </div>
+
+        <footer class="pm-referral-modal__footer">
+          <button type="button" class="pm-action-btn" (click)="closeReferralForm()" [disabled]="referralSaving()">Cancel</button>
+          <button
+            type="button"
+            class="pm-action-btn pm-action-btn--approve"
+            (click)="saveReferralUser()"
+            [disabled]="referralUserOptionsLoading() || referralSaving() || !selectedReferralUserId() || !referralCodeInput().trim()">
+            <i class="fas" [class.fa-check]="!referralSaving()" [class.fa-spinner]="referralSaving()" [class.fa-spin]="referralSaving()"></i>
+            Save Referral User
+          </button>
+        </footer>
+      </section>
+    </div>
+  }
 
   @if (selectedProof() || selectedReviewReceipt()) {
     <div class="pm-modal-backdrop" (click)="closeProof()">

@@ -58,6 +58,7 @@ export class Sidebar {
 
   readonly allNav: NavItem[] = [
     { label: 'User Management', icon: 'fas fa-users-cog', route: '/admin/users', queryParams: { tab: 'users' }, section: 'users' },
+    { label: 'Device logs', icon: 'fas fa-desktop', route: '/admin/users/device-logs', section: 'users' },
     { label: 'Roles & Rights', icon: 'fas fa-shield-alt', route: '/admin/users', queryParams: { tab: 'roles' }, section: 'users', superAdminOnly: true },
     { label: 'Organizations', icon: 'fas fa-building', route: '/admin/users', queryParams: { tab: 'orgs' }, section: 'users', superAdminOnly: true },
     { label: 'User Quota', icon: 'fas fa-gauge-high', route: '/admin/users', queryParams: { tab: 'quotas' }, section: 'users', superAdminOnly: true },

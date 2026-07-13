@@ -3,6 +3,7 @@ import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angula
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { SelectModule } from 'primeng/select';
 import { catchError, finalize, forkJoin, map, of } from 'rxjs';
 import { ToastService } from '../../core/services/toast.service';
 import {
@@ -24,7 +25,7 @@ type PaymentSection = 'settings' | 'manual' | 'referrals';
 @Component({
   selector: 'app-payment-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, TitleCasePipe],
+  imports: [CommonModule, FormsModule, TitleCasePipe, SelectModule],
   templateUrl: './payment-management.page.html',
   styleUrl: './payment-management.page.scss'
 })
@@ -95,7 +96,6 @@ export class PaymentManagementPage implements OnInit {
   showReferralForm = signal(false);
   referralUserOptions = signal<UserManagementDto[]>([]);
   referralUserOptionsLoading = signal(false);
-  referralUserSearch = signal('');
   selectedReferralUserId = signal('');
   referralCodeInput = signal('');
 
@@ -488,8 +488,7 @@ export class PaymentManagementPage implements OnInit {
     this.referralUserOptionsLoading.set(true);
     this.adminService.getUsers({
       pageNumber: 1,
-      pageSize: 50,
-      searchTerm: this.referralUserSearch().trim(),
+      pageSize: 250,
       isActive: true
     }).pipe(
       finalize(() => {
@@ -505,10 +504,6 @@ export class PaymentManagementPage implements OnInit {
       },
       error: () => this.toast.error('Failed to load users for referral code assignment.')
     });
-  }
-
-  onReferralUserSearchInput(event: Event): void {
-    this.referralUserSearch.set((event.target as HTMLInputElement).value);
   }
 
   saveReferralUser(): void {

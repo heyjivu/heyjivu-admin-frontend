@@ -13,7 +13,7 @@ import {
 } from '../services/admin.service';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../../core/services/toast.service';
-import { forkJoin, Observable } from 'rxjs';
+import { firstValueFrom, forkJoin, Observable } from 'rxjs';
 import { DialogService } from '../../../core/dialogs/dialog.service';
 import { AddUserDialogComponent } from '../dialogs/add-user-dialog/add-user-dialog.component';
 import { AuthStore } from '../../../core/auth/state/auth.store';
@@ -177,6 +177,7 @@ export class UserManagementComponent implements OnInit {
   accountOnboardingError = signal<string | null>(null);
   savingGridChange = signal(false);
   shellBypassUpdating = signal(false);
+  exportingUsers = signal(false);
   organizationDialog = signal<'create' | 'edit' | null>(null);
   organizationForm = signal<{ id?: string; name: string; description: string }>({
     name: '',
@@ -267,6 +268,80 @@ export class UserManagementComponent implements OnInit {
     this.loadLookups(true);
     this.loadDatabaseTotals();
     this.loadData();
+  }
+
+  async exportUsers(): Promise<void> {
+    if (this.exportingUsers()) return;
+
+    this.exportingUsers.set(true);
+    try {
+      let isActive: boolean | undefined;
+      if (this.selectedStatusFilter() === 'active') isActive = true;
+      if (this.selectedStatusFilter() === 'inactive') isActive = false;
+
+      const exportPageSize = 250;
+      const exportedUsers: UserManagementDto[] = [];
+      let pageNumber = 1;
+      let totalCount = 0;
+
+      do {
+        const page = await firstValueFrom(this.adminService.getUsers({
+          pageNumber,
+          pageSize: exportPageSize,
+          searchTerm: this.searchQuery().trim() || undefined,
+          roleId: this.selectedRoleFilter() || undefined,
+          isActive,
+          includeQuotaSummary: false
+        }));
+        const pageItems = page.items ?? [];
+        exportedUsers.push(...pageItems);
+        totalCount = page.totalCount ?? exportedUsers.length;
+        pageNumber += 1;
+        if (pageItems.length === 0) break;
+      } while (exportedUsers.length < totalCount);
+
+      const { downloadXlsx } = await import('./xlsx-export');
+      downloadXlsx(
+        `heyjivu-users-${new Date().toISOString().slice(0, 10)}.xlsx`,
+        'Users',
+        [
+          'User name',
+          'Email',
+          'Username',
+          'Organization',
+          'Role',
+          'Account type',
+          'Plan',
+          'Status',
+          'BYOK processing',
+          'BYOK trend',
+          'BYOK video',
+          'BYOK posts',
+          'Can submit templates'
+        ],
+        exportedUsers.map(user => [
+          user.displayName,
+          user.email,
+          user.username,
+          user.organizationName || 'Individual',
+          this.displayRoleName(user.roleName),
+          this.accountTypeLabel(user.accountType),
+          this.getUserPlanLabel(user),
+          user.isActive ? 'Active' : 'Inactive',
+          user.isByokProcessing ? 'Yes' : 'No',
+          user.isByokTrend ? 'Yes' : 'No',
+          user.isByokVideoGeneration ? 'Yes' : 'No',
+          user.isByokPosts ? 'Yes' : 'No',
+          user.canSubmitTemplates ? 'Yes' : 'No'
+        ])
+      );
+      this.toast.success(`Exported ${exportedUsers.length} users to Excel.`);
+    } catch (error) {
+      console.error('Failed to export users', error);
+      this.toast.error(this.readApiError(error, 'Failed to export users.'));
+    } finally {
+      this.exportingUsers.set(false);
+    }
   }
 
   private loadDatabaseTotals() {

@@ -76,6 +76,25 @@ export interface PagedResult<T> {
   pageSize: number;
 }
 
+export type DeviceLoginPlatform = 'web' | 'mobile' | 'desktop';
+
+export interface DeviceLoginUserSummaryDto {
+  userId: string;
+  userName: string;
+  email: string;
+  webLogins: number;
+  mobileLogins: number;
+  desktopLogins: number;
+}
+
+export interface DeviceLoginHistoryDto {
+  id: string;
+  platform: DeviceLoginPlatform;
+  loggedInAt: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}
+
 export interface PlanQuotaOverviewDto {
   planCode?: string | null;
   planName?: string | null;
@@ -238,6 +257,37 @@ export class AdminService {
       }
     }
     return this.http.get<PagedResult<UserManagementDto>>(this.apiUrl, { params: httpParams });
+  }
+
+  getDeviceLoginUsers(params: {
+    pageNumber: number;
+    pageSize: number;
+    searchTerm?: string;
+  }): Observable<PagedResult<DeviceLoginUserSummaryDto>> {
+    let httpParams = new HttpParams()
+      .set('PageNumber', String(params.pageNumber))
+      .set('PageSize', String(params.pageSize));
+    if (params.searchTerm) httpParams = httpParams.set('SearchTerm', params.searchTerm);
+
+    return this.http.get<PagedResult<DeviceLoginUserSummaryDto>>(`${this.apiUrl}/device-logs`, { params: httpParams });
+  }
+
+  getDeviceLoginHistory(
+    userId: string,
+    platform: DeviceLoginPlatform,
+    pageNumber: number,
+    pageSize: number
+  ): Observable<PagedResult<DeviceLoginHistoryDto>> {
+    const httpParams = new HttpParams()
+      .set('PageNumber', String(pageNumber))
+      .set('PageSize', String(pageSize));
+    const encodedUser = encodeURIComponent(userId);
+    const encodedPlatform = encodeURIComponent(platform);
+
+    return this.http.get<PagedResult<DeviceLoginHistoryDto>>(
+      `${this.apiUrl}/device-logs/${encodedUser}/${encodedPlatform}`,
+      { params: httpParams }
+    );
   }
 
   getRoles(): Observable<RoleDto[]> {

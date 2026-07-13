@@ -692,6 +692,112 @@
   }
 }
 
+.studio-category-controls {
+  display: grid;
+  gap: 8px;
+}
+
+.soundtrack-folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+.soundtrack-folder {
+  min-height: 74px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--border-subtle);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--accent-alpha-35);
+    background: var(--accent-alpha-08);
+    outline: 0;
+  }
+}
+
+.soundtrack-folder__icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--accent);
+  background: var(--accent-alpha-12);
+}
+
+.soundtrack-folder__copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+
+  strong,
+  small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  strong {
+    font-size: 13px;
+  }
+
+  small {
+    color: var(--text3);
+    font-size: 11.5px;
+  }
+}
+
+.soundtrack-folder__chevron {
+  color: var(--text3);
+  font-size: 11px;
+}
+
+.soundtrack-folder-empty {
+  grid-column: 1 / -1;
+}
+
+.soundtrack-category-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+
+  > div {
+    min-width: 0;
+    display: grid;
+    justify-items: end;
+    gap: 2px;
+  }
+
+  strong {
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  span {
+    color: var(--text3);
+    font-size: 11.5px;
+  }
+}
+
+.soundtrack-inline-player {
+  width: min(260px, 100%);
+  height: 34px;
+  color-scheme: dark;
+}
+
 @media (max-width: 1160px) {
   .studio-toolbar {
     grid-template-columns: 1fr;
@@ -715,5 +821,14 @@
 
   .studio-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .soundtrack-category-heading {
+    align-items: flex-start;
+    flex-direction: column;
+
+    > div {
+      justify-items: start;
+    }
   }
 }

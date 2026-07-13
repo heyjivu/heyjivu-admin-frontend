@@ -266,6 +266,39 @@
         </div>
       }
 
+      @if (!selectedSoundtrackCategory()) {
+        <div class="soundtrack-folder-grid" aria-label="Soundtrack categories">
+          @for (folder of soundtrackCategoryFolders(); track folder.name) {
+            <button
+              class="soundtrack-folder"
+              type="button"
+              (click)="openSoundtrackCategory(folder.name)">
+              <span class="soundtrack-folder__icon"><i class="fas fa-folder"></i></span>
+              <span class="soundtrack-folder__copy">
+                <strong>{{ folder.name }}</strong>
+                <small>{{ folder.count }} {{ folder.count === 1 ? 'song' : 'songs' }}</small>
+              </span>
+              <i class="fas fa-chevron-right soundtrack-folder__chevron"></i>
+            </button>
+          } @empty {
+            <div class="studio-empty soundtrack-folder-empty">
+              <i class="fas fa-folder-open"></i>
+              <span>{{ loadingSoundtracks() ? 'Loading soundtrack categories...' : 'No soundtrack categories found.' }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+      <div class="soundtrack-category-heading">
+        <button class="btn btn-soft btn-sm" type="button" (click)="closeSoundtrackCategory()">
+          <i class="fas fa-arrow-left"></i>
+          Back to categories
+        </button>
+        <div>
+          <strong>{{ selectedSoundtrackCategory() }}</strong>
+          <span>{{ visibleSoundtracks().length }} {{ visibleSoundtracks().length === 1 ? 'song' : 'songs' }}</span>
+        </div>
+      </div>
+
       <div class="table-container studio-table-wrap">
         <table class="admin-table studio-table">
           <thead>
@@ -278,7 +311,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (soundtrack of filteredSoundtracks(); track soundtrack.id) {
+            @for (soundtrack of visibleSoundtracks(); track soundtrack.id) {
               <tr>
                 <td>
                   <div class="studio-asset-cell">
@@ -309,6 +342,14 @@
                         / {{ soundtrack.bpm }} BPM
                       }
                     </span>
+                    @if (soundtrack.audioUrl) {
+                      <audio
+                        class="soundtrack-inline-player"
+                        controls
+                        preload="none"
+                        [src]="soundtrack.audioUrl">
+                      </audio>
+                    }
                   </div>
                 </td>
                 <td>
@@ -324,11 +365,6 @@
                 </td>
                 <td>
                   <div class="studio-row-actions">
-                    @if (soundtrack.audioUrl) {
-                      <a class="studio-icon-btn" [href]="soundtrack.audioUrl" target="_blank" rel="noopener" title="Open audio">
-                        <i class="fas fa-play"></i>
-                      </a>
-                    }
                     <button
                       class="studio-icon-btn"
                       type="button"
@@ -365,6 +401,7 @@
           </tbody>
         </table>
       </div>
+      }
     </section>
     }
 
@@ -381,6 +418,7 @@
       [loadingRoles]="loadingRoles()"
       [(itemName)]="formName"
       [category]="formKind === 'template' ? formCategory : formSoundtrackGenre"
+      [categoryOptions]="formKind === 'soundtrack' ? soundtrackCategoryOptions() : []"
       (categoryChange)="setDialogCategory($event)"
       [(isActive)]="formIsActive"
       [(attachmentName)]="formAttachmentName"
