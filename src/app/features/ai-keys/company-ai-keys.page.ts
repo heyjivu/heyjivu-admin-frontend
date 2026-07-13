@@ -88,8 +88,11 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       icon: 'fas fa-comment-dots',
       description: 'Language models for script writing, narration & content generation',
       providers: [
+        { name: 'OpenAI' },
+        { name: 'Gemini' },
         { name: 'DeepSeek' },
-        { name: 'OpenRouter' }
+        { name: 'OpenRouter' },
+        { name: 'Alibaba' }
       ]
     },
     {
@@ -99,7 +102,8 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       description: 'Semantic vectors for memory, recommendations, and similarity search',
       providers: [
         { name: 'OpenAI' },
-        { name: 'Gemini' }
+        { name: 'Gemini' },
+        { name: 'OpenRouter' }
       ]
     },
     {
@@ -109,6 +113,7 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       description: 'Speech-to-text transcription models for audio processing',
       providers: [
         { name: 'Groq' },
+        { name: 'OpenAI' },
         { name: 'OpenRouter' }
       ]
     },
@@ -118,8 +123,12 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       icon: 'fas fa-image',
       description: 'AI engines for thumbnails, graphics, and B-roll visuals',
       providers: [
+        { name: 'Gemini' },
+        { name: 'OpenAI' },
         { name: 'TogetherAI' },
         { name: 'OpenRouter' },
+        { name: 'StabilityAI' },
+        { name: 'Alibaba' },
         { name: 'Modal' }
       ]
     },
@@ -130,7 +139,8 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       description: 'Visual analysis and content understanding models',
       providers: [
         { name: 'Gemini' },
-        { name: 'OpenAI' }
+        { name: 'OpenAI' },
+        { name: 'OpenRouter' }
       ]
     },
     {
@@ -139,8 +149,12 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       icon: 'fas fa-film',
       description: 'AI video generation providers for 5-second clips',
       providers: [
-        { name: 'TogetherAI' },
+        { name: 'Alibaba' },
         { name: 'OpenRouter' },
+        { name: 'Generic' },
+        { name: 'Luma' },
+        { name: 'Kling' },
+        { name: 'Runway' },
         { name: 'Modal' }
       ]
     },
@@ -152,7 +166,12 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       providers: [
         { name: 'TogetherAI' },
         { name: 'OpenRouter' },
+        { name: 'Gemini' },
+        { name: 'OpenAI' },
+        { name: 'Azure' },
         { name: 'ElevenLabs' },
+        { name: 'Cartesia' },
+        { name: 'Alibaba' },
         { name: 'Modal' }
       ]
     },
@@ -174,6 +193,15 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       providers: [
         { name: 'Serper' },
         { name: 'Tavily' }
+      ]
+    },
+    {
+      id: 'Music',
+      name: 'Music Generation',
+      icon: 'fas fa-music',
+      description: 'AI-generated music and background audio',
+      providers: [
+        { name: 'TogetherAI' }
       ]
     }
   ];
@@ -308,7 +336,7 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
   // ── CRUD operations ─────────────────────────────────────────────────
   addKey(setting: CompanyAIKeySettingsDto) {
     const newKey: CompanyAIKeyDto = {
-      id: crypto.randomUUID(),
+      id: `virtual-${crypto.randomUUID()}`,
       key: '',
       isBlocked: false,
       usageCount: 0,
@@ -401,7 +429,7 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
         capabilities: key.capabilities ?? null,
         pricingProfile: key.pricingProfile ?? null
       };
-      setting.apiKeys = [...setting.apiKeys, newKey];
+      setting.apiKeys = setting.apiKeys.map(existing => existing.id === rowId ? newKey : existing);
       keyToSave = newKey;
     } else {
       key.key = key.key?.trim() ?? '';
@@ -670,9 +698,9 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
     this.updateRowState(key.id, { isSaving: true, saveStatus: 'idle', saveMessage: null });
 
     const deploy = (keyId: string) => this.api.deployModalByoc(keyId, {
-      preset: null,
-      gpu: null,
-      model: null
+      preset: draft.preset.trim() || null,
+      gpu: draft.gpu.trim() || null,
+      model: draft.model.trim() || null
     }).pipe(
       takeUntilDestroyed(this.destroyRef)
     ).subscribe({
@@ -697,23 +725,18 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       }
     });
 
-    if (this.hasPendingModalSecrets(draft)) {
-      this.api.upsertModalByoc(this.buildModalRequest(setting, key, draft)).pipe(
-        takeUntilDestroyed(this.destroyRef)
-      ).subscribe({
-        next: (saved) => {
-          this.applyModalResponse(saved);
-          deploy(saved.key.id!);
-        },
-        error: () => {
-          this.updateRowState(key.id, { isSaving: false, saveStatus: 'error', saveMessage: 'Save failed' });
-          this.toast.error('Failed to save Modal BYOC settings.');
-        }
-      });
-      return;
-    }
-
-    deploy(key.id);
+    this.api.upsertModalByoc(this.buildModalRequest(setting, key, draft)).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: (saved) => {
+        this.applyModalResponse(saved);
+        deploy(saved.key.id!);
+      },
+      error: () => {
+        this.updateRowState(key.id, { isSaving: false, saveStatus: 'error', saveMessage: 'Save failed' });
+        this.toast.error('Failed to save Modal BYOC settings.');
+      }
+    });
   }
 
   canValidateModal(key: CompanyAIKeyDto, draft: ModalByocDraft): boolean {
@@ -743,17 +766,17 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       category: setting.type,
       tokenId: draft.tokenId.trim() || null,
       tokenSecret: draft.tokenSecret.trim() || null,
-      preset: null,
-      gpu: null,
-      model: null,
+      preset: draft.preset.trim() || null,
+      gpu: draft.gpu.trim() || null,
+      model: draft.model.trim() || null,
       label: key.customLabel ?? null,
-      huggingFaceToken: null
+      huggingFaceToken: draft.huggingFaceToken.trim() || null
     };
   }
 
   private applyModalResponse(response: ByocActionResponse) {
     this.modalConfigs[response.configuration.aiKeyId] = response.configuration;
-    const settings = this.parseModalSettings(response.configuration.settingsJson);
+    const settings = this.parseModalSettings(response.configuration.settingsJson, response.key.category);
     const draft = this.modalDrafts[response.configuration.aiKeyId] ?? {
       tokenId: '',
       tokenSecret: '',
@@ -773,14 +796,8 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
     this.modalDrafts[response.configuration.aiKeyId] = draft;
   }
 
-  private hasPendingModalSecrets(draft: ModalByocDraft): boolean {
-    return !!draft.tokenId.trim() ||
-      !!draft.tokenSecret.trim() ||
-      !!draft.huggingFaceToken.trim();
-  }
-
-  private parseModalSettings(settingsJson?: string | null): { preset: string; gpu: string; model: string } {
-    const preset = this.defaultModalPreset('VideoGen');
+  private parseModalSettings(settingsJson?: string | null, category = 'VideoGen'): { preset: string; gpu: string; model: string } {
+    const preset = this.defaultModalPreset(category);
     try {
       const settings = settingsJson ? JSON.parse(settingsJson) : {};
       return {
@@ -996,6 +1013,9 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
     if (normalized === 'whisper') {
       return [{ value: 'per_audio_second', label: 'Per audio second' }];
     }
+    if (normalized === 'music') {
+      return [{ value: 'per_audio_second', label: 'Per audio second' }];
+    }
     if (normalized === 'stockmedia' || normalized === 'websearch' || normalized === 'search') {
       return [
         { value: 'per_request', label: 'Per request' },
@@ -1074,7 +1094,8 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
   showAudioSecondPrice(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): boolean {
     const category = this.normalizedCategory(setting.type);
     return (category === 'tts' && this.ensurePricingProfile(key, setting).billingMode === 'per_audio_second') ||
-      category === 'whisper';
+      category === 'whisper' ||
+      category === 'music';
   }
 
   showRequestPrice(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): boolean {
@@ -1159,6 +1180,9 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
     if (category === 'whisper' && !this.hasPositive(profile.audioPricePerSecond)) {
       return 'Whisper pricing needs price per audio second.';
     }
+    if (category === 'music' && !this.hasPositive(profile.audioPricePerSecond)) {
+      return 'Music pricing needs price per audio second.';
+    }
     if ((category === 'websearch' || category === 'search' || category === 'stockmedia') && !this.hasPositive(profile.requestPricePerUnit)) {
       return 'Search and stock pricing needs request or asset price.';
     }
@@ -1205,6 +1229,7 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
     if (normalized === 'videogen') return 'per_video';
     if (normalized === 'tts') return 'per_character';
     if (normalized === 'whisper') return 'per_audio_second';
+    if (normalized === 'music') return 'per_audio_second';
     if (normalized === 'websearch' || normalized === 'search' || normalized === 'stockmedia') return 'per_request';
     return 'tokens';
   }

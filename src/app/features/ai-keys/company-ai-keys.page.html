@@ -278,10 +278,10 @@
                   <i class="fas fa-info"></i>
                 </button>
               </label>
-              <input type="text"
+              <input [type]="getRowState(key.id).showKey ? 'text' : 'password'"
                      class="field-input premium-input"
                      [(ngModel)]="modalDraft.tokenId"
-                     autocomplete="off"
+                     autocomplete="new-password"
                      autocapitalize="none"
                      spellcheck="false"
                      [placeholder]="modalConfigs[key.id]?.credentialsConfigured ? 'Saved - paste only to replace' : 'MODAL_TOKEN_ID'" />
@@ -298,11 +298,13 @@
                 <input [type]="modalDraft.showSecret ? 'text' : 'password'"
                        class="field-input premium-input"
                        [(ngModel)]="modalDraft.tokenSecret"
-                       autocomplete="off"
+                       autocomplete="new-password"
                        autocapitalize="none"
                        spellcheck="false"
                        [placeholder]="modalConfigs[key.id]?.credentialsConfigured ? 'Saved - paste only to replace' : 'MODAL_TOKEN_SECRET'" />
-                <button class="key-eye-btn" type="button" (click)="modalDraft.showSecret = !modalDraft.showSecret; $event.stopPropagation()">
+                <button class="key-eye-btn" type="button"
+                        [attr.aria-label]="modalDraft.showSecret ? 'Hide Modal token secret' : 'Show Modal token secret'"
+                        (click)="modalDraft.showSecret = !modalDraft.showSecret; $event.stopPropagation()">
                   <i class="fas" [ngClass]="modalDraft.showSecret ? 'fa-eye-slash' : 'fa-eye'"></i>
                 </button>
               </div>
@@ -320,11 +322,13 @@
                 <input [type]="modalDraft.showHuggingFaceToken ? 'text' : 'password'"
                        class="field-input premium-input"
                        [(ngModel)]="modalDraft.huggingFaceToken"
-                       autocomplete="off"
+                       autocomplete="new-password"
                        autocapitalize="none"
                        spellcheck="false"
                        [placeholder]="modalConfigs[key.id]?.huggingFaceTokenConfigured ? 'Saved - paste only to replace' : 'hf_...'" />
-                <button class="key-eye-btn" type="button" (click)="modalDraft.showHuggingFaceToken = !modalDraft.showHuggingFaceToken; $event.stopPropagation()">
+                <button class="key-eye-btn" type="button"
+                        [attr.aria-label]="modalDraft.showHuggingFaceToken ? 'Hide Hugging Face token' : 'Show Hugging Face token'"
+                        (click)="modalDraft.showHuggingFaceToken = !modalDraft.showHuggingFaceToken; $event.stopPropagation()">
                   <i class="fas" [ngClass]="modalDraft.showHuggingFaceToken ? 'fa-eye-slash' : 'fa-eye'"></i>
                 </button>
               </div>
@@ -451,7 +455,8 @@
                      autocapitalize="none"
                      spellcheck="false"
                      placeholder="sk-… or your provider API key" />
-              <button class="key-eye-btn" (click)="toggleShowKey(key.id, $event)">
+              <button type="button" class="key-eye-btn" (click)="toggleShowKey(key.id, $event)"
+                      [attr.aria-label]="getRowState(key.id).showKey ? 'Hide API key' : 'Show API key'">
                 <i class="fas" [ngClass]="getRowState(key.id).showKey ? 'fa-eye-slash' : 'fa-eye'"></i>
               </button>
             </div>

@@ -27,7 +27,6 @@ export const environment = {
 
   // ── Encryption ─────────────────────────────────────────────────
   // ← FILL THIS: must match EncryptionKey in appsettings.Staging.json (exactly 32 chars)
-  masterEncryptionKey: '',
 
   // ── Feature Flags ─────────────────────────────────────────────
   enableMockData: false,
