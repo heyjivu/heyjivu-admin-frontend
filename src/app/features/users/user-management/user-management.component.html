@@ -64,6 +64,10 @@
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
+        <button class="btn btn-soft btn-sm" type="button" [disabled]="exportingUsers()" (click)="exportUsers()">
+          <i class="fas" [class.fa-file-excel]="!exportingUsers()" [class.fa-spinner]="exportingUsers()" [class.fa-spin]="exportingUsers()"></i>
+          {{ exportingUsers() ? 'Exporting...' : 'Export Excel' }}
+        </button>
       </div>
     </div>
 
