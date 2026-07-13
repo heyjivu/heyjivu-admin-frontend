@@ -28,9 +28,6 @@ export const environment = {
 
   // ── Encryption ─────────────────────────────────────────────────
   // ← FILL THIS: must match EncryptionKey in appsettings.Production.json (exactly 32 chars)
-  // In production, this should be loaded from Cloudflare Pages environment variables
-  // Set CF_MASTER_ENCRYPTION_KEY in Cloudflare Pages dashboard > Settings > Variables
-  masterEncryptionKey: '',
 
   // ── Feature Flags ─────────────────────────────────────────────
   enableMockData: false,

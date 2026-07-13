@@ -1,4 +1,5 @@
-import { ChangeDetectorRef, Component, afterNextRender, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, afterNextRender, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { DynamicDialogRef } from 'primeng/dynamicdialog';
 import { finalize, timeout } from 'rxjs';
@@ -24,6 +25,7 @@ export interface PipelineGroup {
 export class TestAllCompanyKeysDialogComponent {
   private readonly api = inject(AdminCompanyAIKeysApiService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
   public readonly ref = inject(DynamicDialogRef);
 
   results: PipelineTestResultDto[] = [];
@@ -43,10 +45,11 @@ export class TestAllCompanyKeysDialogComponent {
 
     this.api.testAllKeys()
       .pipe(
-        timeout({ first: 20000 }),
+        timeout({ first: 45000 }),
+        takeUntilDestroyed(this.destroyRef),
         finalize(() => {
           this.isLoading = false;
-          this.cdr.detectChanges();
+          if (!this.destroyRef.destroyed) this.cdr.detectChanges();
         })
       )
       .subscribe({
@@ -73,20 +76,20 @@ export class TestAllCompanyKeysDialogComponent {
 
     this.pipelineGroups = Object.keys(groupsMap).map(name => {
       const groupResults = groupsMap[name];
-      const allPassed = groupResults.every(r => r.success);
-      const allFailed = groupResults.every(r => !r.success);
-      const hasConfiguredOnly = groupResults.some(r => r.success && r.status === 'configured-only');
+      const hasConfiguredOnly = groupResults.some(r => r.status === 'configured-only');
+      const hasHardFailure = groupResults.some(r => !r.success && r.status !== 'configured-only');
+      const hasVerified = groupResults.some(r => r.success);
 
       let status: 'green' | 'yellow' | 'red' = 'red';
       let statusText = 'Not Configured';
 
-      if (allPassed && !hasConfiguredOnly) {
+      if (!hasHardFailure && !hasConfiguredOnly) {
         status = 'green';
         statusText = 'Fully Verified';
-      } else if (allPassed) {
+      } else if (!hasHardFailure && hasConfiguredOnly) {
         status = 'yellow';
-        statusText = 'Configured';
-      } else if (!allFailed) {
+        statusText = 'Configured, Not Verified';
+      } else if (hasVerified || hasConfiguredOnly) {
         status = 'yellow';
         statusText = 'Partially Active';
       }
@@ -106,7 +109,7 @@ export class TestAllCompanyKeysDialogComponent {
   }
 
   get allPassed(): boolean {
-    return this.results.length > 0 && this.results.every(r => r.success);
+    return this.results.length > 0 && this.results.every(r => r.success || r.status === 'configured-only');
   }
 
   get allVerified(): boolean {
@@ -114,7 +117,7 @@ export class TestAllCompanyKeysDialogComponent {
   }
 
   get hasConfiguredOnly(): boolean {
-    return this.results.some(r => r.success && r.status === 'configured-only');
+    return this.results.some(r => r.status === 'configured-only');
   }
 
   get summaryTitle(): string {
@@ -138,8 +141,8 @@ export class TestAllCompanyKeysDialogComponent {
   }
 
   statusClass(res: PipelineTestResultDto): 'passed' | 'warning' | 'failed' {
-    if (!res.success) return 'failed';
     if (res.status === 'configured-only') return 'warning';
+    if (!res.success) return 'failed';
     return 'passed';
   }
 

@@ -157,15 +157,16 @@ export interface AdminCompanyAIKeyDto {
 }
 
 const COMPANY_CATEGORIES: Array<{ id: string; providers: string[] }> = [
-  { id: 'Text', providers: ['OpenAI', 'Gemini', 'DeepSeek', 'OpenRouter', 'Alibaba', 'Groq'] },
+  { id: 'Text', providers: ['OpenAI', 'Gemini', 'DeepSeek', 'OpenRouter', 'Alibaba'] },
   { id: 'Embedding', providers: ['OpenAI', 'Gemini', 'OpenRouter'] },
   { id: 'Whisper', providers: ['Groq', 'OpenAI', 'OpenRouter'] },
-  { id: 'ImageGen', providers: ['Gemini', 'OpenAI', 'TogetherAI', 'OpenRouter', 'StabilityAI', 'Modal'] },
-  { id: 'Vision', providers: ['Gemini', 'OpenAI'] },
-  { id: 'VideoGen', providers: ['Alibaba', 'TogetherAI', 'OpenRouter', 'Generic', 'Luma', 'Kling', 'Runway', 'Modal'] },
-  { id: 'TTS', providers: ['TogetherAI', 'OpenRouter', 'Gemini', 'OpenAI', 'Azure', 'ElevenLabs', 'Cartesia'] },
+  { id: 'ImageGen', providers: ['Gemini', 'OpenAI', 'TogetherAI', 'OpenRouter', 'StabilityAI', 'Alibaba', 'Modal'] },
+  { id: 'Vision', providers: ['Gemini', 'OpenAI', 'OpenRouter'] },
+  { id: 'VideoGen', providers: ['Alibaba', 'OpenRouter', 'Generic', 'Luma', 'Kling', 'Runway', 'Modal'] },
+  { id: 'TTS', providers: ['TogetherAI', 'OpenRouter', 'Gemini', 'OpenAI', 'Azure', 'ElevenLabs', 'Cartesia', 'Alibaba', 'Modal'] },
   { id: 'StockMedia', providers: ['Pexels', 'Pixabay'] },
-  { id: 'WebSearch', providers: ['Serper', 'Tavily'] }
+  { id: 'WebSearch', providers: ['Serper', 'Tavily'] },
+  { id: 'Music', providers: ['TogetherAI'] }
 ];
 
 @Injectable({ providedIn: 'root' })
@@ -217,7 +218,7 @@ export class AdminCompanyAIKeysApiService {
   }
 
   testAllKeys(): Observable<PipelineTestResultDto[]> {
-    return this.http.get<PipelineTestResultDto[]>(`${ADMIN_API}/admin/ai-keys/test-all`);
+    return this.http.post<PipelineTestResultDto[]>(`${ADMIN_API}/admin/ai-keys/test-all`, {});
   }
 
   reorderKeys(category: string, orderedKeyIds: string[]): Observable<void> {
@@ -255,7 +256,7 @@ export class AdminCompanyAIKeysApiService {
         isEnabled: categoryKeys.length === 0 || categoryKeys.some(key => key.isActive),
         type: category.id,
         apiKeys: categoryKeys.map(key => ({
-          id: key.id ?? crypto.randomUUID(),
+          id: key.id ?? `virtual-${crypto.randomUUID()}`,
           key: key.apiKey ?? '',
           isBlocked: !!key.isBlocked,
           cooldownUntil: key.cooldownUntil ?? null,
