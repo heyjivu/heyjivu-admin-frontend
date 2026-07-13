@@ -36,11 +36,35 @@
 
         <div class="studio-field studio-field--full">
           <label>Category</label>
-          <input
-            class="studio-input"
-            [ngModel]="category"
-            (ngModelChange)="categoryChange.emit($event)"
-            [placeholder]="categoryPlaceholder" />
+          @if (kind === 'soundtrack') {
+            <div class="studio-category-controls">
+              <select
+                class="studio-input"
+                aria-label="Existing soundtrack category"
+                [ngModel]="selectedCategoryOption"
+                (ngModelChange)="onCategoryOptionSelected($event)">
+                <option value="">Select an existing category</option>
+                @for (option of categoryOptions; track option) {
+                  <option [value]="option">{{ option }}</option>
+                }
+                <option [value]="newCategoryValue">New category...</option>
+              </select>
+              @if (showCustomCategoryInput) {
+                <input
+                  class="studio-input"
+                  aria-label="New soundtrack category"
+                  [ngModel]="category"
+                  (ngModelChange)="categoryChange.emit($event)"
+                  [placeholder]="categoryPlaceholder" />
+              }
+            </div>
+          } @else {
+            <input
+              class="studio-input"
+              [ngModel]="category"
+              (ngModelChange)="categoryChange.emit($event)"
+              [placeholder]="categoryPlaceholder" />
+          }
         </div>
 
         <div class="studio-field studio-field--full">

@@ -33,6 +33,11 @@ interface VisibilityItem {
   allowedRoles?: string[] | null;
 }
 
+interface SoundtrackCategoryFolder {
+  name: string;
+  count: number;
+}
+
 @Component({
   selector: 'app-template-studio',
   standalone: true,
@@ -88,6 +93,7 @@ export class TemplateStudioPage implements OnInit, OnDestroy {
   soundtrackStatusFilter = signal<StudioStatusFilter>('all');
   templatePlanFilter = signal<string>('all');
   soundtrackPlanFilter = signal<string>('all');
+  selectedSoundtrackCategory = signal<string | null>(null);
 
   showForm = signal(false);
   editingItemId = signal<string | null>(null);
@@ -139,6 +145,39 @@ export class TemplateStudioPage implements OnInit, OnDestroy {
       this.matchesPlan(item, plan) &&
       this.matchesText(term, [item.name, item.description, item.genre, item.mood, ...(item.tags ?? [])])
     );
+  });
+
+  soundtrackCategoryOptions = computed(() => {
+    const categories = new Map<string, string>();
+    for (const soundtrack of this.soundtracks()) {
+      const category = soundtrack.genre?.trim();
+      if (category && !categories.has(category.toLowerCase())) {
+        categories.set(category.toLowerCase(), category);
+      }
+    }
+    return [...categories.values()].sort((left, right) => left.localeCompare(right));
+  });
+
+  soundtrackCategoryFolders = computed<SoundtrackCategoryFolder[]>(() => {
+    const folders = new Map<string, SoundtrackCategoryFolder>();
+    for (const soundtrack of this.filteredSoundtracks()) {
+      const name = this.soundtrackCategoryName(soundtrack.genre);
+      const key = name.toLowerCase();
+      const folder = folders.get(key);
+      if (folder) {
+        folder.count += 1;
+      } else {
+        folders.set(key, { name, count: 1 });
+      }
+    }
+    return [...folders.values()].sort((left, right) => left.name.localeCompare(right.name));
+  });
+
+  visibleSoundtracks = computed(() => {
+    const category = this.selectedSoundtrackCategory();
+    if (!category) return [];
+    return this.filteredSoundtracks().filter(
+      soundtrack => this.soundtrackCategoryName(soundtrack.genre).toLowerCase() === category.toLowerCase());
   });
 
   ngOnInit() {
@@ -273,7 +312,19 @@ export class TemplateStudioPage implements OnInit, OnDestroy {
   openCreate(kind: StudioKind) {
     if (this.actionBusy()) return;
     this.resetForm(kind);
+    const selectedCategory = this.selectedSoundtrackCategory();
+    if (kind === 'soundtrack' && selectedCategory && selectedCategory !== 'Uncategorized') {
+      this.formSoundtrackGenre = selectedCategory;
+    }
     this.showForm.set(true);
+  }
+
+  openSoundtrackCategory(category: string): void {
+    this.selectedSoundtrackCategory.set(category);
+  }
+
+  closeSoundtrackCategory(): void {
+    this.selectedSoundtrackCategory.set(null);
   }
 
   openEditTemplate(template: AdminTemplateDto) {
@@ -625,6 +676,10 @@ export class TemplateStudioPage implements OnInit, OnDestroy {
   private buildStats(items: Array<{ isActive: boolean }>): { total: number; active: number; inactive: number } {
     const active = items.filter(item => item.isActive).length;
     return { total: items.length, active, inactive: items.length - active };
+  }
+
+  private soundtrackCategoryName(category: string | null | undefined): string {
+    return category?.trim() || 'Uncategorized';
   }
 
   private matchesStatus(isActive: boolean, status: StudioStatusFilter): boolean {

@@ -1431,38 +1431,6 @@
   overflow: hidden;
 }
 
-.pm-referral-form {
-  margin: 18px;
-  padding: 16px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  background: var(--border-subtle);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.pm-referral-search {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: end;
-
-  @media (max-width: 680px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.pm-referral-form-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(180px, 0.8fr);
-  gap: 12px;
-
-  @media (max-width: 760px) {
-    grid-template-columns: 1fr;
-  }
-}
-
 .pm-referral-grid {
   padding: 18px;
 }
@@ -1526,6 +1494,54 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
+}
+
+.pm-referral-modal {
+  width: min(520px, 100%);
+  max-height: calc(100dvh - 48px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  overflow: visible;
+}
+
+.pm-referral-modal__body {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+
+  .pm-field {
+    min-width: 0;
+  }
+
+  .pm-input {
+    padding-left: 14px;
+  }
+}
+
+.pm-referral-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+:host ::ng-deep .pm-referral-email-select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+
+  .p-select-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .pm-proof-modal {

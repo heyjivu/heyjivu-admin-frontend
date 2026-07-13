@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RoleDto } from '../../../users/services/admin.service';
 
@@ -18,13 +18,17 @@ export interface TemplateStudioDialogPlan {
   templateUrl: './template-studio-dialog.component.html',
   styleUrl: '../../template-studio.page.scss'
 })
-export class TemplateStudioDialogComponent {
+export class TemplateStudioDialogComponent implements OnChanges {
+  readonly newCategoryValue = '__new_category__';
+  useCustomCategory = false;
+
   @Input() kind: TemplateStudioDialogKind = 'template';
   @Input() editing = false;
   @Input() saving = false;
   @Input() loadingRoles = false;
   @Input() itemName = '';
   @Input() category = '';
+  @Input() categoryOptions: string[] = [];
   @Input() isActive = true;
   @Input() attachmentFile: File | null = null;
   @Input() attachmentName = '';
@@ -43,6 +47,18 @@ export class TemplateStudioDialogComponent {
   @Output() save = new EventEmitter<void>();
   @Output() cancel = new EventEmitter<void>();
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!changes['category'] && !changes['categoryOptions']) return;
+
+    const matchesExisting = this.categoryOptions.some(
+      option => option.toLowerCase() === this.category.trim().toLowerCase());
+    if (this.category.trim() && !matchesExisting) {
+      this.useCustomCategory = true;
+    } else if (matchesExisting) {
+      this.useCustomCategory = false;
+    }
+  }
+
   get title(): string {
     return `${this.editing ? 'Edit' : 'Create'} ${this.kind === 'template' ? 'Template' : 'Soundtrack'}`;
   }
@@ -55,6 +71,19 @@ export class TemplateStudioDialogComponent {
     return this.kind === 'template'
       ? 'e.g. Commerce, Launch, Thumbnail'
       : 'e.g. Ambient, Launch, Corporate';
+  }
+
+  get selectedCategoryOption(): string {
+    if (this.useCustomCategory || this.categoryOptions.length === 0) {
+      return this.newCategoryValue;
+    }
+
+    return this.categoryOptions.find(
+      option => option.toLowerCase() === this.category.trim().toLowerCase()) ?? '';
+  }
+
+  get showCustomCategoryInput(): boolean {
+    return this.useCustomCategory || this.categoryOptions.length === 0;
   }
 
   get attachmentAccept(): string {
@@ -76,6 +105,11 @@ export class TemplateStudioDialogComponent {
     input.value = '';
     this.attachmentFileChange.emit(null);
     this.attachmentNameChange.emit('');
+  }
+
+  onCategoryOptionSelected(value: string): void {
+    this.useCustomCategory = value === this.newCategoryValue;
+    this.categoryChange.emit(this.useCustomCategory ? '' : value);
   }
 
   togglePlan(code: string) {
