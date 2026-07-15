@@ -14,13 +14,24 @@ export interface TemplateSubmissionDto {
   aspectRatio?: string | null;
   slotCount?: number | null;
   dataJson?: string | null;
-  mediaRefs?: string[] | null;
+  mediaRefs?: Record<string, string> | string[] | null;
+  mediaRefsJson?: string | null;
   musicRef?: string | null;
   previewUrl?: string | null;
   createdAt: string;
   reviewedByUserId?: string | null;
   reviewedAt?: string | null;
   rejectionReason?: string | null;
+  publishedTemplateId?: string | null;
+  replacedTemplateId?: string | null;
+  publishedVersion?: number | null;
+}
+
+export type TemplatePublishMode = 'new' | 'replaceOriginal';
+
+export interface PublishTemplateSubmissionRequest {
+  mode: TemplatePublishMode;
+  sourceTemplateId?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -44,7 +55,13 @@ export class TemplateSubmissionsApiService {
     return this.http.post<void>(`${this.apiUrl}/${encodeURIComponent(id)}/reject`, { reason });
   }
 
-  publishSubmission(id: string): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/${encodeURIComponent(id)}/publish`, {});
+  publishSubmission(
+    id: string,
+    request: PublishTemplateSubmissionRequest
+  ): Observable<TemplateSubmissionDto> {
+    return this.http.post<TemplateSubmissionDto>(
+      `${this.apiUrl}/${encodeURIComponent(id)}/publish`,
+      request
+    );
   }
 }
