@@ -52,14 +52,22 @@
       >
         <!-- Preview area -->
         <div class="submission-preview">
-          <video
-            *ngIf="s.previewUrl; else metaFallback"
-            [src]="s.previewUrl"
-            controls
-            preload="metadata"
-            class="preview-video"
-            aria-label="Template preview"
-          ></video>
+          <ng-container *ngIf="previewFor(s) as preview; else metaFallback">
+            <video
+              *ngIf="preview.kind === 'video'; else imagePreview"
+              [src]="preview.url"
+              controls
+              muted
+              loop
+              playsinline
+              preload="metadata"
+              class="preview-video"
+              aria-label="Template preview"
+            ></video>
+            <ng-template #imagePreview>
+              <img class="preview-image" [src]="preview.url" [alt]="s.name + ' template preview'" />
+            </ng-template>
+          </ng-container>
           <ng-template #metaFallback>
             <div class="meta-fallback">
               <i class="fas fa-film" aria-hidden="true"></i>
@@ -79,12 +87,39 @@
             <em [class]="'status-badge status-' + statusTone(s.status)">{{ s.status }}</em>
           </div>
 
+          <p class="submission-description" *ngIf="submissionDescription(s)">{{ submissionDescription(s) }}</p>
+
           <div class="submission-meta">
             <span *ngIf="s.category"><i class="fas fa-tag" aria-hidden="true"></i> {{ s.category }}</span>
             <span *ngIf="s.aspectRatio"><i class="fas fa-expand" aria-hidden="true"></i> {{ s.aspectRatio }}</span>
             <span *ngIf="s.slotCount != null"><i class="fas fa-layer-group" aria-hidden="true"></i> {{ s.slotCount }} slots</span>
+            <span><i class="fas fa-code-branch" aria-hidden="true"></i> {{ versionLabel(s) }}</span>
             <span><i class="fas fa-calendar" aria-hidden="true"></i> {{ s.createdAt | date:'mediumDate' }}</span>
             <span *ngIf="s.rejectionReason" class="rejection-reason"><i class="fas fa-comment-dots" aria-hidden="true"></i> {{ s.rejectionReason }}</span>
+          </div>
+
+          <div class="submission-tags" *ngIf="submissionTags(s).length">
+            <span *ngFor="let tag of submissionTags(s)">#{{ tag }}</span>
+          </div>
+
+          <div class="default-media" *ngIf="defaultMedia(s).length">
+            <div class="default-media__head">
+              <strong>Default media</strong>
+              <span>{{ defaultMedia(s).length }} replaceable slots</span>
+            </div>
+            <div class="default-media__strip">
+              <article class="default-media__item" *ngFor="let item of defaultMedia(s); let mediaIndex = index">
+                <div class="default-media__thumb">
+                  <ng-container *ngIf="mediaPreviewFor(item) as mediaPreview; else mediaIcon">
+                    <video *ngIf="mediaPreview.kind === 'video'; else mediaImage" [src]="mediaPreview.url" muted loop playsinline preload="metadata"></video>
+                    <ng-template #mediaImage><img [src]="mediaPreview.url" [alt]="item.label || ('Slot ' + (mediaIndex + 1))" /></ng-template>
+                  </ng-container>
+                  <ng-template #mediaIcon><i class="fas" [ngClass]="slotKindIcon(item)" aria-hidden="true"></i></ng-template>
+                  <span>{{ mediaIndex + 1 }}</span>
+                </div>
+                <small>{{ item.label || item.name || ('Slot ' + (mediaIndex + 1)) }}</small>
+              </article>
+            </div>
           </div>
 
           <!-- Actions -->
@@ -117,7 +152,7 @@
               type="button"
               class="action-btn action-btn--publish"
               *ngIf="s.status === 'Approved'"
-              (click)="publish(s)"
+              (click)="openPublishModal(s)"
               [disabled]="isBusy()"
               title="Publish this template"
             >
@@ -163,6 +198,56 @@
       <button type="button" class="action-btn action-btn--reject" (click)="confirmReject()" [disabled]="isRejecting()">
         <i class="fas" [ngClass]="isRejecting() ? 'fa-spinner fa-spin' : 'fa-times'" aria-hidden="true"></i>
         {{ isRejecting() ? 'Rejecting…' : 'Confirm Reject' }}
+      </button>
+    </footer>
+  </section>
+</div>
+
+<!-- Publish / replace-original modal -->
+<div class="modal-backdrop" *ngIf="publishTarget()" (click)="closePublishModal()">
+  <section class="publish-modal" role="dialog" aria-modal="true" aria-labelledby="publishModalTitle" (click)="$event.stopPropagation()">
+    <header>
+      <div>
+        <span class="eyebrow">Immutable Version</span>
+        <h2 id="publishModalTitle">Publish {{ publishTarget()?.name }}</h2>
+        <p>Publish this submission as a new community template or as a new version replacing an existing template.</p>
+      </div>
+      <button type="button" class="icon-btn" (click)="closePublishModal()" [disabled]="isPublishing()" aria-label="Close">
+        <i class="fas fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="publish-body">
+      <div class="publish-mode-grid" role="radiogroup" aria-label="Publication mode">
+        <button type="button" role="radio" [attr.aria-checked]="publishMode() === 'new'" [class.active]="publishMode() === 'new'" (click)="setPublishMode('new')">
+          <i class="fas fa-plus" aria-hidden="true"></i>
+          <span><strong>Publish as new</strong><small>Create a separate community template.</small></span>
+        </button>
+        <button type="button" role="radio" [attr.aria-checked]="publishMode() === 'replaceOriginal'" [class.active]="publishMode() === 'replaceOriginal'" (click)="setPublishMode('replaceOriginal')">
+          <i class="fas fa-code-branch" aria-hidden="true"></i>
+          <span><strong>Replace original</strong><small>Publish a new immutable version and retire the previous live row.</small></span>
+        </button>
+      </div>
+
+      <label class="replace-template-field" *ngIf="publishMode() === 'replaceOriginal'">
+        <span>Original admin template</span>
+        <select [ngModel]="replaceTemplateId()" (ngModelChange)="replaceTemplateId.set($event)" [disabled]="adminTemplatesLoading() || isPublishing()">
+          <option value="">{{ adminTemplatesLoading() ? 'Loading templates...' : 'Select original template' }}</option>
+          <option *ngFor="let template of adminTemplates()" [value]="template.id">{{ template.name }}</option>
+        </select>
+      </label>
+
+      <div class="version-safety-note">
+        <i class="fas fa-shield-halved" aria-hidden="true"></i>
+        <span>Existing projects stay pinned to their original version. Publishing never edits that version in place.</span>
+      </div>
+    </div>
+
+    <footer>
+      <button type="button" class="ghost-btn" (click)="closePublishModal()" [disabled]="isPublishing()">Cancel</button>
+      <button type="button" class="action-btn action-btn--publish" (click)="confirmPublish()" [disabled]="isPublishing() || (publishMode() === 'replaceOriginal' && !replaceTemplateId())">
+        <i class="fas" [ngClass]="isPublishing() ? 'fa-spinner fa-spin' : 'fa-rocket'" aria-hidden="true"></i>
+        {{ isPublishing() ? 'Publishing...' : (publishMode() === 'replaceOriginal' ? 'Publish replacement' : 'Publish template') }}
       </button>
     </footer>
   </section>

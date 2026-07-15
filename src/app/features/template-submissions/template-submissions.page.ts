@@ -6,15 +6,34 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, finalize, of } from 'rxjs';
 import { ToastService } from '../../core/services/toast.service';
 import {
+  PublishTemplateSubmissionRequest,
   SubmissionStatus,
   TemplateSubmissionDto,
   TemplateSubmissionsApiService
 } from './services/template-submissions-api.service';
+import {
+  AdminTemplateDto,
+  TemplateStudioApiService
+} from '../templates/services/template-studio-api.service';
 
 interface StatusFilter {
   value: SubmissionStatus | '';
   label: string;
   icon: string;
+}
+
+interface SubmissionDefaultMedia {
+  label?: string;
+  name?: string;
+  kind?: string;
+  type?: string;
+  assetId?: string;
+  defaultAssetId?: string;
+  previewUrl?: string;
+  url?: string;
+  defaultPreviewUrl?: string;
+  placeholderUrl?: string;
+  [key: string]: unknown;
 }
 
 @Component({
@@ -26,6 +45,7 @@ interface StatusFilter {
 })
 export class TemplateSubmissionsPage implements OnInit {
   private readonly api = inject(TemplateSubmissionsApiService);
+  private readonly templateStudioApi = inject(TemplateStudioApiService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
@@ -51,7 +71,20 @@ export class TemplateSubmissionsPage implements OnInit {
   rejectReason = '';
   readonly isRejecting = signal(false);
 
-  readonly isBusy = computed(() => this.loading() || !!this.actionBusyId() || this.isRejecting());
+  // Publish modal state. Replacing an original always creates a new immutable
+  // version on the backend; the previous row is retained for pinned projects.
+  readonly publishTarget = signal<TemplateSubmissionDto | null>(null);
+  readonly publishMode = signal<'new' | 'replaceOriginal'>('new');
+  readonly replaceTemplateId = signal('');
+  readonly adminTemplates = signal<AdminTemplateDto[]>([]);
+  readonly adminTemplatesLoading = signal(false);
+  readonly isPublishing = signal(false);
+
+  private readonly parsedPayloadCache = new Map<string, Record<string, any>>();
+
+  readonly isBusy = computed(() =>
+    this.loading() || !!this.actionBusyId() || this.isRejecting() || this.isPublishing()
+  );
 
   ngOnInit(): void {
     this.route.queryParamMap.pipe(
@@ -145,23 +178,157 @@ export class TemplateSubmissionsPage implements OnInit {
     });
   }
 
-  publish(submission: TemplateSubmissionDto): void {
-    if (this.isBusy() || this.actionBusyId() === submission.id) return;
+  openPublishModal(submission: TemplateSubmissionDto): void {
+    if (this.isBusy()) return;
+    const sourceTemplateId = this.sourceTemplateId(submission);
+    this.publishTarget.set(submission);
+    this.replaceTemplateId.set(sourceTemplateId ?? '');
+    this.publishMode.set(sourceTemplateId ? 'replaceOriginal' : 'new');
+    this.loadAdminTemplates();
+  }
+
+  closePublishModal(): void {
+    if (this.isPublishing()) return;
+    this.publishTarget.set(null);
+    this.publishMode.set('new');
+    this.replaceTemplateId.set('');
+  }
+
+  confirmPublish(): void {
+    const submission = this.publishTarget();
+    if (!submission || this.isPublishing()) return;
+    const mode = this.publishMode();
+    const sourceTemplateId = this.replaceTemplateId().trim();
+    if (mode === 'replaceOriginal' && !sourceTemplateId) {
+      this.toast.error('Select the original template to replace.');
+      return;
+    }
+
+    const request: PublishTemplateSubmissionRequest = {
+      mode,
+      ...(mode === 'replaceOriginal' ? { sourceTemplateId } : {})
+    };
+
+    this.isPublishing.set(true);
     this.actionBusyId.set(submission.id);
-    this.api.publishSubmission(submission.id).pipe(
+    this.api.publishSubmission(submission.id, request).pipe(
       finalize(() => {
-        if (this.actionBusyId() === submission.id) {
-          this.actionBusyId.set(null);
-        }
+        this.isPublishing.set(false);
+        if (this.actionBusyId() === submission.id) this.actionBusyId.set(null);
       }),
       takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: () => {
-        this.toast.success(`"${submission.name}" published.`);
+        this.toast.success(
+          mode === 'replaceOriginal'
+            ? `"${submission.name}" published as a new replacement version.`
+            : `"${submission.name}" published.`
+        );
         this.patchStatus(submission.id, 'Published');
+        this.publishTarget.set(null);
+        this.publishMode.set('new');
+        this.replaceTemplateId.set('');
       },
-      error: () => this.toast.error('Failed to publish submission.')
+      error: (error: unknown) => {
+        const message = (error as { error?: { error?: string; message?: string } })?.error?.error
+          ?? (error as { error?: { message?: string } })?.error?.message
+          ?? 'Failed to publish submission.';
+        this.toast.error(message);
+      }
     });
+  }
+
+  setPublishMode(mode: 'new' | 'replaceOriginal'): void {
+    this.publishMode.set(mode);
+    if (mode === 'replaceOriginal' && !this.replaceTemplateId()) {
+      this.replaceTemplateId.set(this.sourceTemplateId(this.publishTarget()) ?? '');
+    }
+  }
+
+  previewFor(submission: TemplateSubmissionDto): { url: string; kind: 'video' | 'image' } | null {
+    const payload = this.payload(submission);
+    const candidates = [
+      submission.previewUrl,
+      payload['previewUrl'],
+      payload['previewVideoUrl'],
+      payload['coverUrl'],
+      payload['thumbnailUrl'],
+      payload['templateContract']?.['previewUrl'],
+      payload['templateContract']?.['previewAsset']?.['previewUrl'],
+      ...this.defaultMedia(submission).map(item => item.previewUrl || item.url)
+    ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+    const url = candidates[0];
+    if (!url) return null;
+    const explicitKind = String(
+      payload['previewKind'] || payload['templateContract']?.['previewAsset']?.['kind'] || ''
+    ).toLowerCase();
+    const isImage = explicitKind === 'image' || /\.(png|jpe?g|webp|gif)(\?|$)/i.test(url);
+    return { url, kind: isImage ? 'image' : 'video' };
+  }
+
+  defaultMedia(submission: TemplateSubmissionDto): SubmissionDefaultMedia[] {
+    const payload = this.payload(submission);
+    const contract = payload['templateContract'] ?? {};
+    const direct = payload['defaultMedia'] ?? contract['defaultMedia'];
+    if (Array.isArray(direct)) {
+      return direct.filter(item => item && typeof item === 'object') as SubmissionDefaultMedia[];
+    }
+
+    const slots = payload['replaceableSlots'] ?? contract['replaceableSlots'];
+    if (!Array.isArray(slots)) return [];
+    return slots.map((slot: Record<string, any>, index: number): SubmissionDefaultMedia => ({
+      ...slot,
+      label: slot['label'] || slot['name'] || `Slot ${index + 1}`,
+      kind: slot['kind'] || slot['type'] || 'image',
+      assetId: slot['defaultAssetId'],
+      previewUrl: slot['defaultPreviewUrl'] || slot['previewUrl'] || slot['placeholderUrl']
+    }));
+  }
+
+  mediaPreviewFor(item: SubmissionDefaultMedia): { url: string; kind: 'video' | 'image' } | null {
+    const url = [item.previewUrl, item.url, item.defaultPreviewUrl, item.placeholderUrl]
+      .find(value => typeof value === 'string' && value.trim().length > 0);
+    if (!url) return null;
+    const kind = String(item.kind || item.type || '').toLowerCase();
+    return { url, kind: kind === 'video' || /\.(mp4|webm|mov)(\?|$)/i.test(url) ? 'video' : 'image' };
+  }
+
+  submissionDescription(submission: TemplateSubmissionDto): string {
+    const payload = this.payload(submission);
+    return String(payload['description'] || payload['templateContract']?.['description'] || '').trim();
+  }
+
+  submissionTags(submission: TemplateSubmissionDto): string[] {
+    const payload = this.payload(submission);
+    const tags = payload['tags'] ?? payload['templateContract']?.['tags'];
+    return Array.isArray(tags) ? tags.map(String).filter(Boolean) : [];
+  }
+
+  sourceTemplateId(submission: TemplateSubmissionDto | null): string | null {
+    if (!submission) return null;
+    const payload = this.payload(submission);
+    const value = payload['sourceTemplateId']
+      ?? payload['revisionOfTemplateId']
+      ?? payload['sourceAdminTemplateId']
+      ?? payload['templateVersion']?.['sourceTemplateId']
+      ?? payload['templateContract']?.['templateVersion']?.['sourceTemplateId'];
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+  }
+
+  versionLabel(submission: TemplateSubmissionDto): string {
+    const payload = this.payload(submission);
+    const value = payload['revisionNumber']
+      ?? payload['templateVersion']?.['versionNumber']
+      ?? payload['templateContract']?.['templateVersion']?.['versionNumber'];
+    const version = Number(value);
+    return Number.isFinite(version) && version > 0 ? `Version ${version}` : 'New template';
+  }
+
+  slotKindIcon(item: SubmissionDefaultMedia): string {
+    const kind = String(item.kind || item.type || '').toLowerCase();
+    if (kind === 'video') return 'fa-video';
+    if (kind === 'audio') return 'fa-music';
+    return 'fa-image';
   }
 
   isActionBusy(id: string): boolean {
@@ -183,5 +350,32 @@ export class TemplateSubmissionsPage implements OnInit {
     this.submissions.update(items =>
       items.map(item => item.id === id ? { ...item, status } : item)
     );
+  }
+
+  private loadAdminTemplates(): void {
+    if (this.adminTemplatesLoading() || this.adminTemplates().length) return;
+    this.adminTemplatesLoading.set(true);
+    this.templateStudioApi.getTemplates({ status: 'all' }).pipe(
+      catchError(() => of([] as AdminTemplateDto[])),
+      finalize(() => this.adminTemplatesLoading.set(false)),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(items => this.adminTemplates.set(items));
+  }
+
+  private payload(submission: TemplateSubmissionDto): Record<string, any> {
+    const cached = this.parsedPayloadCache.get(submission.id);
+    if (cached && cached['__source'] === submission.dataJson) return cached;
+    try {
+      const parsed = JSON.parse(submission.dataJson || '{}');
+      const value = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? { ...parsed, __source: submission.dataJson }
+        : { __source: submission.dataJson };
+      this.parsedPayloadCache.set(submission.id, value);
+      return value;
+    } catch {
+      const value = { __source: submission.dataJson };
+      this.parsedPayloadCache.set(submission.id, value);
+      return value;
+    }
   }
 }
