@@ -88,11 +88,8 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       icon: 'fas fa-comment-dots',
       description: 'Language models for script writing, narration & content generation',
       providers: [
-        { name: 'OpenAI' },
-        { name: 'Gemini' },
         { name: 'DeepSeek' },
-        { name: 'OpenRouter' },
-        { name: 'Alibaba' }
+        { name: 'OpenRouter' }
       ]
     },
     {
@@ -101,8 +98,6 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       icon: 'fas fa-project-diagram',
       description: 'Semantic vectors for memory, recommendations, and similarity search',
       providers: [
-        { name: 'OpenAI' },
-        { name: 'Gemini' },
         { name: 'OpenRouter' }
       ]
     },
@@ -113,7 +108,6 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       description: 'Speech-to-text transcription models for audio processing',
       providers: [
         { name: 'Groq' },
-        { name: 'OpenAI' },
         { name: 'OpenRouter' }
       ]
     },
@@ -123,13 +117,8 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       icon: 'fas fa-image',
       description: 'AI engines for thumbnails, graphics, and B-roll visuals',
       providers: [
-        { name: 'Gemini' },
-        { name: 'OpenAI' },
-        { name: 'TogetherAI' },
         { name: 'OpenRouter' },
-        { name: 'StabilityAI' },
-        { name: 'Alibaba' },
-        { name: 'Modal' }
+        { name: 'Fal' }
       ]
     },
     {
@@ -139,7 +128,6 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       description: 'Visual analysis and content understanding models',
       providers: [
         { name: 'Gemini' },
-        { name: 'OpenAI' },
         { name: 'OpenRouter' }
       ]
     },
@@ -149,13 +137,8 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       icon: 'fas fa-film',
       description: 'AI video generation providers for 5-second clips',
       providers: [
-        { name: 'Alibaba' },
         { name: 'OpenRouter' },
-        { name: 'Generic' },
-        { name: 'Luma' },
-        { name: 'Kling' },
-        { name: 'Runway' },
-        { name: 'Modal' }
+        { name: 'Fal' }
       ]
     },
     {
@@ -164,17 +147,11 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       icon: 'fas fa-microphone-alt',
       description: 'AI voiceovers and speech synthesis engines',
       providers: [
-        { name: 'TogetherAI' },
-        { name: 'OpenRouter' },
-        { name: 'Gemini' },
-        { name: 'OpenAI' },
-        { name: 'Azure' },
-        { name: 'ElevenLabs' },
-        { name: 'Cartesia' },
-        { name: 'Alibaba' },
-        { name: 'Modal' }
+        { name: 'OpenRouter' }
       ]
     },
+    { id: 'ImageEdit', name: 'Image Edit', icon: 'fas fa-wand-magic-sparkles', description: 'Remix, inpaint, and compose images', providers: [{ name: 'OpenRouter' }, { name: 'Fal' }] },
+    { id: 'BackgroundRemoval', name: 'Background Removal', icon: 'fas fa-scissors', description: 'Create transparent subject cutouts', providers: [{ name: 'Fal' }] },
     {
       id: 'StockMedia',
       name: 'Stock Media',
@@ -201,9 +178,12 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
       icon: 'fas fa-music',
       description: 'AI-generated music and background audio',
       providers: [
-        { name: 'TogetherAI' }
+        { name: 'Fal' }
       ]
-    }
+    },
+    { id: 'SoundEffects', name: 'Sound Effects', icon: 'fas fa-wave-square', description: 'Generate Foley and sound effects', providers: [{ name: 'Fal' }] },
+    { id: 'MediaEnhancement', name: 'Media Enhancement', icon: 'fas fa-wand-magic', description: 'Upscale and restore image or video', providers: [{ name: 'Fal' }] },
+    { id: 'LipSync', name: 'Lip Sync', icon: 'fas fa-face-smile', description: 'Synchronize speech to face video', providers: [{ name: 'Fal' }] }
   ];
 
   ngOnInit() {
