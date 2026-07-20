@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { forkJoin, of } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
@@ -157,25 +157,42 @@ export interface AdminCompanyAIKeyDto {
 }
 
 const COMPANY_CATEGORIES: Array<{ id: string; providers: string[] }> = [
-  { id: 'Text', providers: ['OpenAI', 'Gemini', 'DeepSeek', 'OpenRouter', 'Alibaba'] },
-  { id: 'Embedding', providers: ['OpenAI', 'Gemini', 'OpenRouter'] },
-  { id: 'Whisper', providers: ['Groq', 'OpenAI', 'OpenRouter'] },
-  { id: 'ImageGen', providers: ['Gemini', 'OpenAI', 'TogetherAI', 'OpenRouter', 'StabilityAI', 'Alibaba', 'Modal'] },
-  { id: 'Vision', providers: ['Gemini', 'OpenAI', 'OpenRouter'] },
-  { id: 'VideoGen', providers: ['Alibaba', 'OpenRouter', 'Generic', 'Luma', 'Kling', 'Runway', 'Modal'] },
-  { id: 'TTS', providers: ['TogetherAI', 'OpenRouter', 'Gemini', 'OpenAI', 'Azure', 'ElevenLabs', 'Cartesia', 'Alibaba', 'Modal'] },
+  { id: 'Text', providers: ['DeepSeek', 'OpenRouter'] },
+  { id: 'Whisper', providers: ['Groq', 'OpenRouter'] },
+  { id: 'ImageGen', providers: ['OpenRouter', 'Fal'] },
+  { id: 'ImageEdit', providers: ['OpenRouter', 'Fal'] },
+  { id: 'BackgroundRemoval', providers: ['Fal'] },
+  { id: 'Vision', providers: ['Gemini', 'OpenRouter'] },
+  { id: 'VideoGen', providers: ['OpenRouter', 'Fal'] },
+  { id: 'TTS', providers: ['OpenRouter'] },
+  { id: 'Embedding', providers: ['OpenRouter'] },
+  { id: 'Music', providers: ['Fal'] },
+  { id: 'SoundEffects', providers: ['Fal'] },
+  { id: 'MediaEnhancement', providers: ['Fal'] },
+  { id: 'LipSync', providers: ['Fal'] },
   { id: 'StockMedia', providers: ['Pexels', 'Pixabay'] },
-  { id: 'WebSearch', providers: ['Serper', 'Tavily'] },
-  { id: 'Music', providers: ['TogetherAI'] }
+  { id: 'WebSearch', providers: ['Serper', 'Tavily'] }
 ];
+
+interface AiCatalogProviderDto { provider: string; credentialScopes: string[]; localAi: boolean; }
+interface AiCatalogCategoryDto { category: string; providers: AiCatalogProviderDto[]; }
 
 @Injectable({ providedIn: 'root' })
 export class AdminCompanyAIKeysApiService {
   private http = inject(HttpClient);
 
   getCompanyAIKeySettings(): Observable<CompanyAIKeySettingsDto[]> {
-    return this.http.get<AdminCompanyAIKeyDto[]>(`${ADMIN_API}/admin/ai-keys`)
-      .pipe(map(keys => this.toCompanyAIKeySettings(keys)));
+    const catalog$ = this.http.get<AiCatalogCategoryDto[]>(`${ADMIN_API}/admin/ai-keys/catalog`).pipe(
+      map(rows => rows.map(row => ({
+        id: row.category,
+        providers: row.providers
+          .filter(provider => !provider.localAi && provider.credentialScopes.some(scope => scope === 'organization' || scope === 'company'))
+          .map(provider => provider.provider)
+      }))),
+      catchError(() => of(COMPANY_CATEGORIES))
+    );
+    return forkJoin({ keys: this.http.get<AdminCompanyAIKeyDto[]>(`${ADMIN_API}/admin/ai-keys`), catalog: catalog$ })
+      .pipe(map(({ keys, catalog }) => this.toCompanyAIKeySettings(keys, catalog)));
   }
 
   saveCompanyAIKeySettings(settings: SaveCompanyAIKeySettingsRequest): Observable<void> {
@@ -241,8 +258,8 @@ export class AdminCompanyAIKeysApiService {
     return this.http.post<ByocActionResponse>(`${ADMIN_API}/admin/ai-keys/byoc/modal/${id}/deploy`, request);
   }
 
-  private toCompanyAIKeySettings(keys: AdminCompanyAIKeyDto[]): CompanyAIKeySettingsDto[] {
-    return COMPANY_CATEGORIES.map(category => {
+  private toCompanyAIKeySettings(keys: AdminCompanyAIKeyDto[], categories = COMPANY_CATEGORIES): CompanyAIKeySettingsDto[] {
+    return categories.map(category => {
       const categoryKeys = keys
         .filter(key => this.sameCategory(key.category, category.id))
         .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));

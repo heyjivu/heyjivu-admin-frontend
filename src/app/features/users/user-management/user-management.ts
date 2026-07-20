@@ -138,6 +138,16 @@ export class UserManagementComponent implements OnInit {
       max: 10000
     },
     {
+      key: 'StockMediaSearchDaily',
+      label: 'Stock Media Searches Daily',
+      overrideLabel: 'Stock Media Searches Daily Override',
+      description: 'Combined Pexels and Pixabay image/video searches per UTC day. Use -1 for unlimited BYOK roles.',
+      unitLabel: 'per UTC day',
+      defaultValue: 50,
+      min: -1,
+      max: 10000
+    },
+    {
       key: 'JivuCommandQueue',
       label: 'Jivu Command Queue',
       overrideLabel: 'Jivu Command Queue Override',
@@ -1327,6 +1337,13 @@ export class UserManagementComponent implements OnInit {
 
     if (key === 'JivuCommandQueue') {
       if (roleKey.includes('byok') || roleKey.includes('expert')) return -1;
+      return 10;
+    }
+
+    if (key === 'StockMediaSearchDaily') {
+      if (roleKey.includes('byok') || roleKey.includes('expert')) return -1;
+      if (roleKey.includes('agency') || roleKey.includes('premium')) return 100;
+      if (roleKey.includes('social') || roleKey.includes('student') || roleKey.includes('creator') || roleKey.includes('merchant')) return 50;
       return 10;
     }
 
