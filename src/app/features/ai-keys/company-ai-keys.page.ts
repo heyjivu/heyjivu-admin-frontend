@@ -52,6 +52,27 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
   readonly modalTokenHelp = 'Use a Modal API service-user token, not the Modal Secrets tab. Go to https://modal.com/settings/tokens/service-users, click New Service User, copy MODAL_TOKEN_ID and MODAL_TOKEN_SECRET. The secret is shown only once.';
   readonly huggingFaceTokenHelp = 'Use a Hugging Face access token with read permission after accepting any gated model license, such as FLUX.1 Kontext.';
   readonly videoDurationChoices = [5, 10, 15, 20];
+  private readonly pricingModes = {
+    imagegen: [
+      { value: 'per_image', label: 'Per image' },
+      { value: 'tokens', label: 'Tokens' }
+    ],
+    videogen: [
+      { value: 'per_video', label: 'Per video' },
+      { value: 'per_second', label: 'Per second' }
+    ],
+    tts: [
+      { value: 'per_character', label: 'Per character' },
+      { value: 'per_audio_second', label: 'Per audio second' },
+      { value: 'tokens', label: 'Tokens' }
+    ],
+    audio: [{ value: 'per_audio_second', label: 'Per audio second' }],
+    request: [
+      { value: 'per_request', label: 'Per request' },
+      { value: 'per_asset', label: 'Per asset' }
+    ],
+    tokens: [{ value: 'tokens', label: 'Tokens' }]
+  } satisfies Record<string, { value: ModelBillingMode; label: string }[]>;
   private readonly capTextToImage = 'TextToImage';
   private readonly capImageReferenceToImage = 'ImageReferenceToImage';
   private readonly capMultiImageReferenceToImage = 'MultiImageReferenceToImage';
@@ -409,7 +430,10 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
         capabilities: key.capabilities ?? null,
         pricingProfile: key.pricingProfile ?? null
       };
-      setting.apiKeys = setting.apiKeys.map(existing => existing.id === rowId ? newKey : existing);
+      const virtualKeyExistsInSettings = setting.apiKeys.some(existing => existing.id === rowId);
+      setting.apiKeys = virtualKeyExistsInSettings
+        ? setting.apiKeys.map(existing => existing.id === rowId ? newKey : existing)
+        : [...setting.apiKeys, newKey];
       keyToSave = newKey;
     } else {
       key.key = key.key?.trim() ?? '';
@@ -972,37 +996,24 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
   pricingModeOptions(category: string): { value: ModelBillingMode; label: string }[] {
     const normalized = this.normalizedCategory(category);
     if (normalized === 'imagegen') {
-      return [
-        { value: 'per_image', label: 'Per image' },
-        { value: 'tokens', label: 'Tokens' }
-      ];
+      return this.pricingModes.imagegen;
     }
     if (normalized === 'videogen') {
-      return [
-        { value: 'per_video', label: 'Per video' },
-        { value: 'per_second', label: 'Per second' }
-      ];
+      return this.pricingModes.videogen;
     }
     if (normalized === 'tts') {
-      return [
-        { value: 'per_character', label: 'Per character' },
-        { value: 'per_audio_second', label: 'Per audio second' },
-        { value: 'tokens', label: 'Tokens' }
-      ];
+      return this.pricingModes.tts;
     }
     if (normalized === 'whisper') {
-      return [{ value: 'per_audio_second', label: 'Per audio second' }];
+      return this.pricingModes.audio;
     }
     if (normalized === 'music') {
-      return [{ value: 'per_audio_second', label: 'Per audio second' }];
+      return this.pricingModes.audio;
     }
     if (normalized === 'stockmedia' || normalized === 'websearch' || normalized === 'search') {
-      return [
-        { value: 'per_request', label: 'Per request' },
-        { value: 'per_asset', label: 'Per asset' }
-      ];
+      return this.pricingModes.request;
     }
-    return [{ value: 'tokens', label: 'Tokens' }];
+    return this.pricingModes.tokens;
   }
 
   requiresPricingProfile(key: CompanyAIKeyDto): boolean {
@@ -1010,24 +1021,36 @@ export class CompanyAIKeysPage implements OnInit, OnDestroy {
   }
 
   ensurePricingProfile(key: CompanyAIKeyDto, setting: CompanyAIKeySettingsDto): AIModelPricingProfileDto {
-    const normalizedBillingMode = this.normalizeBillingMode(key.pricingProfile?.billingMode, setting.type);
-    key.pricingProfile = {
-      billingMode: normalizedBillingMode ?? this.defaultBillingMode(setting.type),
-      inputPricePerMillion: key.pricingProfile?.inputPricePerMillion ?? null,
-      outputPricePerMillion: key.pricingProfile?.outputPricePerMillion ?? null,
-      imagePricePerUnit: key.pricingProfile?.imagePricePerUnit ?? null,
-      characterPricePerMillion: key.pricingProfile?.characterPricePerMillion ?? null,
-      audioPricePerSecond: key.pricingProfile?.audioPricePerSecond ?? null,
-      videoPricePerSecond: key.pricingProfile?.videoPricePerSecond ?? null,
-      videoPricePerUnit: key.pricingProfile?.videoPricePerUnit ?? null,
-      requestPricePerUnit: key.pricingProfile?.requestPricePerUnit ?? null,
+    const existing = key.pricingProfile;
+    if (existing) {
+      // This helper is evaluated repeatedly by the template. Keep the same object
+      // reference so a read cannot trigger another Angular change-detection pass.
+      if (!this.normalizeBillingMode(existing.billingMode, setting.type)) {
+        existing.billingMode = this.defaultBillingMode(setting.type);
+      }
+      existing.supportedDurationsSeconds ??= this.supportedDurationsFor(key, setting);
+      existing.supportedVoices ??= [];
+      return existing;
+    }
+
+    const profile: AIModelPricingProfileDto = {
+      billingMode: this.defaultBillingMode(setting.type),
+      inputPricePerMillion: null,
+      outputPricePerMillion: null,
+      imagePricePerUnit: null,
+      characterPricePerMillion: null,
+      audioPricePerSecond: null,
+      videoPricePerSecond: null,
+      videoPricePerUnit: null,
+      requestPricePerUnit: null,
       supportedDurationsSeconds: this.supportedDurationsFor(key, setting),
-      supportedVoices: key.pricingProfile?.supportedVoices ?? [],
-      freeQuota: key.pricingProfile?.freeQuota ?? null,
-      freeQuotaResetPeriod: key.pricingProfile?.freeQuotaResetPeriod ?? null,
-      pricingSource: key.pricingProfile?.pricingSource ?? null
+      supportedVoices: [],
+      freeQuota: null,
+      freeQuotaResetPeriod: null,
+      pricingSource: null
     };
-    return key.pricingProfile;
+    key.pricingProfile = profile;
+    return profile;
   }
 
   setPricingField(
