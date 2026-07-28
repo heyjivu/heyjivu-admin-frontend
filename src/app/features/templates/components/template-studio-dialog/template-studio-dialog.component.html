@@ -86,6 +86,24 @@
               </button>
             }
           </div>
+          @if (kind === 'soundtrack') {
+            @if (durationReading) {
+              <div class="studio-inline-note">
+                <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                Detecting audio duration...
+              </div>
+            } @else if (durationError) {
+              <div class="studio-inline-note studio-inline-note--error">
+                <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
+                {{ durationError }}
+              </div>
+            } @else if (durationSeconds && durationSeconds > 0) {
+              <div class="studio-inline-note">
+                <i class="fas fa-clock" aria-hidden="true"></i>
+                Duration: {{ formatDuration(durationSeconds) }}
+              </div>
+            }
+          }
           @if (editing && !attachmentName) {
             <div class="studio-inline-note">Existing attachment remains unchanged unless you choose a new one.</div>
           }
