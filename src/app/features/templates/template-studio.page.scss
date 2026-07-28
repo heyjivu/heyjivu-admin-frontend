@@ -673,6 +673,11 @@
   background: var(--text-alpha-035);
   color: var(--text3);
   font-size: 12px;
+
+  &--error {
+    color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 10%, transparent);
+  }
 }
 
 .studio-file-input {

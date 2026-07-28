@@ -545,8 +545,9 @@ export class TemplateStudioPage implements OnInit, OnDestroy {
 
   formatDuration(seconds?: number | null): string {
     if (seconds === null || seconds === undefined || Number.isNaN(seconds)) return '--';
-    const minutes = Math.floor(seconds / 60);
-    const remainder = Math.round(seconds % 60).toString().padStart(2, '0');
+    const totalSeconds = Math.max(0, Math.round(seconds));
+    const minutes = Math.floor(totalSeconds / 60);
+    const remainder = (totalSeconds % 60).toString().padStart(2, '0');
     return `${minutes}:${remainder}`;
   }
 

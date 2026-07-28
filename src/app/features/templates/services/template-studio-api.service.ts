@@ -389,7 +389,9 @@ export class TemplateStudioApiService {
   }
 
   private numberFrom(source: Record<string, any>, key: string): number | null {
-    const parsed = Number(source[key]);
+    const value = source[key];
+    if (value === null || value === undefined || value === '') return null;
+    const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
   }
 
@@ -406,9 +408,10 @@ export class TemplateStudioApiService {
 
   private secondsToDuration(seconds?: number | null): string {
     const value = Number(seconds);
-    if (!Number.isFinite(value) || value <= 0) return '0:30';
-    const minutes = Math.floor(value / 60);
-    const remainder = Math.round(value % 60).toString().padStart(2, '0');
+    if (!Number.isFinite(value) || value <= 0) return '';
+    const totalSeconds = Math.max(1, Math.round(value));
+    const minutes = Math.floor(totalSeconds / 60);
+    const remainder = (totalSeconds % 60).toString().padStart(2, '0');
     return `${minutes}:${remainder}`;
   }
 
