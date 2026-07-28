@@ -423,6 +423,8 @@
       [(isActive)]="formIsActive"
       [(attachmentName)]="formAttachmentName"
       [(attachmentFile)]="formAttachmentFile"
+      [durationSeconds]="formDurationSeconds"
+      (durationSecondsChange)="formDurationSeconds = $event"
       [planOptions]="planOptions"
       [roles]="roles()"
       [allowedPlanCodes]="formAllowedPlanCodes"
